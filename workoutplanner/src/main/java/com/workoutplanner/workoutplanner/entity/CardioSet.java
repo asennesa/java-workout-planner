@@ -3,6 +3,7 @@ package com.workoutplanner.workoutplanner.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import org.hibernate.validator.constraints.Length;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "cardio_sets")
@@ -12,7 +13,7 @@ public class CardioSet {
     private WorkoutExercise workoutExercise;
     private Integer setNumber;
     private Integer durationInSeconds;
-    private Double distance;
+    private BigDecimal distance;
     private String distanceUnit;
     private Integer restTimeInSeconds;
     private String notes;
@@ -72,11 +73,11 @@ public class CardioSet {
     @DecimalMin(value = "0.0", message = "Distance must be non-negative")
     @DecimalMax(value = "999999.99", message = "Distance cannot exceed 999999.99")
     @Digits(integer = 6, fraction = 2, message = "Distance must have at most 6 integer digits and 2 decimal places")
-    public Double getDistance() {
+    public BigDecimal getDistance() {
         return distance;
     }
 
-    public void setDistance(Double distance) {
+    public void setDistance(BigDecimal distance) {
         this.distance = distance;
     }
 

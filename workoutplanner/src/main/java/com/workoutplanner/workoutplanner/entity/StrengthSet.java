@@ -3,6 +3,7 @@ package com.workoutplanner.workoutplanner.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import org.hibernate.validator.constraints.Length;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "strength_sets")
@@ -12,7 +13,7 @@ public class StrengthSet {
     private WorkoutExercise workoutExercise;
     private Integer setNumber;
     private Integer reps;
-    private Double weight;
+    private BigDecimal weight;
     private Integer restTimeInSeconds;
     private String notes;
     private Boolean completed;
@@ -71,11 +72,11 @@ public class StrengthSet {
     @DecimalMin(value = "0.0", message = "Weight must be non-negative")
     @DecimalMax(value = "999.99", message = "Weight cannot exceed 999.99")
     @Digits(integer = 3, fraction = 2, message = "Weight must have at most 3 integer digits and 2 decimal places")
-    public Double getWeight() {
+    public BigDecimal getWeight() {
         return weight;
     }
 
-    public void setWeight(Double weight) {
+    public void setWeight(BigDecimal weight) {
         this.weight = weight;
     }
 
