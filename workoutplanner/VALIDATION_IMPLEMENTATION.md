@@ -87,19 +87,14 @@ The validation system uses **Bean Validation (JSR-303/380)** with **Hibernate Va
 
 ## Custom Validators
 
-### 1. StrongPassword
-- **Purpose**: Validates password strength
-- **Requirements**: 8+ characters, uppercase, lowercase, digit, special character
-- **Usage**: Applied to password fields (when not hashed)
-
-### 2. ValidWorkoutDates
+### 1. ValidWorkoutDates
 - **Purpose**: Validates workout session date logic
 - **Rules**: 
   - startedAt cannot be in the future
   - completedAt cannot be before startedAt
   - completedAt cannot be in the future
 
-### 3. ValidExerciseType
+### 2. ValidExerciseType
 - **Purpose**: Ensures exercise type matches set types
 - **Rules**:
   - STRENGTH exercises → strength sets only

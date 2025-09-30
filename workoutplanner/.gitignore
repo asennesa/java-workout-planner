@@ -137,3 +137,4 @@ docker-compose.override.yml
 
 # Documentation
 HELP.md
+DOCKER_COMMANDS.md
