@@ -97,6 +97,7 @@ application-dev.properties
 application-prod.properties
 *.env
 .env
+test-env.sh
 
 # Database
 *.db
@@ -138,3 +139,4 @@ docker-compose.override.yml
 # Documentation
 HELP.md
 DOCKER_COMMANDS.md
+MAVEN_COMMANDS.md
