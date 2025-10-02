@@ -3,6 +3,7 @@ package com.workoutplanner.workoutplanner.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import org.hibernate.validator.constraints.Length;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
@@ -14,6 +15,8 @@ public class User {
     private String email;
     private String firstName;
     private String lastName;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     public User() {
         // Default constructor
@@ -88,6 +91,38 @@ public class User {
 
     public void setLastName(String lastName) {
         this.lastName = lastName;
+    }
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    @Column(name = "updated_at", nullable = false)
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    /**
+     * JPA lifecycle callbacks for automatic timestamp management
+     */
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 
 }

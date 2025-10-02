@@ -66,4 +66,20 @@ public class ValidationExceptionHandler {
         
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
+    
+    /**
+     * Handles illegal argument exceptions (e.g., duplicate username/email).
+     * 
+     * @param ex IllegalArgumentException containing business logic error
+     * @return ResponseEntity with error details
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(IllegalArgumentException ex) {
+        Map<String, Object> response = new HashMap<>();
+        
+        response.put("message", ex.getMessage());
+        response.put("status", HttpStatus.CONFLICT.value());
+        
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    }
 }

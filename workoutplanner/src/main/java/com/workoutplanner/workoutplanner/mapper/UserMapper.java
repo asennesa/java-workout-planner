@@ -27,14 +27,14 @@ public interface UserMapper {
      */
     @Mapping(target = "userId", ignore = true) // Will be set by JPA
     @Mapping(target = "passwordHash", ignore = true) // Will be set in service layer
+    @Mapping(target = "createdAt", ignore = true) // Will be set by JPA @PrePersist
+    @Mapping(target = "updatedAt", ignore = true) // Will be set by JPA @PrePersist
     User toEntity(CreateUserRequest createUserRequest);
 
     /**
      * Maps User entity to UserResponse DTO.
      * Excludes sensitive information like passwordHash
      */
-    @Mapping(target = "createdAt", ignore = true) // Add if you have audit fields
-    @Mapping(target = "updatedAt", ignore = true) // Add if you have audit fields
     UserResponse toResponse(User user);
 
     /**
@@ -48,5 +48,7 @@ public interface UserMapper {
      */
     @Mapping(target = "userId", ignore = true) // Never update the ID
     @Mapping(target = "passwordHash", ignore = true) // Handle password updates separately
+    @Mapping(target = "createdAt", ignore = true) // Never update createdAt
+    @Mapping(target = "updatedAt", ignore = true) // Will be set by JPA @PreUpdate
     void updateEntity(CreateUserRequest createUserRequest, @MappingTarget User user);
 }
