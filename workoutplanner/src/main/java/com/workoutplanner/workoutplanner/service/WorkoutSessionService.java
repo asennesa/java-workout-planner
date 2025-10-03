@@ -22,12 +22,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Service class for managing workout session operations.
+ * Service implementation for managing workout session operations.
  * Handles business logic for workout sessions, exercises, and sets.
  */
 @Service
 @Transactional
-public class WorkoutSessionService {
+public class WorkoutSessionService implements WorkoutSessionServiceInterface {
 
     @Autowired
     private WorkoutSessionRepository workoutSessionRepository;

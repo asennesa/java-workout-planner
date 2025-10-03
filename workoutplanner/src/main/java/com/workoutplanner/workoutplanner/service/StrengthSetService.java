@@ -14,12 +14,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Service class for managing strength set operations.
+ * Service implementation for managing strength set operations.
  * Handles business logic for strength sets.
  */
 @Service
 @Transactional
-public class StrengthSetService {
+public class StrengthSetService implements StrengthSetServiceInterface {
 
     @Autowired
     private StrengthSetRepository strengthSetRepository;
