@@ -2,9 +2,15 @@ package com.workoutplanner.workoutplanner.mapper;
 
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutRequest;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutResponse;
+import com.workoutplanner.workoutplanner.dto.response.WorkoutExerciseResponse;
+import com.workoutplanner.workoutplanner.dto.response.StrengthSetResponse;
+import com.workoutplanner.workoutplanner.dto.response.CardioSetResponse;
+import com.workoutplanner.workoutplanner.dto.response.FlexibilitySetResponse;
 import com.workoutplanner.workoutplanner.entity.WorkoutSession;
 import com.workoutplanner.workoutplanner.entity.WorkoutExercise;
-import com.workoutplanner.workoutplanner.dto.response.WorkoutExerciseResponse;
+import com.workoutplanner.workoutplanner.entity.StrengthSet;
+import com.workoutplanner.workoutplanner.entity.CardioSet;
+import com.workoutplanner.workoutplanner.entity.FlexibilitySet;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
@@ -39,12 +45,12 @@ public interface WorkoutMapper {
     @Mapping(target = "userId", source = "user.userId")
     @Mapping(target = "userFullName", expression = "java(workoutSession.getUser().getFirstName() + \" \" + workoutSession.getUser().getLastName())")
     @Mapping(target = "workoutExercises", source = "workoutExercises")
-    WorkoutResponse toResponse(WorkoutSession workoutSession);
+    WorkoutResponse toWorkoutResponse(WorkoutSession workoutSession);
 
     /**
      * Maps list of WorkoutSession entities to list of WorkoutResponse DTOs
      */
-    List<WorkoutResponse> toResponseList(List<WorkoutSession> workoutSessions);
+    List<WorkoutResponse> toWorkoutResponseList(List<WorkoutSession> workoutSessions);
 
     /**
      * Maps WorkoutExercise entity to WorkoutExerciseResponse DTO
@@ -66,4 +72,43 @@ public interface WorkoutMapper {
     @Mapping(target = "user", ignore = true) // Handle user updates separately
     @Mapping(target = "workoutExercises", ignore = true) // Handle exercises separately
     void updateEntity(CreateWorkoutRequest createWorkoutRequest, @MappingTarget WorkoutSession workoutSession);
+
+    // ========== STRENGTH SET MAPPINGS ==========
+
+    /**
+     * Maps StrengthSet entity to StrengthSetResponse DTO
+     */
+    @Mapping(target = "workoutExerciseId", source = "workoutExercise.workoutExerciseId")
+    StrengthSetResponse toStrengthSetResponse(StrengthSet strengthSet);
+
+    /**
+     * Maps list of StrengthSet entities to list of StrengthSetResponse DTOs
+     */
+    List<StrengthSetResponse> toStrengthSetResponseList(List<StrengthSet> strengthSets);
+
+    // ========== CARDIO SET MAPPINGS ==========
+
+    /**
+     * Maps CardioSet entity to CardioSetResponse DTO
+     */
+    @Mapping(target = "workoutExerciseId", source = "workoutExercise.workoutExerciseId")
+    CardioSetResponse toCardioSetResponse(CardioSet cardioSet);
+
+    /**
+     * Maps list of CardioSet entities to list of CardioSetResponse DTOs
+     */
+    List<CardioSetResponse> toCardioSetResponseList(List<CardioSet> cardioSets);
+
+    // ========== FLEXIBILITY SET MAPPINGS ==========
+
+    /**
+     * Maps FlexibilitySet entity to FlexibilitySetResponse DTO
+     */
+    @Mapping(target = "workoutExerciseId", source = "workoutExercise.workoutExerciseId")
+    FlexibilitySetResponse toFlexibilitySetResponse(FlexibilitySet flexibilitySet);
+
+    /**
+     * Maps list of FlexibilitySet entities to list of FlexibilitySetResponse DTOs
+     */
+    List<FlexibilitySetResponse> toFlexibilitySetResponseList(List<FlexibilitySet> flexibilitySets);
 }

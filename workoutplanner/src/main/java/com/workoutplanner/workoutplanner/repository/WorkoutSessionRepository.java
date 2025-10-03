@@ -94,4 +94,12 @@ public interface WorkoutSessionRepository extends JpaRepository<WorkoutSession, 
     @Query("SELECT ws FROM WorkoutSession ws WHERE ws.user.userId = :userId ORDER BY ws.startedAt DESC")
     List<WorkoutSession> findRecentByUser(@Param("userId") Long userId, 
                                          @Param("limit") int limit);
+    
+    /**
+     * Find workout sessions by user ID, ordered by started date descending.
+     * 
+     * @param userId the user ID
+     * @return list of workout sessions for the user ordered by started date
+     */
+    List<WorkoutSession> findByUserUserIdOrderByStartedAtDesc(Long userId);
 }
