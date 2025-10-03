@@ -66,4 +66,12 @@ public interface WorkoutExerciseRepository extends JpaRepository<WorkoutExercise
      */
     @Query("SELECT we FROM WorkoutExercise we WHERE we.workoutSession.sessionId = :sessionId ORDER BY we.orderInWorkout ASC")
     List<WorkoutExercise> findByWorkoutSessionIdOrderByOrderInWorkout(@Param("sessionId") Long sessionId);
+    
+    /**
+     * Find workout exercises by workout session ID, ordered by order in workout.
+     * 
+     * @param sessionId the workout session ID
+     * @return list of workout exercises ordered by their position in the workout
+     */
+    List<WorkoutExercise> findByWorkoutSessionSessionIdOrderByOrderInWorkout(Long sessionId);
 }

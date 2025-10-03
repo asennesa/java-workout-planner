@@ -66,4 +66,20 @@ public interface StrengthSetRepository extends JpaRepository<StrengthSet, Long> 
      * @return list of strength sets for the workout exercise with the specified completion status
      */
     List<StrengthSet> findByWorkoutExerciseAndCompleted(WorkoutExercise workoutExercise, Boolean completed);
+    
+    /**
+     * Find strength sets by workout exercise ID, ordered by set number.
+     * 
+     * @param workoutExerciseId the workout exercise ID
+     * @return list of strength sets ordered by set number
+     */
+    List<StrengthSet> findByWorkoutExerciseWorkoutExerciseIdOrderBySetNumber(Long workoutExerciseId);
+    
+    /**
+     * Find strength sets by workout session ID.
+     * 
+     * @param sessionId the workout session ID
+     * @return list of strength sets for the workout session
+     */
+    List<StrengthSet> findByWorkoutExerciseWorkoutSessionSessionId(Long sessionId);
 }
