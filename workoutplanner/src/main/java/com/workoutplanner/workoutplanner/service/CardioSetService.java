@@ -14,12 +14,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Service class for managing cardio set operations.
+ * Service implementation for managing cardio set operations.
  * Handles business logic for cardio sets.
  */
 @Service
 @Transactional
-public class CardioSetService {
+public class CardioSetService implements CardioSetServiceInterface {
 
     @Autowired
     private CardioSetRepository cardioSetRepository;

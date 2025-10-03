@@ -14,12 +14,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Service class for managing flexibility set operations.
+ * Service implementation for managing flexibility set operations.
  * Handles business logic for flexibility sets.
  */
 @Service
 @Transactional
-public class FlexibilitySetService {
+public class FlexibilitySetService implements FlexibilitySetServiceInterface {
 
     @Autowired
     private FlexibilitySetRepository flexibilitySetRepository;

@@ -13,12 +13,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Service class for User entity operations.
+ * Service implementation for User entity operations.
  * Handles business logic for user management including creation, retrieval, and updates.
  */
 @Service
 @Transactional
-public class UserService {
+public class UserService implements UserServiceInterface {
     
     @Autowired
     private UserRepository userRepository;

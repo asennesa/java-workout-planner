@@ -15,12 +15,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Service class for Exercise entity operations.
+ * Service implementation for Exercise entity operations.
  * Handles business logic for exercise management including creation, retrieval, and filtering.
  */
 @Service
 @Transactional
-public class ExerciseService {
+public class ExerciseService implements ExerciseServiceInterface {
     
     @Autowired
     private ExerciseRepository exerciseRepository;
