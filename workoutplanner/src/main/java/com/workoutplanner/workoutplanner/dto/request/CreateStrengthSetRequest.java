@@ -1,10 +1,18 @@
 package com.workoutplanner.workoutplanner.dto.request;
 
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.validator.constraints.Length;
 
 import java.math.BigDecimal;
 
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class CreateStrengthSetRequest {
 
     @NotNull(message = "Workout exercise ID is required")
@@ -33,76 +41,4 @@ public class CreateStrengthSetRequest {
     private String notes;
 
     private Boolean completed = false;
-
-    // Constructors
-    public CreateStrengthSetRequest() {
-    }
-
-    public CreateStrengthSetRequest(Long workoutExerciseId, Integer setNumber, Integer reps, 
-                                   BigDecimal weight, Integer restTimeInSeconds, String notes, Boolean completed) {
-        this.workoutExerciseId = workoutExerciseId;
-        this.setNumber = setNumber;
-        this.reps = reps;
-        this.weight = weight;
-        this.restTimeInSeconds = restTimeInSeconds;
-        this.notes = notes;
-        this.completed = completed;
-    }
-
-    // Getters and Setters
-    public Long getWorkoutExerciseId() {
-        return workoutExerciseId;
-    }
-
-    public void setWorkoutExerciseId(Long workoutExerciseId) {
-        this.workoutExerciseId = workoutExerciseId;
-    }
-
-    public Integer getSetNumber() {
-        return setNumber;
-    }
-
-    public void setSetNumber(Integer setNumber) {
-        this.setNumber = setNumber;
-    }
-
-    public Integer getReps() {
-        return reps;
-    }
-
-    public void setReps(Integer reps) {
-        this.reps = reps;
-    }
-
-    public BigDecimal getWeight() {
-        return weight;
-    }
-
-    public void setWeight(BigDecimal weight) {
-        this.weight = weight;
-    }
-
-    public Integer getRestTimeInSeconds() {
-        return restTimeInSeconds;
-    }
-
-    public void setRestTimeInSeconds(Integer restTimeInSeconds) {
-        this.restTimeInSeconds = restTimeInSeconds;
-    }
-
-    public String getNotes() {
-        return notes;
-    }
-
-    public void setNotes(String notes) {
-        this.notes = notes;
-    }
-
-    public Boolean getCompleted() {
-        return completed;
-    }
-
-    public void setCompleted(Boolean completed) {
-        this.completed = completed;
-    }
 }

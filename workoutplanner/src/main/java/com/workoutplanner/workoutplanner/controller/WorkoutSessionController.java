@@ -7,7 +7,6 @@ import com.workoutplanner.workoutplanner.dto.response.WorkoutExerciseResponse;
 import com.workoutplanner.workoutplanner.enums.WorkoutStatus;
 import com.workoutplanner.workoutplanner.service.WorkoutSessionService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,14 +16,21 @@ import java.util.List;
 /**
  * REST Controller for Workout Session operations.
  * Provides endpoints for workout session management following REST API best practices.
+ * 
+ * CORS is configured globally in CorsConfig.java
  */
 @RestController
 @RequestMapping("/api/workouts")
-@CrossOrigin(origins = "*") // Configure CORS as needed for your frontend
 public class WorkoutSessionController {
     
-    @Autowired
-    private WorkoutSessionService workoutSessionService;
+    private final WorkoutSessionService workoutSessionService;
+    
+    /**
+     * Constructor injection for dependencies.
+     */
+    public WorkoutSessionController(WorkoutSessionService workoutSessionService) {
+        this.workoutSessionService = workoutSessionService;
+    }
     
     /**
      * Create a new workout session.

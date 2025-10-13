@@ -6,9 +6,9 @@ import com.workoutplanner.workoutplanner.entity.Exercise;
 import com.workoutplanner.workoutplanner.enums.DifficultyLevel;
 import com.workoutplanner.workoutplanner.enums.ExerciseType;
 import com.workoutplanner.workoutplanner.enums.TargetMuscleGroup;
+import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.mapper.ExerciseMapper;
 import com.workoutplanner.workoutplanner.repository.ExerciseRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,16 +17,26 @@ import java.util.List;
 /**
  * Service implementation for Exercise entity operations.
  * Handles business logic for exercise management including creation, retrieval, and filtering.
+ * 
+ * Uses method-level @Transactional for optimal performance:
+ * - Read operations use @Transactional(readOnly = true) for better performance
+ * - Write operations use @Transactional for data modification
  */
 @Service
-@Transactional
 public class ExerciseService implements ExerciseServiceInterface {
     
-    @Autowired
-    private ExerciseRepository exerciseRepository;
+    private final ExerciseRepository exerciseRepository;
+    private final ExerciseMapper exerciseMapper;
     
-    @Autowired
-    private ExerciseMapper exerciseMapper;
+    /**
+     * Constructor injection for dependencies.
+     * Makes dependencies explicit, immutable, and easier to test.
+     */
+    public ExerciseService(ExerciseRepository exerciseRepository, 
+                          ExerciseMapper exerciseMapper) {
+        this.exerciseRepository = exerciseRepository;
+        this.exerciseMapper = exerciseMapper;
+    }
     
     /**
      * Create a new exercise.
@@ -34,6 +44,7 @@ public class ExerciseService implements ExerciseServiceInterface {
      * @param createExerciseRequest the exercise creation request
      * @return the created exercise response
      */
+    @Transactional
     public ExerciseResponse createExercise(CreateExerciseRequest createExerciseRequest) {
         Exercise exercise = exerciseMapper.toEntity(createExerciseRequest);
         Exercise savedExercise = exerciseRepository.save(exercise);
@@ -45,12 +56,12 @@ public class ExerciseService implements ExerciseServiceInterface {
      * 
      * @param exerciseId the exercise ID
      * @return the exercise response
-     * @throws IllegalArgumentException if exercise not found
+     * @throws ResourceNotFoundException if exercise not found
      */
     @Transactional(readOnly = true)
     public ExerciseResponse getExerciseById(Long exerciseId) {
         Exercise exercise = exerciseRepository.findById(exerciseId)
-                .orElseThrow(() -> new IllegalArgumentException("Exercise not found with ID: " + exerciseId));
+                .orElseThrow(() -> new ResourceNotFoundException("Exercise", "ID", exerciseId));
         
         return exerciseMapper.toResponse(exercise);
     }
@@ -149,11 +160,12 @@ public class ExerciseService implements ExerciseServiceInterface {
      * @param exerciseId the exercise ID
      * @param createExerciseRequest the updated exercise information
      * @return the updated exercise response
-     * @throws IllegalArgumentException if exercise not found
+     * @throws ResourceNotFoundException if exercise not found
      */
+    @Transactional
     public ExerciseResponse updateExercise(Long exerciseId, CreateExerciseRequest createExerciseRequest) {
         Exercise exercise = exerciseRepository.findById(exerciseId)
-                .orElseThrow(() -> new IllegalArgumentException("Exercise not found with ID: " + exerciseId));
+                .orElseThrow(() -> new ResourceNotFoundException("Exercise", "ID", exerciseId));
         
         exerciseMapper.updateEntity(createExerciseRequest, exercise);
         Exercise savedExercise = exerciseRepository.save(exercise);
@@ -165,13 +177,13 @@ public class ExerciseService implements ExerciseServiceInterface {
      * Delete exercise by ID.
      * 
      * @param exerciseId the exercise ID
-     * @throws IllegalArgumentException if exercise not found
+     * @throws ResourceNotFoundException if exercise not found
      */
+    @Transactional
     public void deleteExercise(Long exerciseId) {
-        if (!exerciseRepository.existsById(exerciseId)) {
-            throw new IllegalArgumentException("Exercise not found with ID: " + exerciseId);
-        }
+        Exercise exercise = exerciseRepository.findById(exerciseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Exercise", "ID", exerciseId));
         
-        exerciseRepository.deleteById(exerciseId);
+        exerciseRepository.delete(exercise);
     }
 }

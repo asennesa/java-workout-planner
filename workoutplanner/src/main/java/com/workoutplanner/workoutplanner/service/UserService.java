@@ -1,11 +1,15 @@
 package com.workoutplanner.workoutplanner.service;
 
+import com.workoutplanner.workoutplanner.dto.request.ChangePasswordRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateUserRequest;
+import com.workoutplanner.workoutplanner.dto.request.UpdateUserRequest;
 import com.workoutplanner.workoutplanner.dto.response.UserResponse;
 import com.workoutplanner.workoutplanner.entity.User;
+import com.workoutplanner.workoutplanner.exception.BusinessLogicException;
+import com.workoutplanner.workoutplanner.exception.ResourceConflictException;
+import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.mapper.UserMapper;
 import com.workoutplanner.workoutplanner.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,36 +19,47 @@ import java.util.List;
 /**
  * Service implementation for User entity operations.
  * Handles business logic for user management including creation, retrieval, and updates.
+ * 
+ * Uses method-level @Transactional for optimal performance:
+ * - Read operations use @Transactional(readOnly = true) for better performance
+ * - Write operations use @Transactional for data modification
  */
 @Service
-@Transactional
 public class UserService implements UserServiceInterface {
     
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
     
-    @Autowired
-    private UserMapper userMapper;
-    
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    /**
+     * Constructor injection for dependencies.
+     * Makes dependencies explicit, immutable, and easier to test.
+     */
+    public UserService(UserRepository userRepository, 
+                      UserMapper userMapper, 
+                      PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.userMapper = userMapper;
+        this.passwordEncoder = passwordEncoder;
+    }
     
     /**
      * Create a new user.
      * 
      * @param createUserRequest the user creation request
      * @return the created user response
-     * @throws IllegalArgumentException if username or email already exists
+     * @throws ResourceConflictException if username or email already exists
      */
+    @Transactional
     public UserResponse createUser(CreateUserRequest createUserRequest) {
         // Check if username already exists
         if (userRepository.existsByUsername(createUserRequest.getUsername())) {
-            throw new IllegalArgumentException("Username already exists: " + createUserRequest.getUsername());
+            throw new ResourceConflictException("User", "username", createUserRequest.getUsername());
         }
         
         // Check if email already exists
         if (userRepository.existsByEmail(createUserRequest.getEmail())) {
-            throw new IllegalArgumentException("Email already exists: " + createUserRequest.getEmail());
+            throw new ResourceConflictException("User", "email", createUserRequest.getEmail());
         }
         
         // Convert request to entity
@@ -65,12 +80,12 @@ public class UserService implements UserServiceInterface {
      * 
      * @param userId the user ID
      * @return the user response
-     * @throws IllegalArgumentException if user not found
+     * @throws ResourceNotFoundException if user not found
      */
     @Transactional(readOnly = true)
     public UserResponse getUserById(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User", "ID", userId));
         
         return userMapper.toResponse(user);
     }
@@ -80,12 +95,12 @@ public class UserService implements UserServiceInterface {
      * 
      * @param username the username
      * @return the user response
-     * @throws IllegalArgumentException if user not found
+     * @throws ResourceNotFoundException if user not found
      */
     @Transactional(readOnly = true)
     public UserResponse getUserByUsername(String username) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with username: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
         
         return userMapper.toResponse(user);
     }
@@ -95,12 +110,12 @@ public class UserService implements UserServiceInterface {
      * 
      * @param email the email
      * @return the user response
-     * @throws IllegalArgumentException if user not found
+     * @throws ResourceNotFoundException if user not found
      */
     @Transactional(readOnly = true)
     public UserResponse getUserByEmail(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + email));
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
         
         return userMapper.toResponse(user);
     }
@@ -117,36 +132,37 @@ public class UserService implements UserServiceInterface {
     }
     
     /**
-     * Update user information.
+     * Update user information (excluding password).
+     * For password changes, use changePassword method.
      * 
      * @param userId the user ID
-     * @param createUserRequest the updated user information
+     * @param updateUserRequest the updated user information
      * @return the updated user response
-     * @throws IllegalArgumentException if user not found
+     * @throws ResourceNotFoundException if user not found
+     * @throws ResourceConflictException if username or email already exists
      */
-    public UserResponse updateUser(Long userId, CreateUserRequest createUserRequest) {
+    @Transactional
+    public UserResponse updateUser(Long userId, UpdateUserRequest updateUserRequest) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User", "ID", userId));
         
         // Check if new username conflicts with existing users (excluding current user)
-        if (!user.getUsername().equals(createUserRequest.getUsername()) && 
-            userRepository.existsByUsername(createUserRequest.getUsername())) {
-            throw new IllegalArgumentException("Username already exists: " + createUserRequest.getUsername());
+        if (!user.getUsername().equals(updateUserRequest.getUsername()) && 
+            userRepository.existsByUsername(updateUserRequest.getUsername())) {
+            throw new ResourceConflictException("User", "username", updateUserRequest.getUsername());
         }
         
         // Check if new email conflicts with existing users (excluding current user)
-        if (!user.getEmail().equals(createUserRequest.getEmail()) && 
-            userRepository.existsByEmail(createUserRequest.getEmail())) {
-            throw new IllegalArgumentException("Email already exists: " + createUserRequest.getEmail());
+        if (!user.getEmail().equals(updateUserRequest.getEmail()) && 
+            userRepository.existsByEmail(updateUserRequest.getEmail())) {
+            throw new ResourceConflictException("User", "email", updateUserRequest.getEmail());
         }
         
-        // Update user fields
-        userMapper.updateEntity(createUserRequest, user);
-        
-        // Hash new password if provided
-        if (createUserRequest.getPassword() != null && !createUserRequest.getPassword().isEmpty()) {
-            user.setPasswordHash(passwordEncoder.encode(createUserRequest.getPassword()));
-        }
+        // Update user fields (no password update here)
+        user.setUsername(updateUserRequest.getUsername());
+        user.setEmail(updateUserRequest.getEmail());
+        user.setFirstName(updateUserRequest.getFirstName());
+        user.setLastName(updateUserRequest.getLastName());
         
         // Save updated user
         User savedUser = userRepository.save(user);
@@ -155,17 +171,51 @@ public class UserService implements UserServiceInterface {
     }
     
     /**
+     * Change user password with verification of current password.
+     * 
+     * @param userId the user ID
+     * @param changePasswordRequest the password change request
+     * @throws ResourceNotFoundException if user not found
+     * @throws BusinessLogicException if current password is incorrect or passwords don't match
+     */
+    @Transactional
+    public void changePassword(Long userId, ChangePasswordRequest changePasswordRequest) {
+        // Validate that new password and confirmation match
+        if (!changePasswordRequest.passwordsMatch()) {
+            throw new BusinessLogicException("New password and confirmation do not match");
+        }
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "ID", userId));
+        
+        // Verify current password
+        if (!passwordEncoder.matches(changePasswordRequest.getCurrentPassword(), user.getPasswordHash())) {
+            throw new BusinessLogicException("Current password is incorrect");
+        }
+        
+        // Ensure new password is different from current
+        if (passwordEncoder.matches(changePasswordRequest.getNewPassword(), user.getPasswordHash())) {
+            throw new BusinessLogicException("New password must be different from current password");
+        }
+        
+        // Hash and set new password
+        user.setPasswordHash(passwordEncoder.encode(changePasswordRequest.getNewPassword()));
+        
+        userRepository.save(user);
+    }
+    
+    /**
      * Delete user by ID.
      * 
      * @param userId the user ID
-     * @throws IllegalArgumentException if user not found
+     * @throws ResourceNotFoundException if user not found
      */
+    @Transactional
     public void deleteUser(Long userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new IllegalArgumentException("User not found with ID: " + userId);
-        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "ID", userId));
         
-        userRepository.deleteById(userId);
+        userRepository.delete(user);
     }
     
     /**

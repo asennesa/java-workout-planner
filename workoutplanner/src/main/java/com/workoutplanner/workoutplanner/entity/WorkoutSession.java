@@ -4,6 +4,10 @@ import com.workoutplanner.workoutplanner.enums.WorkoutStatus;
 import com.workoutplanner.workoutplanner.validation.ValidWorkoutDates;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 import org.hibernate.validator.constraints.Length;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -11,127 +15,54 @@ import java.util.List;
 
 @Entity
 @Table(name = "workout_sessions")
+@Getter
+@Setter
+@NoArgsConstructor
+@ToString(exclude = {"user", "workoutExercises"})
 @ValidWorkoutDates
 public class WorkoutSession {
-
-    private Long sessionId;
-    private String name;
-    private String description;
-    private User user;
-    private WorkoutStatus status;
-    private LocalDateTime startedAt;
-    private LocalDateTime completedAt;
-    private Integer actualDurationInMinutes;
-    private String sessionNotes;
-    private List<WorkoutExercise> workoutExercises = new ArrayList<>();
-
-    public WorkoutSession() {
-        // Default constructor for Hibernate
-    }
-
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "session_id", nullable = false, updatable = false)
-    public Long getSessionId() {
-        return sessionId;
-    }
-
-    public void setSessionId(Long sessionId) {
-        this.sessionId = sessionId;
-    }
+    private Long sessionId;
 
     @Column(name = "name", nullable = false, length = 100)
     @NotBlank(message = "Workout session name is required")
     @Length(min = 2, max = 100, message = "Workout session name must be between 2 and 100 characters")
     @Pattern(regexp = "^[a-zA-Z0-9\\s\\-()]+$", message = "Workout session name can only contain letters, numbers, spaces, hyphens, and parentheses")
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
+    private String name;
 
     @Column(name = "description", length = 1000)
     @Length(max = 1000, message = "Description must not exceed 1000 characters")
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
+    private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     @NotNull(message = "User is required")
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
+    private User user;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     @NotNull(message = "Workout status is required")
-    public WorkoutStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(WorkoutStatus status) {
-        this.status = status;
-    }
+    private WorkoutStatus status;
 
     @Column(name = "started_at")
-    public LocalDateTime getStartedAt() {
-        return startedAt;
-    }
-
-    public void setStartedAt(LocalDateTime startedAt) {
-        this.startedAt = startedAt;
-    }
+    private LocalDateTime startedAt;
 
     @Column(name = "completed_at")
-    public LocalDateTime getCompletedAt() {
-        return completedAt;
-    }
-
-    public void setCompletedAt(LocalDateTime completedAt) {
-        this.completedAt = completedAt;
-    }
+    private LocalDateTime completedAt;
 
     @Column(name = "actual_duration_in_minutes")
     @Min(value = 1, message = "Duration must be at least 1 minute")
     @Max(value = 1440, message = "Duration cannot exceed 24 hours (1440 minutes)")
-    public Integer getActualDurationInMinutes() {
-        return actualDurationInMinutes;
-    }
-
-    public void setActualDurationInMinutes(Integer actualDurationInMinutes) {
-        this.actualDurationInMinutes = actualDurationInMinutes;
-    }
+    private Integer actualDurationInMinutes;
 
     @Column(name = "session_notes", length = 1000)
     @Length(max = 1000, message = "Session notes must not exceed 1000 characters")
-    public String getSessionNotes() {
-        return sessionNotes;
-    }
+    private String sessionNotes;
 
-    public void setSessionNotes(String sessionNotes) {
-        this.sessionNotes = sessionNotes;
-    }
-
-    @OneToMany(mappedBy = "workoutSession", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "workoutSession", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @OrderBy("orderInWorkout ASC")
-    public List<WorkoutExercise> getWorkoutExercises() {
-        return workoutExercises;
-    }
-
-    public void setWorkoutExercises(List<WorkoutExercise> workoutExercises) {
-        this.workoutExercises = workoutExercises;
-    }
+    private List<WorkoutExercise> workoutExercises = new ArrayList<>();
 }

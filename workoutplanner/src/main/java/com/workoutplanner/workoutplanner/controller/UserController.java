@@ -1,27 +1,37 @@
 package com.workoutplanner.workoutplanner.controller;
 
+import com.workoutplanner.workoutplanner.dto.request.ChangePasswordRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateUserRequest;
+import com.workoutplanner.workoutplanner.dto.request.UpdateUserRequest;
 import com.workoutplanner.workoutplanner.dto.response.UserResponse;
 import com.workoutplanner.workoutplanner.service.UserService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * REST Controller for User operations.
  * Provides endpoints for user management following REST API best practices.
+ * 
+ * CORS is configured globally in CorsConfig.java
  */
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "*") // Configure CORS as needed for your frontend
 public class UserController {
     
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
+    
+    /**
+     * Constructor injection for dependencies.
+     */
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
     
     /**
      * Create a new user.
@@ -83,17 +93,37 @@ public class UserController {
     }
     
     /**
-     * Update user information.
+     * Update user information (excluding password).
+     * For password changes, use the /users/{userId}/change-password endpoint.
      * 
      * @param userId the user ID
-     * @param createUserRequest the updated user information
+     * @param updateUserRequest the updated user information
      * @return ResponseEntity containing the updated user response
      */
     @PutMapping("/{userId}")
     public ResponseEntity<UserResponse> updateUser(@PathVariable Long userId, 
-                                                  @Valid @RequestBody CreateUserRequest createUserRequest) {
-        UserResponse userResponse = userService.updateUser(userId, createUserRequest);
+                                                  @Valid @RequestBody UpdateUserRequest updateUserRequest) {
+        UserResponse userResponse = userService.updateUser(userId, updateUserRequest);
         return ResponseEntity.ok(userResponse);
+    }
+    
+    /**
+     * Change user password.
+     * Requires current password for verification.
+     * 
+     * @param userId the user ID
+     * @param changePasswordRequest the password change request
+     * @return ResponseEntity with success message
+     */
+    @PutMapping("/{userId}/change-password")
+    public ResponseEntity<Map<String, String>> changePassword(@PathVariable Long userId,
+                                                              @Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
+        userService.changePassword(userId, changePasswordRequest);
+        
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Password changed successfully");
+        
+        return ResponseEntity.ok(response);
     }
     
     /**

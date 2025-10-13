@@ -9,12 +9,12 @@ import com.workoutplanner.workoutplanner.entity.WorkoutExercise;
 import com.workoutplanner.workoutplanner.entity.User;
 import com.workoutplanner.workoutplanner.entity.Exercise;
 import com.workoutplanner.workoutplanner.enums.WorkoutStatus;
+import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.mapper.WorkoutMapper;
 import com.workoutplanner.workoutplanner.repository.WorkoutSessionRepository;
 import com.workoutplanner.workoutplanner.repository.WorkoutExerciseRepository;
 import com.workoutplanner.workoutplanner.repository.UserRepository;
 import com.workoutplanner.workoutplanner.repository.ExerciseRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,25 +24,35 @@ import java.util.List;
 /**
  * Service implementation for managing workout session operations.
  * Handles business logic for workout sessions, exercises, and sets.
+ * 
+ * Uses method-level @Transactional for optimal performance:
+ * - Read operations use @Transactional(readOnly = true) for better performance
+ * - Write operations use @Transactional for data modification
  */
 @Service
-@Transactional
 public class WorkoutSessionService implements WorkoutSessionServiceInterface {
 
-    @Autowired
-    private WorkoutSessionRepository workoutSessionRepository;
-
-    @Autowired
-    private WorkoutExerciseRepository workoutExerciseRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private ExerciseRepository exerciseRepository;
-
-    @Autowired
-    private WorkoutMapper workoutMapper;
+    private final WorkoutSessionRepository workoutSessionRepository;
+    private final WorkoutExerciseRepository workoutExerciseRepository;
+    private final UserRepository userRepository;
+    private final ExerciseRepository exerciseRepository;
+    private final WorkoutMapper workoutMapper;
+    
+    /**
+     * Constructor injection for dependencies.
+     * Makes dependencies explicit, immutable, and easier to test.
+     */
+    public WorkoutSessionService(WorkoutSessionRepository workoutSessionRepository,
+                                WorkoutExerciseRepository workoutExerciseRepository,
+                                UserRepository userRepository,
+                                ExerciseRepository exerciseRepository,
+                                WorkoutMapper workoutMapper) {
+        this.workoutSessionRepository = workoutSessionRepository;
+        this.workoutExerciseRepository = workoutExerciseRepository;
+        this.userRepository = userRepository;
+        this.exerciseRepository = exerciseRepository;
+        this.workoutMapper = workoutMapper;
+    }
 
     /**
      * Create a new workout session.
@@ -50,10 +60,11 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
      * @param createWorkoutRequest the workout creation request
      * @return WorkoutResponse the created workout response
      */
+    @Transactional
     public WorkoutResponse createWorkoutSession(CreateWorkoutRequest createWorkoutRequest) {
         // Validate user exists
         User user = userRepository.findById(createWorkoutRequest.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found with ID: " + createWorkoutRequest.getUserId()));
+                .orElseThrow(() -> new ResourceNotFoundException("User", "ID", createWorkoutRequest.getUserId()));
 
         // Create workout session entity
         WorkoutSession workoutSession = new WorkoutSession();
@@ -81,27 +92,29 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
 
     /**
      * Get workout session by ID.
+     * Uses JOIN FETCH to prevent N+1 query problem when accessing user details.
      *
      * @param sessionId the session ID
      * @return WorkoutResponse the workout response
      */
     @Transactional(readOnly = true)
     public WorkoutResponse getWorkoutSessionById(Long sessionId) {
-        WorkoutSession workoutSession = workoutSessionRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Workout session not found with ID: " + sessionId));
+        WorkoutSession workoutSession = workoutSessionRepository.findByIdWithUser(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
 
         return workoutMapper.toWorkoutResponse(workoutSession);
     }
 
     /**
      * Get all workout sessions for a user.
+     * Uses JOIN FETCH to prevent N+1 query problem when accessing user details.
      *
      * @param userId the user ID
      * @return List of WorkoutResponse
      */
     @Transactional(readOnly = true)
     public List<WorkoutResponse> getWorkoutSessionsByUserId(Long userId) {
-        List<WorkoutSession> workoutSessions = workoutSessionRepository.findByUserUserIdOrderByStartedAtDesc(userId);
+        List<WorkoutSession> workoutSessions = workoutSessionRepository.findByUserIdWithUser(userId);
         return workoutMapper.toWorkoutResponseList(workoutSessions);
     }
 
@@ -123,9 +136,10 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
      * @param createWorkoutRequest the updated workout request
      * @return WorkoutResponse the updated workout response
      */
+    @Transactional
     public WorkoutResponse updateWorkoutSession(Long sessionId, CreateWorkoutRequest createWorkoutRequest) {
         WorkoutSession workoutSession = workoutSessionRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Workout session not found with ID: " + sessionId));
+                .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
 
         // Update fields
         workoutSession.setName(createWorkoutRequest.getName());
@@ -150,9 +164,10 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
      * @param status the new status
      * @return WorkoutResponse the updated workout response
      */
+    @Transactional
     public WorkoutResponse updateWorkoutSessionStatus(Long sessionId, WorkoutStatus status) {
         WorkoutSession workoutSession = workoutSessionRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Workout session not found with ID: " + sessionId));
+                .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
 
         handleStatusTransition(workoutSession, status);
         workoutSession.setStatus(status);
@@ -166,9 +181,10 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
      *
      * @param sessionId the session ID
      */
+    @Transactional
     public void deleteWorkoutSession(Long sessionId) {
         WorkoutSession workoutSession = workoutSessionRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Workout session not found with ID: " + sessionId));
+                .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
 
         workoutSessionRepository.delete(workoutSession);
     }
@@ -179,14 +195,15 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
      * @param createWorkoutExerciseRequest the workout exercise request
      * @return WorkoutExerciseResponse the created workout exercise response
      */
+    @Transactional
     public WorkoutExerciseResponse addExerciseToWorkout(CreateWorkoutExerciseRequest createWorkoutExerciseRequest) {
         // Validate workout session exists
         WorkoutSession workoutSession = workoutSessionRepository.findById(createWorkoutExerciseRequest.getSessionId())
-                .orElseThrow(() -> new RuntimeException("Workout session not found with ID: " + createWorkoutExerciseRequest.getSessionId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", createWorkoutExerciseRequest.getSessionId()));
 
         // Validate exercise exists
         Exercise exercise = exerciseRepository.findById(createWorkoutExerciseRequest.getExerciseId())
-                .orElseThrow(() -> new RuntimeException("Exercise not found with ID: " + createWorkoutExerciseRequest.getExerciseId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Exercise", "ID", createWorkoutExerciseRequest.getExerciseId()));
 
         // Create workout exercise
         WorkoutExercise workoutExercise = new WorkoutExercise();
@@ -204,22 +221,24 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
      *
      * @param workoutExerciseId the workout exercise ID
      */
+    @Transactional
     public void removeExerciseFromWorkout(Long workoutExerciseId) {
         WorkoutExercise workoutExercise = workoutExerciseRepository.findById(workoutExerciseId)
-                .orElseThrow(() -> new RuntimeException("Workout exercise not found with ID: " + workoutExerciseId));
+                .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", workoutExerciseId));
 
         workoutExerciseRepository.delete(workoutExercise);
     }
 
     /**
      * Get exercises for a workout session.
+     * Uses JOIN FETCH to prevent N+1 query problem when accessing exercise details.
      *
      * @param sessionId the session ID
      * @return List of WorkoutExerciseResponse
      */
     @Transactional(readOnly = true)
     public List<WorkoutExerciseResponse> getWorkoutExercises(Long sessionId) {
-        List<WorkoutExercise> workoutExercises = workoutExerciseRepository.findByWorkoutSessionSessionIdOrderByOrderInWorkout(sessionId);
+        List<WorkoutExercise> workoutExercises = workoutExerciseRepository.findBySessionIdWithExercise(sessionId);
         return workoutMapper.toWorkoutExerciseResponseList(workoutExercises);
     }
 

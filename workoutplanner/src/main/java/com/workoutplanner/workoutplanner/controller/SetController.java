@@ -10,7 +10,6 @@ import com.workoutplanner.workoutplanner.service.StrengthSetService;
 import com.workoutplanner.workoutplanner.service.CardioSetService;
 import com.workoutplanner.workoutplanner.service.FlexibilitySetService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,20 +24,27 @@ import java.util.List;
  * - Controllers handle HTTP requests/responses
  * - Services handle business logic
  * - Repositories handle data access
+ * 
+ * CORS is configured globally in CorsConfig.java
  */
 @RestController
 @RequestMapping("/api/sets")
-@CrossOrigin(origins = "*") // Configure CORS as needed for your frontend
 public class SetController {
     
-    @Autowired
-    private StrengthSetService strengthSetService;
+    private final StrengthSetService strengthSetService;
+    private final CardioSetService cardioSetService;
+    private final FlexibilitySetService flexibilitySetService;
     
-    @Autowired
-    private CardioSetService cardioSetService;
-    
-    @Autowired
-    private FlexibilitySetService flexibilitySetService;
+    /**
+     * Constructor injection for dependencies.
+     */
+    public SetController(StrengthSetService strengthSetService,
+                        CardioSetService cardioSetService,
+                        FlexibilitySetService flexibilitySetService) {
+        this.strengthSetService = strengthSetService;
+        this.cardioSetService = cardioSetService;
+        this.flexibilitySetService = flexibilitySetService;
+    }
     
     // ========== STRENGTH SETS ==========
     

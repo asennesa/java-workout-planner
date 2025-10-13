@@ -7,7 +7,6 @@ import com.workoutplanner.workoutplanner.enums.ExerciseType;
 import com.workoutplanner.workoutplanner.enums.TargetMuscleGroup;
 import com.workoutplanner.workoutplanner.service.ExerciseService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,14 +16,21 @@ import java.util.List;
 /**
  * REST Controller for Exercise operations.
  * Provides endpoints for exercise management following REST API best practices.
+ * 
+ * CORS is configured globally in CorsConfig.java
  */
 @RestController
 @RequestMapping("/api/exercises")
-@CrossOrigin(origins = "*") // Configure CORS as needed for your frontend
 public class ExerciseController {
     
-    @Autowired
-    private ExerciseService exerciseService;
+    private final ExerciseService exerciseService;
+    
+    /**
+     * Constructor injection for dependencies.
+     */
+    public ExerciseController(ExerciseService exerciseService) {
+        this.exerciseService = exerciseService;
+    }
     
     /**
      * Create a new exercise.
