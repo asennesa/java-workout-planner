@@ -123,28 +123,36 @@ The application includes the following Docker services:
 
 ## 📚 API Documentation
 
+### API Versioning
+
+This application uses URL path versioning for API endpoints. The current version is **v1**.
+
+All API endpoints follow the pattern: `/api/v1/{resource}`
+
+For comprehensive API versioning documentation, see [API_VERSIONING.md](workoutplanner/API_VERSIONING.md)
+
 ### Core Endpoints
 
 #### Users
-- `POST /api/users` - Create a new user
-- `GET /api/users/{id}` - Get user by ID
-- `PUT /api/users/{id}` - Update user information
+- `POST /api/v1/users` - Create a new user
+- `GET /api/v1/users/{id}` - Get user by ID
+- `PUT /api/v1/users/{id}` - Update user information
 
 #### Exercises
-- `GET /api/exercises` - Get all exercises (with filtering)
-- `GET /api/exercises/{id}` - Get exercise by ID
-- `POST /api/exercises` - Create new exercise
+- `GET /api/v1/exercises` - Get all exercises (with filtering)
+- `GET /api/v1/exercises/{id}` - Get exercise by ID
+- `POST /api/v1/exercises` - Create new exercise
 
 #### Workout Sessions
-- `POST /api/workouts` - Create workout session
-- `GET /api/workouts/{id}` - Get workout session details
-- `PUT /api/workouts/{id}/status` - Update workout status
+- `POST /api/v1/workouts` - Create workout session
+- `GET /api/v1/workouts/{id}` - Get workout session details
+- `PUT /api/v1/workouts/{id}/status` - Update workout status
 
 ### Example API Usage
 
 #### Create a User
 ```bash
-curl -X POST http://localhost:8081/api/users \
+curl -X POST http://localhost:8081/api/v1/users \
   -H "Content-Type: application/json" \
   -d '{
     "username": "john_doe",
@@ -156,7 +164,7 @@ curl -X POST http://localhost:8081/api/users \
 
 #### Create an Exercise
 ```bash
-curl -X POST http://localhost:8081/api/exercises \
+curl -X POST http://localhost:8081/api/v1/exercises \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Push-ups",
@@ -221,6 +229,7 @@ docker exec workoutplanner-postgres psql -U sonar -d sonar -c "\l"
 - ✅ **Core Entities**: User, Exercise, WorkoutSession, WorkoutExercise
 - ✅ **Set Types**: StrengthSet, CardioSet, FlexibilitySet
 - ✅ **REST Controllers**: User and Exercise endpoints
+- ✅ **API Versioning**: URL path versioning (v1)
 - ✅ **Database Integration**: PostgreSQL with JPA/Hibernate
 - ✅ **Validation**: Custom validators and exception handling
 - ✅ **Docker Support**: Complete containerization setup

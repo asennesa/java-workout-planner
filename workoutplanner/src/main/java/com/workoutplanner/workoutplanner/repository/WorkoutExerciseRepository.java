@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repository interface for WorkoutExercise entity.
@@ -74,4 +75,24 @@ public interface WorkoutExerciseRepository extends JpaRepository<WorkoutExercise
      * @return list of workout exercises ordered by their position in the workout
      */
     List<WorkoutExercise> findByWorkoutSessionSessionIdOrderByOrderInWorkout(Long sessionId);
+    
+    /**
+     * Find workout exercise by ID with exercise eagerly fetched.
+     * Prevents N+1 query problem when accessing exercise details.
+     * 
+     * @param workoutExerciseId the workout exercise ID
+     * @return optional workout exercise with exercise eagerly loaded
+     */
+    @Query("SELECT we FROM WorkoutExercise we JOIN FETCH we.exercise WHERE we.workoutExerciseId = :workoutExerciseId")
+    Optional<WorkoutExercise> findByIdWithExercise(@Param("workoutExerciseId") Long workoutExerciseId);
+    
+    /**
+     * Find workout exercises by session ID with exercise eagerly fetched.
+     * Prevents N+1 query problem when accessing exercise details.
+     * 
+     * @param sessionId the workout session ID
+     * @return list of workout exercises with exercise eagerly loaded
+     */
+    @Query("SELECT we FROM WorkoutExercise we JOIN FETCH we.exercise WHERE we.workoutSession.sessionId = :sessionId ORDER BY we.orderInWorkout ASC")
+    List<WorkoutExercise> findBySessionIdWithExercise(@Param("sessionId") Long sessionId);
 }

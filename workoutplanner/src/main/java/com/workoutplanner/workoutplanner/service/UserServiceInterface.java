@@ -1,6 +1,8 @@
 package com.workoutplanner.workoutplanner.service;
 
+import com.workoutplanner.workoutplanner.dto.request.ChangePasswordRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateUserRequest;
+import com.workoutplanner.workoutplanner.dto.request.UpdateUserRequest;
 import com.workoutplanner.workoutplanner.dto.response.UserResponse;
 
 import java.util.List;
@@ -19,7 +21,7 @@ public interface UserServiceInterface {
      * 
      * @param createUserRequest the user creation request
      * @return the created user response
-     * @throws IllegalArgumentException if username or email already exists
+     * @throws com.workoutplanner.workoutplanner.exception.ResourceConflictException if username or email already exists
      */
     UserResponse createUser(CreateUserRequest createUserRequest);
     
@@ -28,7 +30,7 @@ public interface UserServiceInterface {
      * 
      * @param userId the user ID
      * @return the user response
-     * @throws IllegalArgumentException if user not found
+     * @throws com.workoutplanner.workoutplanner.exception.ResourceNotFoundException if user not found
      */
     UserResponse getUserById(Long userId);
     
@@ -37,7 +39,7 @@ public interface UserServiceInterface {
      * 
      * @param username the username
      * @return the user response
-     * @throws IllegalArgumentException if user not found
+     * @throws com.workoutplanner.workoutplanner.exception.ResourceNotFoundException if user not found
      */
     UserResponse getUserByUsername(String username);
     
@@ -46,7 +48,7 @@ public interface UserServiceInterface {
      * 
      * @param email the email
      * @return the user response
-     * @throws IllegalArgumentException if user not found
+     * @throws com.workoutplanner.workoutplanner.exception.ResourceNotFoundException if user not found
      */
     UserResponse getUserByEmail(String email);
     
@@ -58,20 +60,32 @@ public interface UserServiceInterface {
     List<UserResponse> getAllUsers();
     
     /**
-     * Update user information.
+     * Update user information (excluding password).
+     * For password changes, use changePassword method.
      * 
      * @param userId the user ID
-     * @param createUserRequest the updated user information
+     * @param updateUserRequest the updated user information
      * @return the updated user response
-     * @throws IllegalArgumentException if user not found
+     * @throws com.workoutplanner.workoutplanner.exception.ResourceNotFoundException if user not found
+     * @throws com.workoutplanner.workoutplanner.exception.ResourceConflictException if username or email already exists
      */
-    UserResponse updateUser(Long userId, CreateUserRequest createUserRequest);
+    UserResponse updateUser(Long userId, UpdateUserRequest updateUserRequest);
+    
+    /**
+     * Change user password with verification of current password.
+     * 
+     * @param userId the user ID
+     * @param changePasswordRequest the password change request
+     * @throws com.workoutplanner.workoutplanner.exception.ResourceNotFoundException if user not found
+     * @throws com.workoutplanner.workoutplanner.exception.BusinessLogicException if current password is incorrect or passwords don't match
+     */
+    void changePassword(Long userId, ChangePasswordRequest changePasswordRequest);
     
     /**
      * Delete user by ID.
      * 
      * @param userId the user ID
-     * @throws IllegalArgumentException if user not found
+     * @throws com.workoutplanner.workoutplanner.exception.ResourceNotFoundException if user not found
      */
     void deleteUser(Long userId);
     

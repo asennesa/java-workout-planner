@@ -1,10 +1,18 @@
 package com.workoutplanner.workoutplanner.dto.request;
 
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.validator.constraints.Length;
 
 import java.math.BigDecimal;
 
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class CreateCardioSetRequest {
 
     @NotNull(message = "Workout exercise ID is required")
@@ -35,86 +43,4 @@ public class CreateCardioSetRequest {
     private String notes;
 
     private Boolean completed = false;
-
-    // Constructors
-    public CreateCardioSetRequest() {
-    }
-
-    public CreateCardioSetRequest(Long workoutExerciseId, Integer setNumber, Integer durationInSeconds, 
-                                 BigDecimal distance, String distanceUnit, Integer restTimeInSeconds, 
-                                 String notes, Boolean completed) {
-        this.workoutExerciseId = workoutExerciseId;
-        this.setNumber = setNumber;
-        this.durationInSeconds = durationInSeconds;
-        this.distance = distance;
-        this.distanceUnit = distanceUnit;
-        this.restTimeInSeconds = restTimeInSeconds;
-        this.notes = notes;
-        this.completed = completed;
-    }
-
-    // Getters and Setters
-    public Long getWorkoutExerciseId() {
-        return workoutExerciseId;
-    }
-
-    public void setWorkoutExerciseId(Long workoutExerciseId) {
-        this.workoutExerciseId = workoutExerciseId;
-    }
-
-    public Integer getSetNumber() {
-        return setNumber;
-    }
-
-    public void setSetNumber(Integer setNumber) {
-        this.setNumber = setNumber;
-    }
-
-    public Integer getDurationInSeconds() {
-        return durationInSeconds;
-    }
-
-    public void setDurationInSeconds(Integer durationInSeconds) {
-        this.durationInSeconds = durationInSeconds;
-    }
-
-    public BigDecimal getDistance() {
-        return distance;
-    }
-
-    public void setDistance(BigDecimal distance) {
-        this.distance = distance;
-    }
-
-    public String getDistanceUnit() {
-        return distanceUnit;
-    }
-
-    public void setDistanceUnit(String distanceUnit) {
-        this.distanceUnit = distanceUnit;
-    }
-
-    public Integer getRestTimeInSeconds() {
-        return restTimeInSeconds;
-    }
-
-    public void setRestTimeInSeconds(Integer restTimeInSeconds) {
-        this.restTimeInSeconds = restTimeInSeconds;
-    }
-
-    public String getNotes() {
-        return notes;
-    }
-
-    public void setNotes(String notes) {
-        this.notes = notes;
-    }
-
-    public Boolean getCompleted() {
-        return completed;
-    }
-
-    public void setCompleted(Boolean completed) {
-        this.completed = completed;
-    }
 }

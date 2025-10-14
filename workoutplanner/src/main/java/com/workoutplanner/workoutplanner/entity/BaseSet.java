@@ -2,6 +2,10 @@ package com.workoutplanner.workoutplanner.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 import org.hibernate.validator.constraints.Length;
 
 /**
@@ -11,83 +15,39 @@ import org.hibernate.validator.constraints.Length;
  * This follows the Template Method Pattern and DRY principle.
  */
 @MappedSuperclass
+@Getter
+@Setter
+@NoArgsConstructor
+@ToString(exclude = "workoutExercise")
 public abstract class BaseSet {
-
-    private Long setId;
-    private WorkoutExercise workoutExercise;
-    private Integer setNumber;
-    private Integer restTimeInSeconds;
-    private String notes;
-    private Boolean completed;
-
-    public BaseSet() {
-        // Default constructor
-    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "set_id", nullable = false, updatable = false)
-    public Long getSetId() {
-        return setId;
-    }
-
-    public void setSetId(Long setId) {
-        this.setId = setId;
-    }
+    private Long setId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "workout_exercise_id", nullable = false)
     @NotNull(message = "Workout exercise is required")
-    public WorkoutExercise getWorkoutExercise() {
-        return workoutExercise;
-    }
-
-    public void setWorkoutExercise(WorkoutExercise workoutExercise) {
-        this.workoutExercise = workoutExercise;
-    }
+    private WorkoutExercise workoutExercise;
 
     @Column(name = "set_number", nullable = false)
     @NotNull(message = "Set number is required")
     @Min(value = 1, message = "Set number must be at least 1")
     @Max(value = 50, message = "Set number cannot exceed 50")
-    public Integer getSetNumber() {
-        return setNumber;
-    }
-
-    public void setSetNumber(Integer setNumber) {
-        this.setNumber = setNumber;
-    }
+    private Integer setNumber;
 
     @Column(name = "rest_time_in_seconds")
     @Min(value = 0, message = "Rest time must be non-negative")
     @Max(value = 3600, message = "Rest time cannot exceed 3600 seconds (1 hour)")
-    public Integer getRestTimeInSeconds() {
-        return restTimeInSeconds;
-    }
-
-    public void setRestTimeInSeconds(Integer restTimeInSeconds) {
-        this.restTimeInSeconds = restTimeInSeconds;
-    }
+    private Integer restTimeInSeconds;
 
     @Column(name = "notes", length = 500)
     @Length(max = 500, message = "Notes must not exceed 500 characters")
-    public String getNotes() {
-        return notes;
-    }
-
-    public void setNotes(String notes) {
-        this.notes = notes;
-    }
+    private String notes;
 
     @Column(name = "completed", nullable = false)
-    @NotNull(message = "Completed status is required")
-    public Boolean getCompleted() {
-        return completed;
-    }
-
-    public void setCompleted(Boolean completed) {
-        this.completed = completed;
-    }
+    private boolean completed;
 
     /**
      * Abstract method to get the exercise type.

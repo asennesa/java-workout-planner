@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repository interface for WorkoutSession entity.
@@ -102,4 +103,37 @@ public interface WorkoutSessionRepository extends JpaRepository<WorkoutSession, 
      * @return list of workout sessions for the user ordered by started date
      */
     List<WorkoutSession> findByUserUserIdOrderByStartedAtDesc(Long userId);
+    
+    /**
+     * Find workout session by ID with user eagerly fetched.
+     * Prevents N+1 query problem when accessing user details.
+     * 
+     * @param sessionId the session ID
+     * @return optional workout session with user eagerly loaded
+     */
+    @Query("SELECT ws FROM WorkoutSession ws JOIN FETCH ws.user WHERE ws.sessionId = :sessionId")
+    Optional<WorkoutSession> findByIdWithUser(@Param("sessionId") Long sessionId);
+    
+    /**
+     * Find workout session by ID with user and exercises eagerly fetched.
+     * Prevents N+1 query problem when accessing related entities.
+     * 
+     * @param sessionId the session ID
+     * @return optional workout session with user and exercises eagerly loaded
+     */
+    @Query("SELECT DISTINCT ws FROM WorkoutSession ws " +
+           "LEFT JOIN FETCH ws.user " +
+           "LEFT JOIN FETCH ws.workoutExercises " +
+           "WHERE ws.sessionId = :sessionId")
+    Optional<WorkoutSession> findByIdWithUserAndExercises(@Param("sessionId") Long sessionId);
+    
+    /**
+     * Find workout sessions by user ID with user eagerly fetched.
+     * Prevents N+1 query problem when accessing user details.
+     * 
+     * @param userId the user ID
+     * @return list of workout sessions with user eagerly loaded
+     */
+    @Query("SELECT ws FROM WorkoutSession ws JOIN FETCH ws.user WHERE ws.user.userId = :userId ORDER BY ws.startedAt DESC")
+    List<WorkoutSession> findByUserIdWithUser(@Param("userId") Long userId);
 }

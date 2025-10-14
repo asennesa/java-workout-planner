@@ -2,10 +2,16 @@ package com.workoutplanner.workoutplanner.dto.request;
 
 import com.workoutplanner.workoutplanner.enums.WorkoutStatus;
 import jakarta.validation.constraints.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.validator.constraints.Length;
 
 import java.time.LocalDateTime;
 
+@Getter
+@Setter
+@NoArgsConstructor
 public class CreateWorkoutRequest {
 
     @NotBlank(message = "Workout session name is required")
@@ -33,79 +39,10 @@ public class CreateWorkoutRequest {
     @Length(max = 1000, message = "Session notes must not exceed 1000 characters")
     private String sessionNotes;
 
-    // Constructors
-    public CreateWorkoutRequest() {
-    }
-
     public CreateWorkoutRequest(String name, String description, Long userId, WorkoutStatus status) {
         this.name = name;
         this.description = description;
         this.userId = userId;
         this.status = status;
-    }
-
-    // Getters and Setters
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
-
-    public WorkoutStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(WorkoutStatus status) {
-        this.status = status;
-    }
-
-    public LocalDateTime getStartedAt() {
-        return startedAt;
-    }
-
-    public void setStartedAt(LocalDateTime startedAt) {
-        this.startedAt = startedAt;
-    }
-
-    public LocalDateTime getCompletedAt() {
-        return completedAt;
-    }
-
-    public void setCompletedAt(LocalDateTime completedAt) {
-        this.completedAt = completedAt;
-    }
-
-    public Integer getActualDurationInMinutes() {
-        return actualDurationInMinutes;
-    }
-
-    public void setActualDurationInMinutes(Integer actualDurationInMinutes) {
-        this.actualDurationInMinutes = actualDurationInMinutes;
-    }
-
-    public String getSessionNotes() {
-        return sessionNotes;
-    }
-
-    public void setSessionNotes(String sessionNotes) {
-        this.sessionNotes = sessionNotes;
     }
 }

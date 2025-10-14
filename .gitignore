@@ -82,6 +82,9 @@ build/
 # IDE - VS Code
 .vscode/
 
+# IDE - Cursor
+.cursor/
+
 # OS
 .DS_Store
 .DS_Store?

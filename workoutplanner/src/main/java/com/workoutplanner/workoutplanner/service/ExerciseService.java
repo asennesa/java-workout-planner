@@ -6,9 +6,11 @@ import com.workoutplanner.workoutplanner.entity.Exercise;
 import com.workoutplanner.workoutplanner.enums.DifficultyLevel;
 import com.workoutplanner.workoutplanner.enums.ExerciseType;
 import com.workoutplanner.workoutplanner.enums.TargetMuscleGroup;
+import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.mapper.ExerciseMapper;
 import com.workoutplanner.workoutplanner.repository.ExerciseRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,16 +19,28 @@ import java.util.List;
 /**
  * Service implementation for Exercise entity operations.
  * Handles business logic for exercise management including creation, retrieval, and filtering.
+ * 
+ * Uses method-level @Transactional for optimal performance:
+ * - Read operations use @Transactional(readOnly = true) for better performance
+ * - Write operations use @Transactional for data modification
  */
 @Service
-@Transactional
 public class ExerciseService implements ExerciseServiceInterface {
     
-    @Autowired
-    private ExerciseRepository exerciseRepository;
+    private static final Logger logger = LoggerFactory.getLogger(ExerciseService.class);
     
-    @Autowired
-    private ExerciseMapper exerciseMapper;
+    private final ExerciseRepository exerciseRepository;
+    private final ExerciseMapper exerciseMapper;
+    
+    /**
+     * Constructor injection for dependencies.
+     * Makes dependencies explicit, immutable, and easier to test.
+     */
+    public ExerciseService(ExerciseRepository exerciseRepository, 
+                          ExerciseMapper exerciseMapper) {
+        this.exerciseRepository = exerciseRepository;
+        this.exerciseMapper = exerciseMapper;
+    }
     
     /**
      * Create a new exercise.
@@ -34,9 +48,18 @@ public class ExerciseService implements ExerciseServiceInterface {
      * @param createExerciseRequest the exercise creation request
      * @return the created exercise response
      */
+    @Transactional
     public ExerciseResponse createExercise(CreateExerciseRequest createExerciseRequest) {
+        logger.debug("SERVICE: Creating new exercise. name={}, type={}, targetMuscle={}, difficulty={}", 
+                    createExerciseRequest.getName(), createExerciseRequest.getType(), 
+                    createExerciseRequest.getTargetMuscleGroup(), createExerciseRequest.getDifficultyLevel());
+        
         Exercise exercise = exerciseMapper.toEntity(createExerciseRequest);
         Exercise savedExercise = exerciseRepository.save(exercise);
+        
+        logger.info("SERVICE: Exercise created successfully. exerciseId={}, name={}, type={}", 
+                   savedExercise.getExerciseId(), savedExercise.getName(), savedExercise.getType());
+        
         return exerciseMapper.toResponse(savedExercise);
     }
     
@@ -45,12 +68,12 @@ public class ExerciseService implements ExerciseServiceInterface {
      * 
      * @param exerciseId the exercise ID
      * @return the exercise response
-     * @throws IllegalArgumentException if exercise not found
+     * @throws ResourceNotFoundException if exercise not found
      */
     @Transactional(readOnly = true)
     public ExerciseResponse getExerciseById(Long exerciseId) {
         Exercise exercise = exerciseRepository.findById(exerciseId)
-                .orElseThrow(() -> new IllegalArgumentException("Exercise not found with ID: " + exerciseId));
+                .orElseThrow(() -> new ResourceNotFoundException("Exercise", "ID", exerciseId));
         
         return exerciseMapper.toResponse(exercise);
     }
@@ -149,14 +172,23 @@ public class ExerciseService implements ExerciseServiceInterface {
      * @param exerciseId the exercise ID
      * @param createExerciseRequest the updated exercise information
      * @return the updated exercise response
-     * @throws IllegalArgumentException if exercise not found
+     * @throws ResourceNotFoundException if exercise not found
      */
+    @Transactional
     public ExerciseResponse updateExercise(Long exerciseId, CreateExerciseRequest createExerciseRequest) {
+        logger.debug("SERVICE: Updating exercise. exerciseId={}, newName={}", 
+                    exerciseId, createExerciseRequest.getName());
+        
         Exercise exercise = exerciseRepository.findById(exerciseId)
-                .orElseThrow(() -> new IllegalArgumentException("Exercise not found with ID: " + exerciseId));
+                .orElseThrow(() -> new ResourceNotFoundException("Exercise", "ID", exerciseId));
+        
+        String oldName = exercise.getName();
         
         exerciseMapper.updateEntity(createExerciseRequest, exercise);
         Exercise savedExercise = exerciseRepository.save(exercise);
+        
+        logger.info("SERVICE: Exercise updated successfully. exerciseId={}, oldName={}, newName={}", 
+                   exerciseId, oldName, savedExercise.getName());
         
         return exerciseMapper.toResponse(savedExercise);
     }
@@ -165,13 +197,21 @@ public class ExerciseService implements ExerciseServiceInterface {
      * Delete exercise by ID.
      * 
      * @param exerciseId the exercise ID
-     * @throws IllegalArgumentException if exercise not found
+     * @throws ResourceNotFoundException if exercise not found
      */
+    @Transactional
     public void deleteExercise(Long exerciseId) {
-        if (!exerciseRepository.existsById(exerciseId)) {
-            throw new IllegalArgumentException("Exercise not found with ID: " + exerciseId);
-        }
+        logger.debug("SERVICE: Deleting exercise. exerciseId={}", exerciseId);
         
-        exerciseRepository.deleteById(exerciseId);
+        Exercise exercise = exerciseRepository.findById(exerciseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Exercise", "ID", exerciseId));
+        
+        String name = exercise.getName();
+        ExerciseType type = exercise.getType();
+        
+        exerciseRepository.delete(exercise);
+        
+        logger.info("SERVICE: Exercise deleted successfully. exerciseId={}, name={}, type={}", 
+                   exerciseId, name, type);
     }
 }
