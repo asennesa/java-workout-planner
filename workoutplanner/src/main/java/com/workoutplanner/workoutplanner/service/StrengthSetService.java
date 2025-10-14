@@ -8,6 +8,8 @@ import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.mapper.WorkoutMapper;
 import com.workoutplanner.workoutplanner.repository.StrengthSetRepository;
 import com.workoutplanner.workoutplanner.repository.WorkoutExerciseRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,8 @@ import java.util.List;
  */
 @Service
 public class StrengthSetService implements StrengthSetServiceInterface {
+
+    private static final Logger logger = LoggerFactory.getLogger(StrengthSetService.class);
 
     private final StrengthSetRepository strengthSetRepository;
     private final WorkoutExerciseRepository workoutExerciseRepository;
@@ -48,21 +52,26 @@ public class StrengthSetService implements StrengthSetServiceInterface {
      */
     @Transactional
     public StrengthSetResponse createStrengthSet(CreateStrengthSetRequest createStrengthSetRequest) {
+        logger.debug("SERVICE: Creating strength set. workoutExerciseId={}, setNumber={}, reps={}, weight={}", 
+                    createStrengthSetRequest.getWorkoutExerciseId(), createStrengthSetRequest.getSetNumber(),
+                    createStrengthSetRequest.getReps(), createStrengthSetRequest.getWeight());
+        
         // Validate workout exercise exists
         WorkoutExercise workoutExercise = workoutExerciseRepository.findById(createStrengthSetRequest.getWorkoutExerciseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", createStrengthSetRequest.getWorkoutExerciseId()));
 
-        // Create strength set entity
-        StrengthSet strengthSet = new StrengthSet();
+        // Map request to entity using mapper
+        StrengthSet strengthSet = workoutMapper.toStrengthSetEntity(createStrengthSetRequest);
+        
+        // Set the workout exercise (not handled by mapper)
         strengthSet.setWorkoutExercise(workoutExercise);
-        strengthSet.setSetNumber(createStrengthSetRequest.getSetNumber());
-        strengthSet.setReps(createStrengthSetRequest.getReps());
-        strengthSet.setWeight(createStrengthSetRequest.getWeight());
-        strengthSet.setRestTimeInSeconds(createStrengthSetRequest.getRestTimeInSeconds());
-        strengthSet.setNotes(createStrengthSetRequest.getNotes());
-        strengthSet.setCompleted(createStrengthSetRequest.getCompleted());
 
         StrengthSet savedStrengthSet = strengthSetRepository.save(strengthSet);
+        
+        logger.info("SERVICE: Strength set created successfully. setId={}, workoutExerciseId={}, setNumber={}", 
+                   savedStrengthSet.getSetId(), savedStrengthSet.getWorkoutExercise().getWorkoutExerciseId(),
+                   savedStrengthSet.getSetNumber());
+        
         return workoutMapper.toStrengthSetResponse(savedStrengthSet);
     }
 
@@ -104,13 +113,8 @@ public class StrengthSetService implements StrengthSetServiceInterface {
         StrengthSet strengthSet = strengthSetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Strength set", "ID", setId));
 
-        // Update fields
-        strengthSet.setSetNumber(createStrengthSetRequest.getSetNumber());
-        strengthSet.setReps(createStrengthSetRequest.getReps());
-        strengthSet.setWeight(createStrengthSetRequest.getWeight());
-        strengthSet.setRestTimeInSeconds(createStrengthSetRequest.getRestTimeInSeconds());
-        strengthSet.setNotes(createStrengthSetRequest.getNotes());
-        strengthSet.setCompleted(createStrengthSetRequest.getCompleted());
+        // Update fields using mapper
+        workoutMapper.updateStrengthSetEntity(createStrengthSetRequest, strengthSet);
 
         StrengthSet savedStrengthSet = strengthSetRepository.save(strengthSet);
         return workoutMapper.toStrengthSetResponse(savedStrengthSet);
@@ -123,10 +127,18 @@ public class StrengthSetService implements StrengthSetServiceInterface {
      */
     @Transactional
     public void deleteStrengthSet(Long setId) {
+        logger.debug("SERVICE: Deleting strength set. setId={}", setId);
+        
         StrengthSet strengthSet = strengthSetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Strength set", "ID", setId));
 
+        Integer setNumber = strengthSet.getSetNumber();
+        Long workoutExerciseId = strengthSet.getWorkoutExercise().getWorkoutExerciseId();
+        
         strengthSetRepository.delete(strengthSet);
+        
+        logger.info("SERVICE: Strength set deleted successfully. setId={}, workoutExerciseId={}, setNumber={}", 
+                   setId, workoutExerciseId, setNumber);
     }
 
     /**

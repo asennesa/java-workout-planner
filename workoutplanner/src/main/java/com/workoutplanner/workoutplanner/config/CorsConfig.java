@@ -12,6 +12,11 @@ import java.util.Arrays;
  * Global CORS configuration for the application.
  * 
  * This centralizes CORS settings instead of using @CrossOrigin on each controller.
+ * Supports API versioning by allowing the X-API-Version header.
+ * 
+ * API Versioning:
+ * - Current version: v1 (endpoints: /api/v1/*)
+ * - CORS configuration covers all API versions via /api/**
  * 
  * PRODUCTION: Update allowedOrigins to specific domains instead of "*"
  * Example: setAllowedOrigins(Arrays.asList("https://yourdomain.com", "https://app.yourdomain.com"))
@@ -36,19 +41,21 @@ public class CorsConfig {
             "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
         ));
         
-        // Allow common headers
+        // Allow common headers including API version header
         corsConfiguration.setAllowedHeaders(Arrays.asList(
             "Authorization",
             "Content-Type",
             "Accept",
             "X-Requested-With",
-            "Cache-Control"
+            "Cache-Control",
+            ApiVersionConfig.VERSION_HEADER
         ));
         
         // Expose headers that frontend can read
         corsConfiguration.setExposedHeaders(Arrays.asList(
             "Authorization",
-            "Content-Disposition"
+            "Content-Disposition",
+            ApiVersionConfig.VERSION_HEADER
         ));
         
         // Cache preflight requests for 1 hour

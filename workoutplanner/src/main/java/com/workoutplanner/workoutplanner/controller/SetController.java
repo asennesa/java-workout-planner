@@ -1,5 +1,6 @@
 package com.workoutplanner.workoutplanner.controller;
 
+import com.workoutplanner.workoutplanner.config.ApiVersionConfig;
 import com.workoutplanner.workoutplanner.dto.request.CreateStrengthSetRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateCardioSetRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateFlexibilitySetRequest;
@@ -10,6 +11,8 @@ import com.workoutplanner.workoutplanner.service.StrengthSetService;
 import com.workoutplanner.workoutplanner.service.CardioSetService;
 import com.workoutplanner.workoutplanner.service.FlexibilitySetService;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,10 +29,13 @@ import java.util.List;
  * - Repositories handle data access
  * 
  * CORS is configured globally in CorsConfig.java
+ * API Version: v1
  */
 @RestController
-@RequestMapping("/api/sets")
+@RequestMapping(ApiVersionConfig.V1_BASE_PATH + "/sets")
 public class SetController {
+    
+    private static final Logger logger = LoggerFactory.getLogger(SetController.class);
     
     private final StrengthSetService strengthSetService;
     private final CardioSetService cardioSetService;
@@ -56,7 +62,19 @@ public class SetController {
      */
     @PostMapping("/strength")
     public ResponseEntity<StrengthSetResponse> createStrengthSet(@Valid @RequestBody CreateStrengthSetRequest createStrengthSetRequest) {
+        logger.debug("Creating strength set for workoutExerciseId={}, reps={}, weight={}", 
+                    createStrengthSetRequest.getWorkoutExerciseId(), 
+                    createStrengthSetRequest.getReps(), 
+                    createStrengthSetRequest.getWeight());
+        
         StrengthSetResponse strengthSetResponse = strengthSetService.createStrengthSet(createStrengthSetRequest);
+        
+        logger.info("Strength set created successfully. setId={}, workoutExerciseId={}, reps={}, weight={}", 
+                   strengthSetResponse.getSetId(), 
+                   strengthSetResponse.getWorkoutExerciseId(),
+                   strengthSetResponse.getReps(),
+                   strengthSetResponse.getWeight());
+        
         return ResponseEntity.status(HttpStatus.CREATED).body(strengthSetResponse);
     }
     
@@ -120,7 +138,19 @@ public class SetController {
      */
     @PostMapping("/cardio")
     public ResponseEntity<CardioSetResponse> createCardioSet(@Valid @RequestBody CreateCardioSetRequest createCardioSetRequest) {
+        logger.debug("Creating cardio set for workoutExerciseId={}, duration={}, distance={}", 
+                    createCardioSetRequest.getWorkoutExerciseId(), 
+                    createCardioSetRequest.getDurationInSeconds(), 
+                    createCardioSetRequest.getDistance());
+        
         CardioSetResponse cardioSetResponse = cardioSetService.createCardioSet(createCardioSetRequest);
+        
+        logger.info("Cardio set created successfully. setId={}, workoutExerciseId={}, duration={}, distance={}", 
+                   cardioSetResponse.getSetId(), 
+                   cardioSetResponse.getWorkoutExerciseId(),
+                   cardioSetResponse.getDurationInSeconds(),
+                   cardioSetResponse.getDistance());
+        
         return ResponseEntity.status(HttpStatus.CREATED).body(cardioSetResponse);
     }
     
@@ -184,7 +214,19 @@ public class SetController {
      */
     @PostMapping("/flexibility")
     public ResponseEntity<FlexibilitySetResponse> createFlexibilitySet(@Valid @RequestBody CreateFlexibilitySetRequest createFlexibilitySetRequest) {
+        logger.debug("Creating flexibility set for workoutExerciseId={}, duration={}, intensity={}", 
+                    createFlexibilitySetRequest.getWorkoutExerciseId(), 
+                    createFlexibilitySetRequest.getDurationInSeconds(), 
+                    createFlexibilitySetRequest.getIntensity());
+        
         FlexibilitySetResponse flexibilitySetResponse = flexibilitySetService.createFlexibilitySet(createFlexibilitySetRequest);
+        
+        logger.info("Flexibility set created successfully. setId={}, workoutExerciseId={}, duration={}, intensity={}", 
+                   flexibilitySetResponse.getSetId(), 
+                   flexibilitySetResponse.getWorkoutExerciseId(),
+                   flexibilitySetResponse.getDurationInSeconds(),
+                   flexibilitySetResponse.getIntensity());
+        
         return ResponseEntity.status(HttpStatus.CREATED).body(flexibilitySetResponse);
     }
     

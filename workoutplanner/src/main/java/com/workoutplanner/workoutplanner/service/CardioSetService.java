@@ -8,6 +8,8 @@ import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.mapper.WorkoutMapper;
 import com.workoutplanner.workoutplanner.repository.CardioSetRepository;
 import com.workoutplanner.workoutplanner.repository.WorkoutExerciseRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,8 @@ import java.util.List;
  */
 @Service
 public class CardioSetService implements CardioSetServiceInterface {
+
+    private static final Logger logger = LoggerFactory.getLogger(CardioSetService.class);
 
     private final CardioSetRepository cardioSetRepository;
     private final WorkoutExerciseRepository workoutExerciseRepository;
@@ -48,22 +52,26 @@ public class CardioSetService implements CardioSetServiceInterface {
      */
     @Transactional
     public CardioSetResponse createCardioSet(CreateCardioSetRequest createCardioSetRequest) {
+        logger.debug("SERVICE: Creating cardio set. workoutExerciseId={}, setNumber={}, duration={}s, distance={}", 
+                    createCardioSetRequest.getWorkoutExerciseId(), createCardioSetRequest.getSetNumber(),
+                    createCardioSetRequest.getDurationInSeconds(), createCardioSetRequest.getDistance());
+        
         // Validate workout exercise exists
         WorkoutExercise workoutExercise = workoutExerciseRepository.findById(createCardioSetRequest.getWorkoutExerciseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", createCardioSetRequest.getWorkoutExerciseId()));
 
-        // Create cardio set entity
-        CardioSet cardioSet = new CardioSet();
+        // Map request to entity using mapper
+        CardioSet cardioSet = workoutMapper.toCardioSetEntity(createCardioSetRequest);
+        
+        // Set the workout exercise (not handled by mapper)
         cardioSet.setWorkoutExercise(workoutExercise);
-        cardioSet.setSetNumber(createCardioSetRequest.getSetNumber());
-        cardioSet.setDurationInSeconds(createCardioSetRequest.getDurationInSeconds());
-        cardioSet.setDistance(createCardioSetRequest.getDistance());
-        cardioSet.setDistanceUnit(createCardioSetRequest.getDistanceUnit());
-        cardioSet.setRestTimeInSeconds(createCardioSetRequest.getRestTimeInSeconds());
-        cardioSet.setNotes(createCardioSetRequest.getNotes());
-        cardioSet.setCompleted(createCardioSetRequest.getCompleted());
 
         CardioSet savedCardioSet = cardioSetRepository.save(cardioSet);
+        
+        logger.info("SERVICE: Cardio set created successfully. setId={}, workoutExerciseId={}, setNumber={}", 
+                   savedCardioSet.getSetId(), savedCardioSet.getWorkoutExercise().getWorkoutExerciseId(),
+                   savedCardioSet.getSetNumber());
+        
         return workoutMapper.toCardioSetResponse(savedCardioSet);
     }
 
@@ -105,14 +113,8 @@ public class CardioSetService implements CardioSetServiceInterface {
         CardioSet cardioSet = cardioSetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cardio set", "ID", setId));
 
-        // Update fields
-        cardioSet.setSetNumber(createCardioSetRequest.getSetNumber());
-        cardioSet.setDurationInSeconds(createCardioSetRequest.getDurationInSeconds());
-        cardioSet.setDistance(createCardioSetRequest.getDistance());
-        cardioSet.setDistanceUnit(createCardioSetRequest.getDistanceUnit());
-        cardioSet.setRestTimeInSeconds(createCardioSetRequest.getRestTimeInSeconds());
-        cardioSet.setNotes(createCardioSetRequest.getNotes());
-        cardioSet.setCompleted(createCardioSetRequest.getCompleted());
+        // Update fields using mapper
+        workoutMapper.updateCardioSetEntity(createCardioSetRequest, cardioSet);
 
         CardioSet savedCardioSet = cardioSetRepository.save(cardioSet);
         return workoutMapper.toCardioSetResponse(savedCardioSet);
@@ -125,10 +127,18 @@ public class CardioSetService implements CardioSetServiceInterface {
      */
     @Transactional
     public void deleteCardioSet(Long setId) {
+        logger.debug("SERVICE: Deleting cardio set. setId={}", setId);
+        
         CardioSet cardioSet = cardioSetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cardio set", "ID", setId));
 
+        Integer setNumber = cardioSet.getSetNumber();
+        Long workoutExerciseId = cardioSet.getWorkoutExercise().getWorkoutExerciseId();
+        
         cardioSetRepository.delete(cardioSet);
+        
+        logger.info("SERVICE: Cardio set deleted successfully. setId={}, workoutExerciseId={}, setNumber={}", 
+                   setId, workoutExerciseId, setNumber);
     }
 
     /**

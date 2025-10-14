@@ -9,6 +9,8 @@ import com.workoutplanner.workoutplanner.enums.TargetMuscleGroup;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.mapper.ExerciseMapper;
 import com.workoutplanner.workoutplanner.repository.ExerciseRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +26,8 @@ import java.util.List;
  */
 @Service
 public class ExerciseService implements ExerciseServiceInterface {
+    
+    private static final Logger logger = LoggerFactory.getLogger(ExerciseService.class);
     
     private final ExerciseRepository exerciseRepository;
     private final ExerciseMapper exerciseMapper;
@@ -46,8 +50,16 @@ public class ExerciseService implements ExerciseServiceInterface {
      */
     @Transactional
     public ExerciseResponse createExercise(CreateExerciseRequest createExerciseRequest) {
+        logger.debug("SERVICE: Creating new exercise. name={}, type={}, targetMuscle={}, difficulty={}", 
+                    createExerciseRequest.getName(), createExerciseRequest.getType(), 
+                    createExerciseRequest.getTargetMuscleGroup(), createExerciseRequest.getDifficultyLevel());
+        
         Exercise exercise = exerciseMapper.toEntity(createExerciseRequest);
         Exercise savedExercise = exerciseRepository.save(exercise);
+        
+        logger.info("SERVICE: Exercise created successfully. exerciseId={}, name={}, type={}", 
+                   savedExercise.getExerciseId(), savedExercise.getName(), savedExercise.getType());
+        
         return exerciseMapper.toResponse(savedExercise);
     }
     
@@ -164,11 +176,19 @@ public class ExerciseService implements ExerciseServiceInterface {
      */
     @Transactional
     public ExerciseResponse updateExercise(Long exerciseId, CreateExerciseRequest createExerciseRequest) {
+        logger.debug("SERVICE: Updating exercise. exerciseId={}, newName={}", 
+                    exerciseId, createExerciseRequest.getName());
+        
         Exercise exercise = exerciseRepository.findById(exerciseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exercise", "ID", exerciseId));
         
+        String oldName = exercise.getName();
+        
         exerciseMapper.updateEntity(createExerciseRequest, exercise);
         Exercise savedExercise = exerciseRepository.save(exercise);
+        
+        logger.info("SERVICE: Exercise updated successfully. exerciseId={}, oldName={}, newName={}", 
+                   exerciseId, oldName, savedExercise.getName());
         
         return exerciseMapper.toResponse(savedExercise);
     }
@@ -181,9 +201,17 @@ public class ExerciseService implements ExerciseServiceInterface {
      */
     @Transactional
     public void deleteExercise(Long exerciseId) {
+        logger.debug("SERVICE: Deleting exercise. exerciseId={}", exerciseId);
+        
         Exercise exercise = exerciseRepository.findById(exerciseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exercise", "ID", exerciseId));
         
+        String name = exercise.getName();
+        ExerciseType type = exercise.getType();
+        
         exerciseRepository.delete(exercise);
+        
+        logger.info("SERVICE: Exercise deleted successfully. exerciseId={}, name={}, type={}", 
+                   exerciseId, name, type);
     }
 }

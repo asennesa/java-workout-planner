@@ -10,6 +10,8 @@ import com.workoutplanner.workoutplanner.exception.ResourceConflictException;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.mapper.UserMapper;
 import com.workoutplanner.workoutplanner.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,8 @@ import java.util.List;
  */
 @Service
 public class UserService implements UserServiceInterface {
+    
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
     
     private final UserRepository userRepository;
     private final UserMapper userMapper;
@@ -52,13 +56,20 @@ public class UserService implements UserServiceInterface {
      */
     @Transactional
     public UserResponse createUser(CreateUserRequest createUserRequest) {
+        logger.debug("SERVICE: Creating new user. username={}, email={}", 
+                    createUserRequest.getUsername(), createUserRequest.getEmail());
+        
         // Check if username already exists
         if (userRepository.existsByUsername(createUserRequest.getUsername())) {
+            logger.warn("SERVICE: User creation failed - username already exists. username={}", 
+                       createUserRequest.getUsername());
             throw new ResourceConflictException("User", "username", createUserRequest.getUsername());
         }
         
         // Check if email already exists
         if (userRepository.existsByEmail(createUserRequest.getEmail())) {
+            logger.warn("SERVICE: User creation failed - email already exists. email={}", 
+                       createUserRequest.getEmail());
             throw new ResourceConflictException("User", "email", createUserRequest.getEmail());
         }
         
@@ -70,6 +81,9 @@ public class UserService implements UserServiceInterface {
         
         // Save the user
         User savedUser = userRepository.save(user);
+        
+        logger.info("SERVICE: User created successfully. userId={}, username={}, email={}", 
+                   savedUser.getUserId(), savedUser.getUsername(), savedUser.getEmail());
         
         // Convert to response and return
         return userMapper.toResponse(savedUser);
@@ -143,29 +157,39 @@ public class UserService implements UserServiceInterface {
      */
     @Transactional
     public UserResponse updateUser(Long userId, UpdateUserRequest updateUserRequest) {
+        logger.debug("SERVICE: Updating user. userId={}, newUsername={}, newEmail={}", 
+                    userId, updateUserRequest.getUsername(), updateUserRequest.getEmail());
+        
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "ID", userId));
         
         // Check if new username conflicts with existing users (excluding current user)
         if (!user.getUsername().equals(updateUserRequest.getUsername()) && 
             userRepository.existsByUsername(updateUserRequest.getUsername())) {
+            logger.warn("SERVICE: User update failed - username conflict. userId={}, conflictUsername={}", 
+                       userId, updateUserRequest.getUsername());
             throw new ResourceConflictException("User", "username", updateUserRequest.getUsername());
         }
         
         // Check if new email conflicts with existing users (excluding current user)
         if (!user.getEmail().equals(updateUserRequest.getEmail()) && 
             userRepository.existsByEmail(updateUserRequest.getEmail())) {
+            logger.warn("SERVICE: User update failed - email conflict. userId={}, conflictEmail={}", 
+                       userId, updateUserRequest.getEmail());
             throw new ResourceConflictException("User", "email", updateUserRequest.getEmail());
         }
         
-        // Update user fields (no password update here)
-        user.setUsername(updateUserRequest.getUsername());
-        user.setEmail(updateUserRequest.getEmail());
-        user.setFirstName(updateUserRequest.getFirstName());
-        user.setLastName(updateUserRequest.getLastName());
+        String oldUsername = user.getUsername();
+        String oldEmail = user.getEmail();
+        
+        // Update user fields using mapper (no password update here)
+        userMapper.updateFromUpdateRequest(updateUserRequest, user);
         
         // Save updated user
         User savedUser = userRepository.save(user);
+        
+        logger.info("SERVICE: User updated successfully. userId={}, oldUsername={}, newUsername={}, oldEmail={}, newEmail={}", 
+                   userId, oldUsername, savedUser.getUsername(), oldEmail, savedUser.getEmail());
         
         return userMapper.toResponse(savedUser);
     }
@@ -180,8 +204,11 @@ public class UserService implements UserServiceInterface {
      */
     @Transactional
     public void changePassword(Long userId, ChangePasswordRequest changePasswordRequest) {
+        logger.debug("SERVICE: Password change requested. userId={}", userId);
+        
         // Validate that new password and confirmation match
         if (!changePasswordRequest.passwordsMatch()) {
+            logger.warn("SERVICE: Password change failed - password mismatch. userId={}", userId);
             throw new BusinessLogicException("New password and confirmation do not match");
         }
         
@@ -190,11 +217,14 @@ public class UserService implements UserServiceInterface {
         
         // Verify current password
         if (!passwordEncoder.matches(changePasswordRequest.getCurrentPassword(), user.getPasswordHash())) {
+            logger.warn("SERVICE: Password change failed - incorrect current password. userId={}, username={}", 
+                       userId, user.getUsername());
             throw new BusinessLogicException("Current password is incorrect");
         }
         
         // Ensure new password is different from current
         if (passwordEncoder.matches(changePasswordRequest.getNewPassword(), user.getPasswordHash())) {
+            logger.warn("SERVICE: Password change failed - new password same as current. userId={}", userId);
             throw new BusinessLogicException("New password must be different from current password");
         }
         
@@ -202,6 +232,9 @@ public class UserService implements UserServiceInterface {
         user.setPasswordHash(passwordEncoder.encode(changePasswordRequest.getNewPassword()));
         
         userRepository.save(user);
+        
+        logger.info("SERVICE: Password changed successfully. userId={}, username={}", 
+                   userId, user.getUsername());
     }
     
     /**
@@ -212,10 +245,18 @@ public class UserService implements UserServiceInterface {
      */
     @Transactional
     public void deleteUser(Long userId) {
+        logger.debug("SERVICE: Deleting user. userId={}", userId);
+        
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "ID", userId));
         
+        String username = user.getUsername();
+        String email = user.getEmail();
+        
         userRepository.delete(user);
+        
+        logger.info("SERVICE: User deleted successfully. userId={}, username={}, email={}", 
+                   userId, username, email);
     }
     
     /**

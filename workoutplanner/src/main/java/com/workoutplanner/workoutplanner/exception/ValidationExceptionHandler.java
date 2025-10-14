@@ -1,5 +1,7 @@
 package com.workoutplanner.workoutplanner.exception;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -16,6 +18,8 @@ import java.util.Map;
  */
 @RestControllerAdvice
 public class ValidationExceptionHandler {
+    
+    private static final Logger logger = LoggerFactory.getLogger(ValidationExceptionHandler.class);
     
     /**
      * Handles validation errors from @Valid annotations.
@@ -34,6 +38,9 @@ public class ValidationExceptionHandler {
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
+        
+        logger.warn("Validation failed. Fields with errors: {}", errors.keySet());
+        logger.debug("Validation error details: {}", errors);
         
         response.put("message", "Validation failed");
         response.put("errors", errors);
@@ -60,6 +67,9 @@ public class ValidationExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
         
+        logger.warn("Constraint violation. Fields with errors: {}", errors.keySet());
+        logger.debug("Constraint violation details: {}", errors);
+        
         response.put("message", "Validation failed");
         response.put("errors", errors);
         response.put("status", HttpStatus.BAD_REQUEST.value());
@@ -77,6 +87,8 @@ public class ValidationExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleResourceNotFoundException(ResourceNotFoundException ex) {
         Map<String, Object> response = new HashMap<>();
         
+        logger.info("Resource not found: {}", ex.getMessage());
+        
         response.put("message", ex.getMessage());
         response.put("status", HttpStatus.NOT_FOUND.value());
         
@@ -92,6 +104,8 @@ public class ValidationExceptionHandler {
     @ExceptionHandler(ResourceConflictException.class)
     public ResponseEntity<Map<String, Object>> handleResourceConflictException(ResourceConflictException ex) {
         Map<String, Object> response = new HashMap<>();
+        
+        logger.warn("Resource conflict: {}", ex.getMessage());
         
         response.put("message", ex.getMessage());
         response.put("status", HttpStatus.CONFLICT.value());
@@ -109,6 +123,9 @@ public class ValidationExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleBusinessLogicException(BusinessLogicException ex) {
         Map<String, Object> response = new HashMap<>();
         
+        logger.warn("Business logic error: {}", ex.getMessage());
+        logger.debug("Business logic exception details", ex);
+        
         response.put("message", ex.getMessage());
         response.put("status", HttpStatus.BAD_REQUEST.value());
         
@@ -124,6 +141,8 @@ public class ValidationExceptionHandler {
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
         Map<String, Object> response = new HashMap<>();
+        
+        logger.error("Unexpected runtime error occurred: {}", ex.getMessage(), ex);
         
         response.put("message", "An unexpected error occurred: " + ex.getMessage());
         response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());

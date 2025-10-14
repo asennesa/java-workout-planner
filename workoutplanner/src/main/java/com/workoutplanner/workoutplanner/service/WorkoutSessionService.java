@@ -15,6 +15,8 @@ import com.workoutplanner.workoutplanner.repository.WorkoutSessionRepository;
 import com.workoutplanner.workoutplanner.repository.WorkoutExerciseRepository;
 import com.workoutplanner.workoutplanner.repository.UserRepository;
 import com.workoutplanner.workoutplanner.repository.ExerciseRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +33,8 @@ import java.util.List;
  */
 @Service
 public class WorkoutSessionService implements WorkoutSessionServiceInterface {
+
+    private static final Logger logger = LoggerFactory.getLogger(WorkoutSessionService.class);
 
     private final WorkoutSessionRepository workoutSessionRepository;
     private final WorkoutExerciseRepository workoutExerciseRepository;
@@ -62,20 +66,18 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
      */
     @Transactional
     public WorkoutResponse createWorkoutSession(CreateWorkoutRequest createWorkoutRequest) {
+        logger.debug("SERVICE: Creating workout session. userId={}, name={}, status={}", 
+                    createWorkoutRequest.getUserId(), createWorkoutRequest.getName(), createWorkoutRequest.getStatus());
+        
         // Validate user exists
         User user = userRepository.findById(createWorkoutRequest.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "ID", createWorkoutRequest.getUserId()));
 
-        // Create workout session entity
-        WorkoutSession workoutSession = new WorkoutSession();
-        workoutSession.setName(createWorkoutRequest.getName());
-        workoutSession.setDescription(createWorkoutRequest.getDescription());
+        // Map request to entity using mapper
+        WorkoutSession workoutSession = workoutMapper.toEntity(createWorkoutRequest);
+        
+        // Set the user (not handled by mapper)
         workoutSession.setUser(user);
-        workoutSession.setStatus(createWorkoutRequest.getStatus());
-        workoutSession.setStartedAt(createWorkoutRequest.getStartedAt());
-        workoutSession.setCompletedAt(createWorkoutRequest.getCompletedAt());
-        workoutSession.setActualDurationInMinutes(createWorkoutRequest.getActualDurationInMinutes());
-        workoutSession.setSessionNotes(createWorkoutRequest.getSessionNotes());
 
         // Set timestamps
         LocalDateTime now = LocalDateTime.now();
@@ -85,6 +87,10 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
 
         // Save workout session
         WorkoutSession savedWorkoutSession = workoutSessionRepository.save(workoutSession);
+
+        logger.info("SERVICE: Workout session created successfully. sessionId={}, userId={}, name={}, status={}", 
+                   savedWorkoutSession.getSessionId(), savedWorkoutSession.getUser().getUserId(), 
+                   savedWorkoutSession.getName(), savedWorkoutSession.getStatus());
 
         // Convert to response DTO
         return workoutMapper.toWorkoutResponse(savedWorkoutSession);
@@ -141,14 +147,8 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
         WorkoutSession workoutSession = workoutSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
 
-        // Update fields
-        workoutSession.setName(createWorkoutRequest.getName());
-        workoutSession.setDescription(createWorkoutRequest.getDescription());
-        workoutSession.setStatus(createWorkoutRequest.getStatus());
-        workoutSession.setStartedAt(createWorkoutRequest.getStartedAt());
-        workoutSession.setCompletedAt(createWorkoutRequest.getCompletedAt());
-        workoutSession.setActualDurationInMinutes(createWorkoutRequest.getActualDurationInMinutes());
-        workoutSession.setSessionNotes(createWorkoutRequest.getSessionNotes());
+        // Update fields using mapper
+        workoutMapper.updateEntity(createWorkoutRequest, workoutSession);
 
         // Handle status transitions
         handleStatusTransition(workoutSession, createWorkoutRequest.getStatus());
@@ -166,13 +166,20 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
      */
     @Transactional
     public WorkoutResponse updateWorkoutSessionStatus(Long sessionId, WorkoutStatus status) {
+        logger.debug("SERVICE: Updating workout session status. sessionId={}, newStatus={}", sessionId, status);
+        
         WorkoutSession workoutSession = workoutSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
 
+        WorkoutStatus oldStatus = workoutSession.getStatus();
         handleStatusTransition(workoutSession, status);
         workoutSession.setStatus(status);
 
         WorkoutSession savedWorkoutSession = workoutSessionRepository.save(workoutSession);
+        
+        logger.info("SERVICE: Workout session status updated. sessionId={}, oldStatus={}, newStatus={}", 
+                   sessionId, oldStatus, status);
+        
         return workoutMapper.toWorkoutResponse(savedWorkoutSession);
     }
 
@@ -183,10 +190,19 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
      */
     @Transactional
     public void deleteWorkoutSession(Long sessionId) {
+        logger.debug("SERVICE: Deleting workout session. sessionId={}", sessionId);
+        
         WorkoutSession workoutSession = workoutSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
 
+        String name = workoutSession.getName();
+        WorkoutStatus status = workoutSession.getStatus();
+        Long userId = workoutSession.getUser().getUserId();
+        
         workoutSessionRepository.delete(workoutSession);
+        
+        logger.info("SERVICE: Workout session deleted successfully. sessionId={}, name={}, status={}, userId={}", 
+                   sessionId, name, status, userId);
     }
 
     /**
@@ -205,12 +221,12 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
         Exercise exercise = exerciseRepository.findById(createWorkoutExerciseRequest.getExerciseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Exercise", "ID", createWorkoutExerciseRequest.getExerciseId()));
 
-        // Create workout exercise
-        WorkoutExercise workoutExercise = new WorkoutExercise();
+        // Map request to entity using mapper
+        WorkoutExercise workoutExercise = workoutMapper.toWorkoutExerciseEntity(createWorkoutExerciseRequest);
+        
+        // Set relationships (not handled by mapper)
         workoutExercise.setWorkoutSession(workoutSession);
         workoutExercise.setExercise(exercise);
-        workoutExercise.setOrderInWorkout(createWorkoutExerciseRequest.getOrderInWorkout());
-        workoutExercise.setNotes(createWorkoutExerciseRequest.getNotes());
 
         WorkoutExercise savedWorkoutExercise = workoutExerciseRepository.save(workoutExercise);
         return workoutMapper.toWorkoutExerciseResponse(savedWorkoutExercise);

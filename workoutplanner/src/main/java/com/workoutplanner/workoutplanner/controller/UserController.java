@@ -1,11 +1,14 @@
 package com.workoutplanner.workoutplanner.controller;
 
+import com.workoutplanner.workoutplanner.config.ApiVersionConfig;
 import com.workoutplanner.workoutplanner.dto.request.ChangePasswordRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateUserRequest;
 import com.workoutplanner.workoutplanner.dto.request.UpdateUserRequest;
 import com.workoutplanner.workoutplanner.dto.response.UserResponse;
 import com.workoutplanner.workoutplanner.service.UserService;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,10 +22,13 @@ import java.util.Map;
  * Provides endpoints for user management following REST API best practices.
  * 
  * CORS is configured globally in CorsConfig.java
+ * API Version: v1
  */
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping(ApiVersionConfig.V1_BASE_PATH + "/users")
 public class UserController {
+    
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
     
     private final UserService userService;
     
@@ -41,7 +47,13 @@ public class UserController {
      */
     @PostMapping
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest createUserRequest) {
+        logger.debug("Creating user with username: {}", createUserRequest.getUsername());
+        
         UserResponse userResponse = userService.createUser(createUserRequest);
+        
+        logger.info("User created successfully. userId={}, username={}", 
+                   userResponse.getUserId(), userResponse.getUsername());
+        
         return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);
     }
     
@@ -53,7 +65,12 @@ public class UserController {
      */
     @GetMapping("/{userId}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable Long userId) {
+        logger.debug("Fetching user by ID: {}", userId);
+        
         UserResponse userResponse = userService.getUserById(userId);
+        
+        logger.trace("User retrieved: userId={}, username={}", userId, userResponse.getUsername());
+        
         return ResponseEntity.ok(userResponse);
     }
     
@@ -88,7 +105,12 @@ public class UserController {
      */
     @GetMapping
     public ResponseEntity<List<UserResponse>> getAllUsers() {
+        logger.debug("Fetching all users");
+        
         List<UserResponse> userResponses = userService.getAllUsers();
+        
+        logger.info("Retrieved {} users", userResponses.size());
+        
         return ResponseEntity.ok(userResponses);
     }
     
@@ -103,7 +125,13 @@ public class UserController {
     @PutMapping("/{userId}")
     public ResponseEntity<UserResponse> updateUser(@PathVariable Long userId, 
                                                   @Valid @RequestBody UpdateUserRequest updateUserRequest) {
+        logger.debug("Updating user: userId={}", userId);
+        
         UserResponse userResponse = userService.updateUser(userId, updateUserRequest);
+        
+        logger.info("User updated successfully. userId={}, username={}", 
+                   userResponse.getUserId(), userResponse.getUsername());
+        
         return ResponseEntity.ok(userResponse);
     }
     
@@ -118,7 +146,11 @@ public class UserController {
     @PutMapping("/{userId}/change-password")
     public ResponseEntity<Map<String, String>> changePassword(@PathVariable Long userId,
                                                               @Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
+        logger.info("Password change requested for userId={}", userId);
+        
         userService.changePassword(userId, changePasswordRequest);
+        
+        logger.info("Password changed successfully for userId={}", userId);
         
         Map<String, String> response = new HashMap<>();
         response.put("message", "Password changed successfully");
@@ -134,7 +166,12 @@ public class UserController {
      */
     @DeleteMapping("/{userId}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
+        logger.warn("Deleting user: userId={}", userId);
+        
         userService.deleteUser(userId);
+        
+        logger.info("User deleted successfully. userId={}", userId);
+        
         return ResponseEntity.noContent().build();
     }
     

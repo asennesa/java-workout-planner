@@ -1,5 +1,6 @@
 package com.workoutplanner.workoutplanner.controller;
 
+import com.workoutplanner.workoutplanner.config.ApiVersionConfig;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutExerciseRequest;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutResponse;
@@ -7,6 +8,8 @@ import com.workoutplanner.workoutplanner.dto.response.WorkoutExerciseResponse;
 import com.workoutplanner.workoutplanner.enums.WorkoutStatus;
 import com.workoutplanner.workoutplanner.service.WorkoutSessionService;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,10 +21,13 @@ import java.util.List;
  * Provides endpoints for workout session management following REST API best practices.
  * 
  * CORS is configured globally in CorsConfig.java
+ * API Version: v1
  */
 @RestController
-@RequestMapping("/api/workouts")
+@RequestMapping(ApiVersionConfig.V1_BASE_PATH + "/workouts")
 public class WorkoutSessionController {
+    
+    private static final Logger logger = LoggerFactory.getLogger(WorkoutSessionController.class);
     
     private final WorkoutSessionService workoutSessionService;
     
@@ -40,7 +46,14 @@ public class WorkoutSessionController {
      */
     @PostMapping
     public ResponseEntity<WorkoutResponse> createWorkoutSession(@Valid @RequestBody CreateWorkoutRequest createWorkoutRequest) {
+        logger.debug("Creating workout session for userId={}", 
+                    createWorkoutRequest.getUserId());
+        
         WorkoutResponse workoutResponse = workoutSessionService.createWorkoutSession(createWorkoutRequest);
+        
+        logger.info("Workout session created successfully. sessionId={}, userId={}, status={}", 
+                   workoutResponse.getSessionId(), workoutResponse.getUserId(), workoutResponse.getStatus());
+        
         return ResponseEntity.status(HttpStatus.CREATED).body(workoutResponse);
     }
     
@@ -103,7 +116,12 @@ public class WorkoutSessionController {
     @PutMapping("/{sessionId}/status")
     public ResponseEntity<WorkoutResponse> updateWorkoutSessionStatus(@PathVariable Long sessionId, 
                                                                       @RequestParam WorkoutStatus status) {
+        logger.info("Updating workout session status: sessionId={}, newStatus={}", sessionId, status);
+        
         WorkoutResponse workoutResponse = workoutSessionService.updateWorkoutSessionStatus(sessionId, status);
+        
+        logger.info("Workout session status updated successfully. sessionId={}, status={}", sessionId, status);
+        
         return ResponseEntity.ok(workoutResponse);
     }
     
@@ -163,7 +181,12 @@ public class WorkoutSessionController {
      */
     @PostMapping("/{sessionId}/start")
     public ResponseEntity<WorkoutResponse> startWorkoutSession(@PathVariable Long sessionId) {
+        logger.info("Starting workout session: sessionId={}", sessionId);
+        
         WorkoutResponse workoutResponse = workoutSessionService.updateWorkoutSessionStatus(sessionId, WorkoutStatus.IN_PROGRESS);
+        
+        logger.info("Workout session started. sessionId={}", sessionId);
+        
         return ResponseEntity.ok(workoutResponse);
     }
     
@@ -199,7 +222,12 @@ public class WorkoutSessionController {
      */
     @PostMapping("/{sessionId}/complete")
     public ResponseEntity<WorkoutResponse> completeWorkoutSession(@PathVariable Long sessionId) {
+        logger.info("Completing workout session: sessionId={}", sessionId);
+        
         WorkoutResponse workoutResponse = workoutSessionService.updateWorkoutSessionStatus(sessionId, WorkoutStatus.COMPLETED);
+        
+        logger.info("Workout session completed successfully. sessionId={}", sessionId);
+        
         return ResponseEntity.ok(workoutResponse);
     }
     

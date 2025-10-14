@@ -1,5 +1,6 @@
 package com.workoutplanner.workoutplanner.controller;
 
+import com.workoutplanner.workoutplanner.config.ApiVersionConfig;
 import com.workoutplanner.workoutplanner.dto.request.CreateExerciseRequest;
 import com.workoutplanner.workoutplanner.dto.response.ExerciseResponse;
 import com.workoutplanner.workoutplanner.enums.DifficultyLevel;
@@ -7,6 +8,8 @@ import com.workoutplanner.workoutplanner.enums.ExerciseType;
 import com.workoutplanner.workoutplanner.enums.TargetMuscleGroup;
 import com.workoutplanner.workoutplanner.service.ExerciseService;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,10 +21,13 @@ import java.util.List;
  * Provides endpoints for exercise management following REST API best practices.
  * 
  * CORS is configured globally in CorsConfig.java
+ * API Version: v1
  */
 @RestController
-@RequestMapping("/api/exercises")
+@RequestMapping(ApiVersionConfig.V1_BASE_PATH + "/exercises")
 public class ExerciseController {
+    
+    private static final Logger logger = LoggerFactory.getLogger(ExerciseController.class);
     
     private final ExerciseService exerciseService;
     
@@ -40,7 +46,13 @@ public class ExerciseController {
      */
     @PostMapping
     public ResponseEntity<ExerciseResponse> createExercise(@Valid @RequestBody CreateExerciseRequest createExerciseRequest) {
+        logger.debug("Creating exercise: name={}, type={}", createExerciseRequest.getName(), createExerciseRequest.getType());
+        
         ExerciseResponse exerciseResponse = exerciseService.createExercise(createExerciseRequest);
+        
+        logger.info("Exercise created successfully. exerciseId={}, name={}, type={}", 
+                   exerciseResponse.getExerciseId(), exerciseResponse.getName(), exerciseResponse.getType());
+        
         return ResponseEntity.status(HttpStatus.CREATED).body(exerciseResponse);
     }
     
@@ -63,7 +75,12 @@ public class ExerciseController {
      */
     @GetMapping
     public ResponseEntity<List<ExerciseResponse>> getAllExercises() {
+        logger.debug("Fetching all exercises");
+        
         List<ExerciseResponse> exerciseResponses = exerciseService.getAllExercises();
+        
+        logger.info("Retrieved {} exercises", exerciseResponses.size());
+        
         return ResponseEntity.ok(exerciseResponses);
     }
     
@@ -169,7 +186,12 @@ public class ExerciseController {
      */
     @DeleteMapping("/{exerciseId}")
     public ResponseEntity<Void> deleteExercise(@PathVariable Long exerciseId) {
+        logger.warn("Deleting exercise: exerciseId={}", exerciseId);
+        
         exerciseService.deleteExercise(exerciseId);
+        
+        logger.info("Exercise deleted successfully. exerciseId={}", exerciseId);
+        
         return ResponseEntity.noContent().build();
     }
 }

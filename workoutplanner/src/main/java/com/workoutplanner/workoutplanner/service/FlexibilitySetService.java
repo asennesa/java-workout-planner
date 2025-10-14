@@ -8,6 +8,8 @@ import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.mapper.WorkoutMapper;
 import com.workoutplanner.workoutplanner.repository.FlexibilitySetRepository;
 import com.workoutplanner.workoutplanner.repository.WorkoutExerciseRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,8 @@ import java.util.List;
  */
 @Service
 public class FlexibilitySetService implements FlexibilitySetServiceInterface {
+
+    private static final Logger logger = LoggerFactory.getLogger(FlexibilitySetService.class);
 
     private final FlexibilitySetRepository flexibilitySetRepository;
     private final WorkoutExerciseRepository workoutExerciseRepository;
@@ -48,22 +52,26 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
      */
     @Transactional
     public FlexibilitySetResponse createFlexibilitySet(CreateFlexibilitySetRequest createFlexibilitySetRequest) {
+        logger.debug("SERVICE: Creating flexibility set. workoutExerciseId={}, setNumber={}, duration={}s, intensity={}", 
+                    createFlexibilitySetRequest.getWorkoutExerciseId(), createFlexibilitySetRequest.getSetNumber(),
+                    createFlexibilitySetRequest.getDurationInSeconds(), createFlexibilitySetRequest.getIntensity());
+        
         // Validate workout exercise exists
         WorkoutExercise workoutExercise = workoutExerciseRepository.findById(createFlexibilitySetRequest.getWorkoutExerciseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", createFlexibilitySetRequest.getWorkoutExerciseId()));
 
-        // Create flexibility set entity
-        FlexibilitySet flexibilitySet = new FlexibilitySet();
+        // Map request to entity using mapper
+        FlexibilitySet flexibilitySet = workoutMapper.toFlexibilitySetEntity(createFlexibilitySetRequest);
+        
+        // Set the workout exercise (not handled by mapper)
         flexibilitySet.setWorkoutExercise(workoutExercise);
-        flexibilitySet.setSetNumber(createFlexibilitySetRequest.getSetNumber());
-        flexibilitySet.setDurationInSeconds(createFlexibilitySetRequest.getDurationInSeconds());
-        flexibilitySet.setStretchType(createFlexibilitySetRequest.getStretchType());
-        flexibilitySet.setIntensity(createFlexibilitySetRequest.getIntensity());
-        flexibilitySet.setRestTimeInSeconds(createFlexibilitySetRequest.getRestTimeInSeconds());
-        flexibilitySet.setNotes(createFlexibilitySetRequest.getNotes());
-        flexibilitySet.setCompleted(createFlexibilitySetRequest.getCompleted());
 
         FlexibilitySet savedFlexibilitySet = flexibilitySetRepository.save(flexibilitySet);
+        
+        logger.info("SERVICE: Flexibility set created successfully. setId={}, workoutExerciseId={}, setNumber={}", 
+                   savedFlexibilitySet.getSetId(), savedFlexibilitySet.getWorkoutExercise().getWorkoutExerciseId(),
+                   savedFlexibilitySet.getSetNumber());
+        
         return workoutMapper.toFlexibilitySetResponse(savedFlexibilitySet);
     }
 
@@ -105,14 +113,8 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
         FlexibilitySet flexibilitySet = flexibilitySetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Flexibility set", "ID", setId));
 
-        // Update fields
-        flexibilitySet.setSetNumber(createFlexibilitySetRequest.getSetNumber());
-        flexibilitySet.setDurationInSeconds(createFlexibilitySetRequest.getDurationInSeconds());
-        flexibilitySet.setStretchType(createFlexibilitySetRequest.getStretchType());
-        flexibilitySet.setIntensity(createFlexibilitySetRequest.getIntensity());
-        flexibilitySet.setRestTimeInSeconds(createFlexibilitySetRequest.getRestTimeInSeconds());
-        flexibilitySet.setNotes(createFlexibilitySetRequest.getNotes());
-        flexibilitySet.setCompleted(createFlexibilitySetRequest.getCompleted());
+        // Update fields using mapper
+        workoutMapper.updateFlexibilitySetEntity(createFlexibilitySetRequest, flexibilitySet);
 
         FlexibilitySet savedFlexibilitySet = flexibilitySetRepository.save(flexibilitySet);
         return workoutMapper.toFlexibilitySetResponse(savedFlexibilitySet);
@@ -125,10 +127,18 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
      */
     @Transactional
     public void deleteFlexibilitySet(Long setId) {
+        logger.debug("SERVICE: Deleting flexibility set. setId={}", setId);
+        
         FlexibilitySet flexibilitySet = flexibilitySetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Flexibility set", "ID", setId));
 
+        Integer setNumber = flexibilitySet.getSetNumber();
+        Long workoutExerciseId = flexibilitySet.getWorkoutExercise().getWorkoutExerciseId();
+        
         flexibilitySetRepository.delete(flexibilitySet);
+        
+        logger.info("SERVICE: Flexibility set deleted successfully. setId={}, workoutExerciseId={}, setNumber={}", 
+                   setId, workoutExerciseId, setNumber);
     }
 
     /**
