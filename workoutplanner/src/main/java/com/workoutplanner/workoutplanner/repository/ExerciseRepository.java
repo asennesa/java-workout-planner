@@ -53,12 +53,13 @@ public interface ExerciseRepository extends JpaRepository<Exercise, Long> {
     
     /**
      * Find exercises by name containing (case-insensitive).
+     * Spring Data JPA automatically generates safe query with proper escaping.
+     * Input should be pre-sanitized in the service layer to escape LIKE wildcards.
      * 
-     * @param name the name to search for
+     * @param name the name to search for (should be pre-sanitized)
      * @return list of exercises with names containing the search term
      */
-    @Query("SELECT e FROM Exercise e WHERE LOWER(e.name) LIKE LOWER(CONCAT('%', :name, '%'))")
-    List<Exercise> findByNameContainingIgnoreCase(@Param("name") String name);
+    List<Exercise> findByNameContainingIgnoreCase(String name);
     
     /**
      * Find exercises by multiple criteria.

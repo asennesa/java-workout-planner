@@ -261,14 +261,42 @@ public class UserService implements UserServiceInterface {
     
     /**
      * Search users by first name.
+     * Sanitizes input to prevent SQL LIKE wildcard abuse.
      * 
      * @param firstName the first name to search for
      * @return list of users matching the search criteria
      */
     @Transactional(readOnly = true)
     public List<UserResponse> searchUsersByFirstName(String firstName) {
-        List<User> users = userRepository.findByFirstNameContainingIgnoreCase(firstName);
+        logger.debug("SERVICE: Searching users by first name. searchTerm={}", firstName);
+        
+        // Sanitize input to escape LIKE wildcards
+        String sanitizedFirstName = sanitizeLikeWildcards(firstName.trim());
+        
+        List<User> users = userRepository.findByFirstNameContainingIgnoreCase(sanitizedFirstName);
+        
+        logger.info("SERVICE: Found {} users matching first name search. searchTerm={}", 
+                   users.size(), sanitizedFirstName);
+        
         return userMapper.toResponseList(users);
+    }
+    
+    /**
+     * Sanitize string input to escape SQL LIKE wildcards.
+     * Prevents wildcard abuse in search queries.
+     * 
+     * @param input the input string to sanitize
+     * @return sanitized string with escaped wildcards
+     */
+    private String sanitizeLikeWildcards(String input) {
+        if (input == null) {
+            return "";
+        }
+        // Escape special SQL LIKE wildcards
+        // Escape backslash first to avoid double-escaping
+        return input.replace("\\", "\\\\")
+                   .replace("%", "\\%")
+                   .replace("_", "\\_");
     }
     
     /**
