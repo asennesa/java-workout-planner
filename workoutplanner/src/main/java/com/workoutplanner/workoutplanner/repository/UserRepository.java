@@ -2,8 +2,6 @@ package com.workoutplanner.workoutplanner.repository;
 
 import com.workoutplanner.workoutplanner.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -49,10 +47,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     /**
      * Find users by first name containing (case-insensitive).
+     * Spring Data JPA automatically generates safe query with proper escaping.
+     * Input should be pre-sanitized in the service layer to escape LIKE wildcards.
      * 
-     * @param firstName the first name to search for
+     * @param firstName the first name to search for (should be pre-sanitized)
      * @return list of users matching the criteria
      */
-    @Query(value = "SELECT * FROM users WHERE LOWER(first_name) LIKE LOWER(CONCAT('%', :firstName, '%'))", nativeQuery = true)
-    java.util.List<User> findByFirstNameContainingIgnoreCase(@Param("firstName") String firstName);
+    java.util.List<User> findByFirstNameContainingIgnoreCase(String firstName);
 }

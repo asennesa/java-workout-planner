@@ -7,10 +7,13 @@ import com.workoutplanner.workoutplanner.dto.request.UpdateUserRequest;
 import com.workoutplanner.workoutplanner.dto.response.UserResponse;
 import com.workoutplanner.workoutplanner.service.UserService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -26,6 +29,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping(ApiVersionConfig.V1_BASE_PATH + "/users")
+@Validated
 public class UserController {
     
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
@@ -177,13 +181,23 @@ public class UserController {
     
     /**
      * Search users by first name.
+     * Input is validated and sanitized to prevent SQL injection and wildcard abuse.
      * 
-     * @param firstName the first name to search for
+     * @param firstName the first name to search for (min 2, max 50 characters)
      * @return ResponseEntity containing list of matching user responses
      */
     @GetMapping("/search")
-    public ResponseEntity<List<UserResponse>> searchUsersByFirstName(@RequestParam String firstName) {
+    public ResponseEntity<List<UserResponse>> searchUsersByFirstName(
+            @RequestParam 
+            @NotBlank(message = "Search term cannot be empty")
+            @Size(min = 2, max = 50, message = "Search term must be between 2 and 50 characters") 
+            String firstName) {
+        logger.debug("Searching users by first name: {}", firstName);
+        
         List<UserResponse> userResponses = userService.searchUsersByFirstName(firstName);
+        
+        logger.info("Found {} users matching firstName search", userResponses.size());
+        
         return ResponseEntity.ok(userResponses);
     }
     

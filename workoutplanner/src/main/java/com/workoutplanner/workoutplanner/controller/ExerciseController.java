@@ -8,10 +8,13 @@ import com.workoutplanner.workoutplanner.enums.ExerciseType;
 import com.workoutplanner.workoutplanner.enums.TargetMuscleGroup;
 import com.workoutplanner.workoutplanner.service.ExerciseService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +28,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping(ApiVersionConfig.V1_BASE_PATH + "/exercises")
+@Validated
 public class ExerciseController {
     
     private static final Logger logger = LoggerFactory.getLogger(ExerciseController.class);
@@ -137,13 +141,23 @@ public class ExerciseController {
     
     /**
      * Search exercises by name.
+     * Input is validated and sanitized to prevent SQL injection and wildcard abuse.
      * 
-     * @param name the name to search for
+     * @param name the name to search for (min 2, max 100 characters)
      * @return ResponseEntity containing list of exercises with names containing the search term
      */
     @GetMapping("/search")
-    public ResponseEntity<List<ExerciseResponse>> searchExercisesByName(@RequestParam String name) {
+    public ResponseEntity<List<ExerciseResponse>> searchExercisesByName(
+            @RequestParam 
+            @NotBlank(message = "Search term cannot be empty")
+            @Size(min = 2, max = 100, message = "Search term must be between 2 and 100 characters") 
+            String name) {
+        logger.debug("Searching exercises by name: {}", name);
+        
         List<ExerciseResponse> exerciseResponses = exerciseService.searchExercisesByName(name);
+        
+        logger.info("Found {} exercises matching name search", exerciseResponses.size());
+        
         return ResponseEntity.ok(exerciseResponses);
     }
     

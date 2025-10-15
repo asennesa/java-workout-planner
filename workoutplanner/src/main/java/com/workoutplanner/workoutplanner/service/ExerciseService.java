@@ -140,14 +140,42 @@ public class ExerciseService implements ExerciseServiceInterface {
     
     /**
      * Search exercises by name.
+     * Sanitizes input to prevent SQL LIKE wildcard abuse.
      * 
      * @param name the name to search for
      * @return list of exercises with names containing the search term
      */
     @Transactional(readOnly = true)
     public List<ExerciseResponse> searchExercisesByName(String name) {
-        List<Exercise> exercises = exerciseRepository.findByNameContainingIgnoreCase(name);
+        logger.debug("SERVICE: Searching exercises by name. searchTerm={}", name);
+        
+        // Sanitize input to escape LIKE wildcards
+        String sanitizedName = sanitizeLikeWildcards(name.trim());
+        
+        List<Exercise> exercises = exerciseRepository.findByNameContainingIgnoreCase(sanitizedName);
+        
+        logger.info("SERVICE: Found {} exercises matching name search. searchTerm={}", 
+                   exercises.size(), sanitizedName);
+        
         return exerciseMapper.toResponseList(exercises);
+    }
+    
+    /**
+     * Sanitize string input to escape SQL LIKE wildcards.
+     * Prevents wildcard abuse in search queries.
+     * 
+     * @param input the input string to sanitize
+     * @return sanitized string with escaped wildcards
+     */
+    private String sanitizeLikeWildcards(String input) {
+        if (input == null) {
+            return "";
+        }
+        // Escape special SQL LIKE wildcards
+        // Escape backslash first to avoid double-escaping
+        return input.replace("\\", "\\\\")
+                   .replace("%", "\\%")
+                   .replace("_", "\\_");
     }
     
     /**
