@@ -2,6 +2,7 @@ package com.workoutplanner.workoutplanner.service;
 
 import com.workoutplanner.workoutplanner.dto.request.CreateExerciseRequest;
 import com.workoutplanner.workoutplanner.dto.response.ExerciseResponse;
+import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.entity.Exercise;
 import com.workoutplanner.workoutplanner.enums.DifficultyLevel;
 import com.workoutplanner.workoutplanner.enums.ExerciseType;
@@ -11,6 +12,8 @@ import com.workoutplanner.workoutplanner.mapper.ExerciseMapper;
 import com.workoutplanner.workoutplanner.repository.ExerciseRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -87,6 +90,32 @@ public class ExerciseService implements ExerciseServiceInterface {
     public List<ExerciseResponse> getAllExercises() {
         List<Exercise> exercises = exerciseRepository.findAll();
         return exerciseMapper.toResponseList(exercises);
+    }
+    
+    /**
+     * Get all exercises with pagination.
+     * 
+     * @param pageable pagination information (page number, size, sort)
+     * @return paginated exercise responses
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse<ExerciseResponse> getAllExercises(Pageable pageable) {
+        logger.debug("SERVICE: Fetching exercises with pagination. page={}, size={}", 
+                    pageable.getPageNumber(), pageable.getPageSize());
+        
+        Page<Exercise> exercisePage = exerciseRepository.findAll(pageable);
+        List<ExerciseResponse> exerciseResponses = exerciseMapper.toResponseList(exercisePage.getContent());
+        
+        logger.info("SERVICE: Retrieved {} exercises on page {} of {}", 
+                   exerciseResponses.size(), exercisePage.getNumber(), exercisePage.getTotalPages());
+        
+        return new PagedResponse<>(
+            exerciseResponses,
+            exercisePage.getNumber(),
+            exercisePage.getSize(),
+            exercisePage.getTotalElements(),
+            exercisePage.getTotalPages()
+        );
     }
     
     /**

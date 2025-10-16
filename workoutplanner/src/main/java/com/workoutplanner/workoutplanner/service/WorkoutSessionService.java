@@ -2,8 +2,11 @@ package com.workoutplanner.workoutplanner.service;
 
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutExerciseRequest;
+import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutExerciseResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import com.workoutplanner.workoutplanner.entity.WorkoutSession;
 import com.workoutplanner.workoutplanner.entity.WorkoutExercise;
 import com.workoutplanner.workoutplanner.entity.User;
@@ -133,6 +136,26 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
     public List<WorkoutResponse> getAllWorkoutSessions() {
         List<WorkoutSession> workoutSessions = workoutSessionRepository.findAll();
         return workoutMapper.toWorkoutResponseList(workoutSessions);
+    }
+    
+    /**
+     * Get all workout sessions with pagination.
+     *
+     * @param pageable pagination information (page number, size, sort)
+     * @return Paginated WorkoutResponse
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse<WorkoutResponse> getAllWorkoutSessions(Pageable pageable) {
+        Page<WorkoutSession> workoutPage = workoutSessionRepository.findAll(pageable);
+        List<WorkoutResponse> workoutResponses = workoutMapper.toWorkoutResponseList(workoutPage.getContent());
+        
+        return new PagedResponse<>(
+            workoutResponses,
+            workoutPage.getNumber(),
+            workoutPage.getSize(),
+            workoutPage.getTotalElements(),
+            workoutPage.getTotalPages()
+        );
     }
 
     /**

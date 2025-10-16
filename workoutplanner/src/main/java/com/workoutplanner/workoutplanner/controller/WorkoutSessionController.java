@@ -3,8 +3,12 @@ package com.workoutplanner.workoutplanner.controller;
 import com.workoutplanner.workoutplanner.config.ApiVersionConfig;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutExerciseRequest;
+import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutExerciseResponse;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import com.workoutplanner.workoutplanner.enums.WorkoutStatus;
 import com.workoutplanner.workoutplanner.service.WorkoutSessionService;
 import jakarta.validation.Valid;
@@ -70,14 +74,16 @@ public class WorkoutSessionController {
     }
     
     /**
-     * Get all workout sessions.
+     * Get all workout sessions with pagination.
      * 
-     * @return ResponseEntity containing list of all workout responses
+     * @param pageable pagination parameters (page, size, sort)
+     * @return ResponseEntity containing paginated workout responses
      */
     @GetMapping
-    public ResponseEntity<List<WorkoutResponse>> getAllWorkoutSessions() {
-        List<WorkoutResponse> workoutResponses = workoutSessionService.getAllWorkoutSessions();
-        return ResponseEntity.ok(workoutResponses);
+    public ResponseEntity<PagedResponse<WorkoutResponse>> getAllWorkoutSessions(
+            @PageableDefault(size = 20, sort = "sessionId", direction = Sort.Direction.DESC) Pageable pageable) {
+        PagedResponse<WorkoutResponse> pagedResponse = workoutSessionService.getAllWorkoutSessions(pageable);
+        return ResponseEntity.ok(pagedResponse);
     }
     
     /**

@@ -3,7 +3,9 @@ package com.workoutplanner.workoutplanner.service;
 import com.workoutplanner.workoutplanner.dto.request.ChangePasswordRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateUserRequest;
 import com.workoutplanner.workoutplanner.dto.request.UpdateUserRequest;
+import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.UserResponse;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -58,6 +60,14 @@ public interface UserServiceInterface {
      * @return list of all user responses
      */
     List<UserResponse> getAllUsers();
+    
+    /**
+     * Get all users with pagination.
+     * 
+     * @param pageable pagination information
+     * @return paginated user responses
+     */
+    PagedResponse<UserResponse> getAllUsers(Pageable pageable);
     
     /**
      * Update user information (excluding password).

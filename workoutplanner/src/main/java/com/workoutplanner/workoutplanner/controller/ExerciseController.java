@@ -3,6 +3,10 @@ package com.workoutplanner.workoutplanner.controller;
 import com.workoutplanner.workoutplanner.config.ApiVersionConfig;
 import com.workoutplanner.workoutplanner.dto.request.CreateExerciseRequest;
 import com.workoutplanner.workoutplanner.dto.response.ExerciseResponse;
+import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import com.workoutplanner.workoutplanner.enums.DifficultyLevel;
 import com.workoutplanner.workoutplanner.enums.ExerciseType;
 import com.workoutplanner.workoutplanner.enums.TargetMuscleGroup;
@@ -73,19 +77,25 @@ public class ExerciseController {
     }
     
     /**
-     * Get all exercises.
+     * Get all exercises with pagination.
      * 
-     * @return ResponseEntity containing list of all exercise responses
+     * @param pageable pagination parameters (page, size, sort)
+     * @return ResponseEntity containing paginated exercise responses
      */
     @GetMapping
-    public ResponseEntity<List<ExerciseResponse>> getAllExercises() {
-        logger.debug("Fetching all exercises");
+    public ResponseEntity<PagedResponse<ExerciseResponse>> getAllExercises(
+            @PageableDefault(size = 20, sort = "exerciseId", direction = Sort.Direction.ASC) Pageable pageable) {
+        logger.debug("Fetching exercises with pagination. page={}, size={}", 
+                    pageable.getPageNumber(), pageable.getPageSize());
         
-        List<ExerciseResponse> exerciseResponses = exerciseService.getAllExercises();
+        PagedResponse<ExerciseResponse> pagedResponse = exerciseService.getAllExercises(pageable);
         
-        logger.info("Retrieved {} exercises", exerciseResponses.size());
+        logger.info("Retrieved {} exercises on page {} of {}", 
+                   pagedResponse.getContent().size(), 
+                   pagedResponse.getPageNumber(), 
+                   pagedResponse.getTotalPages());
         
-        return ResponseEntity.ok(exerciseResponses);
+        return ResponseEntity.ok(pagedResponse);
     }
     
     /**
