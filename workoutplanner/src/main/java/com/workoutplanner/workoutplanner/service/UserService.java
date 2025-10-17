@@ -3,6 +3,7 @@ package com.workoutplanner.workoutplanner.service;
 import com.workoutplanner.workoutplanner.dto.request.ChangePasswordRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateUserRequest;
 import com.workoutplanner.workoutplanner.dto.request.UpdateUserRequest;
+import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.UserResponse;
 import com.workoutplanner.workoutplanner.entity.User;
 import com.workoutplanner.workoutplanner.exception.BusinessLogicException;
@@ -12,6 +13,8 @@ import com.workoutplanner.workoutplanner.mapper.UserMapper;
 import com.workoutplanner.workoutplanner.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -143,6 +146,32 @@ public class UserService implements UserServiceInterface {
     public List<UserResponse> getAllUsers() {
         List<User> users = userRepository.findAll();
         return userMapper.toResponseList(users);
+    }
+    
+    /**
+     * Get all users with pagination.
+     * 
+     * @param pageable pagination information (page number, size, sort)
+     * @return paginated user responses
+     */
+    @Transactional(readOnly = true)
+    public PagedResponse<UserResponse> getAllUsers(Pageable pageable) {
+        logger.debug("SERVICE: Fetching users with pagination. page={}, size={}", 
+                    pageable.getPageNumber(), pageable.getPageSize());
+        
+        Page<User> userPage = userRepository.findAll(pageable);
+        List<UserResponse> userResponses = userMapper.toResponseList(userPage.getContent());
+        
+        logger.info("SERVICE: Retrieved {} users on page {} of {}", 
+                   userResponses.size(), userPage.getNumber(), userPage.getTotalPages());
+        
+        return new PagedResponse<>(
+            userResponses,
+            userPage.getNumber(),
+            userPage.getSize(),
+            userPage.getTotalElements(),
+            userPage.getTotalPages()
+        );
     }
     
     /**

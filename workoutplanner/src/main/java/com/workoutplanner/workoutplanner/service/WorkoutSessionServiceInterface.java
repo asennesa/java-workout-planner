@@ -2,9 +2,11 @@ package com.workoutplanner.workoutplanner.service;
 
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutExerciseRequest;
+import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutExerciseResponse;
 import com.workoutplanner.workoutplanner.enums.WorkoutStatus;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -47,6 +49,14 @@ public interface WorkoutSessionServiceInterface {
      * @return List of WorkoutResponse
      */
     List<WorkoutResponse> getAllWorkoutSessions();
+    
+    /**
+     * Get all workout sessions with pagination.
+     *
+     * @param pageable pagination information
+     * @return Paginated WorkoutResponse
+     */
+    PagedResponse<WorkoutResponse> getAllWorkoutSessions(Pageable pageable);
     
     /**
      * Update workout session.

@@ -17,6 +17,7 @@ import com.workoutplanner.workoutplanner.entity.CardioSet;
 import com.workoutplanner.workoutplanner.entity.FlexibilitySet;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingConstants;
 import org.mapstruct.MappingTarget;
 
 import java.util.List;
@@ -30,7 +31,7 @@ import java.util.List;
  * 3. Handling of collections
  * 4. Ignoring fields that need special handling
  */
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface WorkoutMapper {
 
     /**

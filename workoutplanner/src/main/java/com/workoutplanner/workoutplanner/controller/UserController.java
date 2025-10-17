@@ -4,7 +4,12 @@ import com.workoutplanner.workoutplanner.config.ApiVersionConfig;
 import com.workoutplanner.workoutplanner.dto.request.ChangePasswordRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateUserRequest;
 import com.workoutplanner.workoutplanner.dto.request.UpdateUserRequest;
+import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.UserResponse;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import com.workoutplanner.workoutplanner.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -103,19 +108,31 @@ public class UserController {
     }
     
     /**
-     * Get all users.
+     * Get all users with pagination.
+     * Supports pagination, sorting, and filtering.
      * 
-     * @return ResponseEntity containing list of all user responses
+     * @param pageable pagination parameters (page, size, sort)
+     * @return ResponseEntity containing paginated user responses
+     * 
+     * Examples:
+     * - GET /api/v1/users?page=0&size=20
+     * - GET /api/v1/users?page=1&size=10&sort=username,asc
+     * - GET /api/v1/users?page=0&size=50&sort=createdAt,desc
      */
     @GetMapping
-    public ResponseEntity<List<UserResponse>> getAllUsers() {
-        logger.debug("Fetching all users");
+    public ResponseEntity<PagedResponse<UserResponse>> getAllUsers(
+            @PageableDefault(size = 20, sort = "userId", direction = Sort.Direction.ASC) Pageable pageable) {
+        logger.debug("Fetching users with pagination. page={}, size={}", 
+                    pageable.getPageNumber(), pageable.getPageSize());
         
-        List<UserResponse> userResponses = userService.getAllUsers();
+        PagedResponse<UserResponse> pagedResponse = userService.getAllUsers(pageable);
         
-        logger.info("Retrieved {} users", userResponses.size());
+        logger.info("Retrieved {} users on page {} of {}", 
+                   pagedResponse.getContent().size(), 
+                   pagedResponse.getPageNumber(), 
+                   pagedResponse.getTotalPages());
         
-        return ResponseEntity.ok(userResponses);
+        return ResponseEntity.ok(pagedResponse);
     }
     
     /**

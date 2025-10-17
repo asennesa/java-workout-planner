@@ -5,6 +5,7 @@ import com.workoutplanner.workoutplanner.dto.response.ExerciseResponse;
 import com.workoutplanner.workoutplanner.entity.Exercise;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingConstants;
 import org.mapstruct.MappingTarget;
 
 import java.util.List;
@@ -17,7 +18,7 @@ import java.util.List;
  * 2. Use @Mapping annotations for field mappings with different names
  * 3. Create separate methods for different mapping scenarios
  */
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface ExerciseMapper {
 
     /**
