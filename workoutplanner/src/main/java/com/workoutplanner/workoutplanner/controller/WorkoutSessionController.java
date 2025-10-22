@@ -1,6 +1,6 @@
 package com.workoutplanner.workoutplanner.controller;
 
-import com.workoutplanner.workoutplanner.config.ApiVersionConfig;
+import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutExerciseRequest;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
@@ -28,7 +28,7 @@ import java.util.List;
  * API Version: v1
  */
 @RestController
-@RequestMapping(ApiVersionConfig.V1_BASE_PATH + "/workouts")
+@RequestMapping(ApiVersionConstants.V1_BASE_PATH + "/workouts")
 public class WorkoutSessionController {
     
     private static final Logger logger = LoggerFactory.getLogger(WorkoutSessionController.class);

@@ -53,10 +53,22 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-security</artifactId>
-		</dependency>
+	<dependency>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-security</artifactId>
+	</dependency>
+	
+	<!-- OAuth2 Client for OAuth2 authentication -->
+	<dependency>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-oauth2-client</artifactId>
+	</dependency>
+	
+	<!-- OAuth2 Resource Server for JWT validation -->
+	<dependency>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+	</dependency>
 
 	<dependency>
 		<groupId>org.projectlombok</groupId>
@@ -78,6 +90,41 @@
 		<artifactId>lombok-mapstruct-binding</artifactId>
 		<version>${lombok-mapstruct-binding.version}</version>
 		<scope>provided</scope>
+	</dependency>
+
+	<!-- JWT for authentication -->
+	<dependency>
+		<groupId>io.jsonwebtoken</groupId>
+		<artifactId>jjwt-api</artifactId>
+		<version>0.12.3</version>
+	</dependency>
+	<dependency>
+		<groupId>io.jsonwebtoken</groupId>
+		<artifactId>jjwt-impl</artifactId>
+		<version>0.12.3</version>
+		<scope>runtime</scope>
+	</dependency>
+	<dependency>
+		<groupId>io.jsonwebtoken</groupId>
+		<artifactId>jjwt-jackson</artifactId>
+		<version>0.12.3</version>
+		<scope>runtime</scope>
+	</dependency>
+
+	<!-- Redis for production token storage and OAuth2 state management -->
+	<dependency>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-data-redis</artifactId>
+	</dependency>
+
+	<!-- Micrometer for security metrics and monitoring -->
+	<dependency>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-actuator</artifactId>
+	</dependency>
+	<dependency>
+		<groupId>io.micrometer</groupId>
+		<artifactId>micrometer-registry-prometheus</artifactId>
 	</dependency>
 
 	<dependency>

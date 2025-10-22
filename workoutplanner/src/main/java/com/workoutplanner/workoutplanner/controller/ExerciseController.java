@@ -1,6 +1,6 @@
 package com.workoutplanner.workoutplanner.controller;
 
-import com.workoutplanner.workoutplanner.config.ApiVersionConfig;
+import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
 import com.workoutplanner.workoutplanner.dto.request.CreateExerciseRequest;
 import com.workoutplanner.workoutplanner.dto.response.ExerciseResponse;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
@@ -31,7 +31,7 @@ import java.util.List;
  * API Version: v1
  */
 @RestController
-@RequestMapping(ApiVersionConfig.V1_BASE_PATH + "/exercises")
+@RequestMapping(ApiVersionConstants.V1_BASE_PATH + "/exercises")
 @Validated
 public class ExerciseController {
     

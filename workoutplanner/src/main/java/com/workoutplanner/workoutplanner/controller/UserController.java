@@ -1,6 +1,6 @@
 package com.workoutplanner.workoutplanner.controller;
 
-import com.workoutplanner.workoutplanner.config.ApiVersionConfig;
+import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
 import com.workoutplanner.workoutplanner.dto.request.ChangePasswordRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateUserRequest;
 import com.workoutplanner.workoutplanner.dto.request.UpdateUserRequest;
@@ -33,7 +33,7 @@ import java.util.Map;
  * API Version: v1
  */
 @RestController
-@RequestMapping(ApiVersionConfig.V1_BASE_PATH + "/users")
+@RequestMapping(ApiVersionConstants.V1_BASE_PATH + "/users")
 @Validated
 public class UserController {
     

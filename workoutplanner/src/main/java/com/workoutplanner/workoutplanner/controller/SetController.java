@@ -1,6 +1,6 @@
 package com.workoutplanner.workoutplanner.controller;
 
-import com.workoutplanner.workoutplanner.config.ApiVersionConfig;
+import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
 import com.workoutplanner.workoutplanner.dto.request.CreateStrengthSetRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateCardioSetRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateFlexibilitySetRequest;
@@ -32,7 +32,7 @@ import java.util.List;
  * API Version: v1
  */
 @RestController
-@RequestMapping(ApiVersionConfig.V1_BASE_PATH + "/sets")
+@RequestMapping(ApiVersionConstants.V1_BASE_PATH + "/sets")
 public class SetController {
     
     private static final Logger logger = LoggerFactory.getLogger(SetController.class);

@@ -1,7 +1,7 @@
-package com.workoutplanner.workoutplanner.config;
+package com.workoutplanner.workoutplanner.util;
 
 /**
- * Configuration class for API versioning.
+ * Constants for API versioning.
  * 
  * This class defines constants for API version paths to maintain consistency
  * across the application and make version management easier.
@@ -12,7 +12,7 @@ package com.workoutplanner.workoutplanner.config;
  * - Future versions can be added without breaking existing clients
  * 
  * Usage Example:
- * @RequestMapping(ApiVersionConfig.V1_BASE_PATH + "/users")
+ * @RequestMapping(ApiVersionConstants.V1_BASE_PATH + "/users")
  * 
  * When introducing a new version:
  * 1. Add a new constant (e.g., V2_BASE_PATH = "/api/v2")
@@ -20,7 +20,7 @@ package com.workoutplanner.workoutplanner.config;
  * 3. Keep v1 controllers active for backward compatibility
  * 4. Document migration guide for clients
  */
-public final class ApiVersionConfig {
+public final class ApiVersionConstants {
     
     /**
      * Base path for API version 1.
@@ -43,8 +43,7 @@ public final class ApiVersionConfig {
      * Private constructor to prevent instantiation.
      * This is a utility class with only static members.
      */
-    private ApiVersionConfig() {
+    private ApiVersionConstants() {
         throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
     }
 }
-

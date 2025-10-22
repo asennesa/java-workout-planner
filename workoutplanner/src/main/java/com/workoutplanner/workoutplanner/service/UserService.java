@@ -6,6 +6,7 @@ import com.workoutplanner.workoutplanner.dto.request.UpdateUserRequest;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.UserResponse;
 import com.workoutplanner.workoutplanner.entity.User;
+import com.workoutplanner.workoutplanner.enums.UserRole;
 import com.workoutplanner.workoutplanner.exception.BusinessLogicException;
 import com.workoutplanner.workoutplanner.exception.ResourceConflictException;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
@@ -15,6 +16,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +34,7 @@ import java.util.List;
  * - Write operations use @Transactional for data modification
  */
 @Service
-public class UserService implements UserServiceInterface {
+public class UserService implements UserServiceInterface, UserDetailsService {
     
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
     
@@ -81,6 +85,9 @@ public class UserService implements UserServiceInterface {
         
         // Hash the password
         user.setPasswordHash(passwordEncoder.encode(createUserRequest.getPassword()));
+        
+        // Set default role
+        user.setRole(UserRole.USER);
         
         // Save the user
         User savedUser = userRepository.save(user);
@@ -348,5 +355,24 @@ public class UserService implements UserServiceInterface {
     @Transactional(readOnly = true)
     public boolean emailExists(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    /**
+     * Load user by username for Spring Security authentication.
+     * 
+     * @param username the username
+     * @return UserDetails object
+     * @throws UsernameNotFoundException if user is not found
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        logger.debug("Loading user by username: {}", username);
+        
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+        
+        logger.debug("User loaded successfully: {}", username);
+        return user;
     }
 }
