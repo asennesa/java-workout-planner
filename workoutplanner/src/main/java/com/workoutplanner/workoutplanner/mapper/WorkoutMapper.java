@@ -2,14 +2,10 @@ package com.workoutplanner.workoutplanner.mapper;
 
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutExerciseRequest;
-import com.workoutplanner.workoutplanner.dto.request.CreateStrengthSetRequest;
-import com.workoutplanner.workoutplanner.dto.request.CreateCardioSetRequest;
-import com.workoutplanner.workoutplanner.dto.request.CreateFlexibilitySetRequest;
+import com.workoutplanner.workoutplanner.dto.request.CreateSetRequest;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutExerciseResponse;
-import com.workoutplanner.workoutplanner.dto.response.StrengthSetResponse;
-import com.workoutplanner.workoutplanner.dto.response.CardioSetResponse;
-import com.workoutplanner.workoutplanner.dto.response.FlexibilitySetResponse;
+import com.workoutplanner.workoutplanner.dto.response.SetResponse;
 import com.workoutplanner.workoutplanner.entity.WorkoutSession;
 import com.workoutplanner.workoutplanner.entity.WorkoutExercise;
 import com.workoutplanner.workoutplanner.entity.StrengthSet;
@@ -98,25 +94,25 @@ public interface WorkoutMapper {
      */
     @Mapping(target = "setId", ignore = true) // Will be set by JPA
     @Mapping(target = "workoutExercise", ignore = true) // Will be set in service layer from workoutExerciseId
-    StrengthSet toStrengthSetEntity(CreateStrengthSetRequest createStrengthSetRequest);
+    StrengthSet toStrengthSetEntity(CreateSetRequest createSetRequest);
 
     /**
      * Maps StrengthSet entity to StrengthSetResponse DTO
      */
     @Mapping(target = "workoutExerciseId", source = "workoutExercise.workoutExerciseId")
-    StrengthSetResponse toStrengthSetResponse(StrengthSet strengthSet);
+    SetResponse toSetResponse(StrengthSet strengthSet);
 
     /**
      * Maps list of StrengthSet entities to list of StrengthSetResponse DTOs
      */
-    List<StrengthSetResponse> toStrengthSetResponseList(List<StrengthSet> strengthSets);
+    List<SetResponse> toSetResponseList(List<StrengthSet> strengthSets);
 
     /**
      * Updates existing StrengthSet entity with data from CreateStrengthSetRequest.
      */
     @Mapping(target = "setId", ignore = true) // Never update the ID
     @Mapping(target = "workoutExercise", ignore = true) // Handle separately
-    void updateStrengthSetEntity(CreateStrengthSetRequest createStrengthSetRequest, @MappingTarget StrengthSet strengthSet);
+    void updateStrengthSetEntity(CreateSetRequest createSetRequest, @MappingTarget StrengthSet strengthSet);
 
     // ========== CARDIO SET MAPPINGS ==========
 
@@ -126,25 +122,25 @@ public interface WorkoutMapper {
      */
     @Mapping(target = "setId", ignore = true) // Will be set by JPA
     @Mapping(target = "workoutExercise", ignore = true) // Will be set in service layer from workoutExerciseId
-    CardioSet toCardioSetEntity(CreateCardioSetRequest createCardioSetRequest);
+    CardioSet toCardioSetEntity(CreateSetRequest createSetRequest);
 
     /**
      * Maps CardioSet entity to CardioSetResponse DTO
      */
     @Mapping(target = "workoutExerciseId", source = "workoutExercise.workoutExerciseId")
-    CardioSetResponse toCardioSetResponse(CardioSet cardioSet);
+    SetResponse toSetResponse(CardioSet cardioSet);
 
     /**
      * Maps list of CardioSet entities to list of CardioSetResponse DTOs
      */
-    List<CardioSetResponse> toCardioSetResponseList(List<CardioSet> cardioSets);
+    List<SetResponse> toCardioSetResponseList(List<CardioSet> cardioSets);
 
     /**
      * Updates existing CardioSet entity with data from CreateCardioSetRequest.
      */
     @Mapping(target = "setId", ignore = true) // Never update the ID
     @Mapping(target = "workoutExercise", ignore = true) // Handle separately
-    void updateCardioSetEntity(CreateCardioSetRequest createCardioSetRequest, @MappingTarget CardioSet cardioSet);
+    void updateCardioSetEntity(CreateSetRequest createSetRequest, @MappingTarget CardioSet cardioSet);
 
     // ========== FLEXIBILITY SET MAPPINGS ==========
 
@@ -154,23 +150,23 @@ public interface WorkoutMapper {
      */
     @Mapping(target = "setId", ignore = true) // Will be set by JPA
     @Mapping(target = "workoutExercise", ignore = true) // Will be set in service layer from workoutExerciseId
-    FlexibilitySet toFlexibilitySetEntity(CreateFlexibilitySetRequest createFlexibilitySetRequest);
+    FlexibilitySet toFlexibilitySetEntity(CreateSetRequest createSetRequest);
 
     /**
      * Maps FlexibilitySet entity to FlexibilitySetResponse DTO
      */
     @Mapping(target = "workoutExerciseId", source = "workoutExercise.workoutExerciseId")
-    FlexibilitySetResponse toFlexibilitySetResponse(FlexibilitySet flexibilitySet);
+    SetResponse toSetResponse(FlexibilitySet flexibilitySet);
 
     /**
      * Maps list of FlexibilitySet entities to list of FlexibilitySetResponse DTOs
      */
-    List<FlexibilitySetResponse> toFlexibilitySetResponseList(List<FlexibilitySet> flexibilitySets);
+    List<SetResponse> toFlexibilitySetResponseList(List<FlexibilitySet> flexibilitySets);
 
     /**
      * Updates existing FlexibilitySet entity with data from CreateFlexibilitySetRequest.
      */
     @Mapping(target = "setId", ignore = true) // Never update the ID
     @Mapping(target = "workoutExercise", ignore = true) // Handle separately
-    void updateFlexibilitySetEntity(CreateFlexibilitySetRequest createFlexibilitySetRequest, @MappingTarget FlexibilitySet flexibilitySet);
+    void updateFlexibilitySetEntity(CreateSetRequest createSetRequest, @MappingTarget FlexibilitySet flexibilitySet);
 }

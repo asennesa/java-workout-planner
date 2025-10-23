@@ -2,6 +2,8 @@ package com.workoutplanner.workoutplanner.controller;
 
 import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutRequest;
+import com.workoutplanner.workoutplanner.exception.OptimisticLockConflictException;
+import com.workoutplanner.workoutplanner.validation.ValidationGroups;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutExerciseRequest;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutResponse;
@@ -16,9 +18,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * REST Controller for Workout Session operations.
@@ -49,7 +55,7 @@ public class WorkoutSessionController {
      * @return ResponseEntity containing the created workout response
      */
     @PostMapping
-    public ResponseEntity<WorkoutResponse> createWorkoutSession(@Valid @RequestBody CreateWorkoutRequest createWorkoutRequest) {
+    public ResponseEntity<WorkoutResponse> createWorkoutSession(@Validated(ValidationGroups.Create.class) @RequestBody CreateWorkoutRequest createWorkoutRequest) {
         logger.debug("Creating workout session for userId={}", 
                     createWorkoutRequest.getUserId());
         
@@ -70,6 +76,20 @@ public class WorkoutSessionController {
     @GetMapping("/{sessionId}")
     public ResponseEntity<WorkoutResponse> getWorkoutSessionById(@PathVariable Long sessionId) {
         WorkoutResponse workoutResponse = workoutSessionService.getWorkoutSessionById(sessionId);
+        return ResponseEntity.ok(workoutResponse);
+    }
+    
+    /**
+     * Get a workout session by ID with smart loading.
+     * Only loads sets based on exercise type for optimal performance.
+     * 
+     * @param sessionId the workout session ID
+     * @return ResponseEntity containing the workout response with smart-loaded sets
+     */
+    @GetMapping("/{sessionId}/smart")
+    public ResponseEntity<WorkoutResponse> getWorkoutSessionWithSmartLoading(@PathVariable Long sessionId) {
+        logger.info("Smart loading requested for workout session {}", sessionId);
+        WorkoutResponse workoutResponse = workoutSessionService.getWorkoutSessionWithSmartLoading(sessionId);
         return ResponseEntity.ok(workoutResponse);
     }
     
@@ -107,7 +127,7 @@ public class WorkoutSessionController {
      */
     @PutMapping("/{sessionId}")
     public ResponseEntity<WorkoutResponse> updateWorkoutSession(@PathVariable Long sessionId, 
-                                                               @Valid @RequestBody CreateWorkoutRequest createWorkoutRequest) {
+                                                               @Validated(ValidationGroups.Update.class) @RequestBody CreateWorkoutRequest createWorkoutRequest) {
         WorkoutResponse workoutResponse = workoutSessionService.updateWorkoutSession(sessionId, createWorkoutRequest);
         return ResponseEntity.ok(workoutResponse);
     }
@@ -247,5 +267,25 @@ public class WorkoutSessionController {
     public ResponseEntity<WorkoutResponse> cancelWorkoutSession(@PathVariable Long sessionId) {
         WorkoutResponse workoutResponse = workoutSessionService.updateWorkoutSessionStatus(sessionId, WorkoutStatus.CANCELLED);
         return ResponseEntity.ok(workoutResponse);
+    }
+    
+    /**
+     * Handle optimistic lock conflicts.
+     * Returns a 409 Conflict status with a clear error message.
+     * 
+     * @param ex the optimistic lock conflict exception
+     * @return ResponseEntity with conflict status and error details
+     */
+    @ExceptionHandler(OptimisticLockConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleOptimisticLockConflict(OptimisticLockConflictException ex) {
+        logger.warn("Optimistic lock conflict: {}", ex.getMessage());
+        
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("error", "CONFLICT");
+        errorResponse.put("message", ex.getMessage());
+        errorResponse.put("timestamp", LocalDateTime.now());
+        errorResponse.put("status", HttpStatus.CONFLICT.value());
+        
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 }

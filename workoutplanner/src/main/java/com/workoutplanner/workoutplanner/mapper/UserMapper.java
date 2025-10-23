@@ -1,7 +1,7 @@
 package com.workoutplanner.workoutplanner.mapper;
 
 import com.workoutplanner.workoutplanner.dto.request.CreateUserRequest;
-import com.workoutplanner.workoutplanner.dto.request.UpdateUserRequest;
+import com.workoutplanner.workoutplanner.dto.request.UserUpdateRequest;
 import com.workoutplanner.workoutplanner.dto.response.UserResponse;
 import com.workoutplanner.workoutplanner.entity.User;
 import org.mapstruct.Mapper;
@@ -62,5 +62,5 @@ public interface UserMapper {
     @Mapping(target = "passwordHash", ignore = true) // Never update password in profile update
     @Mapping(target = "createdAt", ignore = true) // Never update createdAt
     @Mapping(target = "updatedAt", ignore = true) // Will be set by JPA @PreUpdate
-    void updateFromUpdateRequest(UpdateUserRequest updateUserRequest, @MappingTarget User user);
+    void updateFromUpdateRequest(UserUpdateRequest userUpdateRequest, @MappingTarget User user);
 }

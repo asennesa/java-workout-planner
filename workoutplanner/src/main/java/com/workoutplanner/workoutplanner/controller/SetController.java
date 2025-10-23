@@ -1,12 +1,8 @@
 package com.workoutplanner.workoutplanner.controller;
 
 import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
-import com.workoutplanner.workoutplanner.dto.request.CreateStrengthSetRequest;
-import com.workoutplanner.workoutplanner.dto.request.CreateCardioSetRequest;
-import com.workoutplanner.workoutplanner.dto.request.CreateFlexibilitySetRequest;
-import com.workoutplanner.workoutplanner.dto.response.StrengthSetResponse;
-import com.workoutplanner.workoutplanner.dto.response.CardioSetResponse;
-import com.workoutplanner.workoutplanner.dto.response.FlexibilitySetResponse;
+import com.workoutplanner.workoutplanner.dto.request.CreateSetRequest;
+import com.workoutplanner.workoutplanner.dto.response.SetResponse;
 import com.workoutplanner.workoutplanner.service.StrengthSetService;
 import com.workoutplanner.workoutplanner.service.CardioSetService;
 import com.workoutplanner.workoutplanner.service.FlexibilitySetService;
@@ -61,13 +57,13 @@ public class SetController {
      * @return ResponseEntity containing the created strength set response
      */
     @PostMapping("/strength")
-    public ResponseEntity<StrengthSetResponse> createStrengthSet(@Valid @RequestBody CreateStrengthSetRequest createStrengthSetRequest) {
+    public ResponseEntity<SetResponse> createStrengthSet(@Valid @RequestBody CreateSetRequest createStrengthSetRequest) {
         logger.debug("Creating strength set for workoutExerciseId={}, reps={}, weight={}", 
                     createStrengthSetRequest.getWorkoutExerciseId(), 
                     createStrengthSetRequest.getReps(), 
                     createStrengthSetRequest.getWeight());
         
-        StrengthSetResponse strengthSetResponse = strengthSetService.createStrengthSet(createStrengthSetRequest);
+        SetResponse strengthSetResponse = strengthSetService.createStrengthSet(createStrengthSetRequest);
         
         logger.info("Strength set created successfully. setId={}, workoutExerciseId={}, reps={}, weight={}", 
                    strengthSetResponse.getSetId(), 
@@ -85,8 +81,8 @@ public class SetController {
      * @return ResponseEntity containing list of strength set responses
      */
     @GetMapping("/strength/workout-exercise/{workoutExerciseId}")
-    public ResponseEntity<List<StrengthSetResponse>> getStrengthSetsByWorkoutExercise(@PathVariable Long workoutExerciseId) {
-        List<StrengthSetResponse> strengthSetResponses = strengthSetService.getStrengthSetsByWorkoutExercise(workoutExerciseId);
+    public ResponseEntity<List<SetResponse>> getStrengthSetsByWorkoutExercise(@PathVariable Long workoutExerciseId) {
+        List<SetResponse> strengthSetResponses = strengthSetService.getStrengthSetsByWorkoutExercise(workoutExerciseId);
         return ResponseEntity.ok(strengthSetResponses);
     }
     
@@ -97,8 +93,8 @@ public class SetController {
      * @return ResponseEntity containing the strength set response
      */
     @GetMapping("/strength/{setId}")
-    public ResponseEntity<StrengthSetResponse> getStrengthSetById(@PathVariable Long setId) {
-        StrengthSetResponse strengthSetResponse = strengthSetService.getStrengthSetById(setId);
+    public ResponseEntity<SetResponse> getStrengthSetById(@PathVariable Long setId) {
+        SetResponse strengthSetResponse = strengthSetService.getStrengthSetById(setId);
         return ResponseEntity.ok(strengthSetResponse);
     }
     
@@ -110,9 +106,9 @@ public class SetController {
      * @return ResponseEntity containing the updated strength set response
      */
     @PutMapping("/strength/{setId}")
-    public ResponseEntity<StrengthSetResponse> updateStrengthSet(@PathVariable Long setId, 
-                                                                @Valid @RequestBody CreateStrengthSetRequest createStrengthSetRequest) {
-        StrengthSetResponse strengthSetResponse = strengthSetService.updateStrengthSet(setId, createStrengthSetRequest);
+    public ResponseEntity<SetResponse> updateStrengthSet(@PathVariable Long setId, 
+                                                                @Valid @RequestBody CreateSetRequest createStrengthSetRequest) {
+        SetResponse strengthSetResponse = strengthSetService.updateStrengthSet(setId, createStrengthSetRequest);
         return ResponseEntity.ok(strengthSetResponse);
     }
     
@@ -137,13 +133,13 @@ public class SetController {
      * @return ResponseEntity containing the created cardio set response
      */
     @PostMapping("/cardio")
-    public ResponseEntity<CardioSetResponse> createCardioSet(@Valid @RequestBody CreateCardioSetRequest createCardioSetRequest) {
+    public ResponseEntity<SetResponse> createCardioSet(@Valid @RequestBody CreateSetRequest createCardioSetRequest) {
         logger.debug("Creating cardio set for workoutExerciseId={}, duration={}, distance={}", 
                     createCardioSetRequest.getWorkoutExerciseId(), 
                     createCardioSetRequest.getDurationInSeconds(), 
                     createCardioSetRequest.getDistance());
         
-        CardioSetResponse cardioSetResponse = cardioSetService.createCardioSet(createCardioSetRequest);
+        SetResponse cardioSetResponse = cardioSetService.createCardioSet(createCardioSetRequest);
         
         logger.info("Cardio set created successfully. setId={}, workoutExerciseId={}, duration={}, distance={}", 
                    cardioSetResponse.getSetId(), 
@@ -161,8 +157,8 @@ public class SetController {
      * @return ResponseEntity containing list of cardio set responses
      */
     @GetMapping("/cardio/workout-exercise/{workoutExerciseId}")
-    public ResponseEntity<List<CardioSetResponse>> getCardioSetsByWorkoutExercise(@PathVariable Long workoutExerciseId) {
-        List<CardioSetResponse> cardioSetResponses = cardioSetService.getCardioSetsByWorkoutExercise(workoutExerciseId);
+    public ResponseEntity<List<SetResponse>> getCardioSetsByWorkoutExercise(@PathVariable Long workoutExerciseId) {
+        List<SetResponse> cardioSetResponses = cardioSetService.getCardioSetsByWorkoutExercise(workoutExerciseId);
         return ResponseEntity.ok(cardioSetResponses);
     }
     
@@ -173,8 +169,8 @@ public class SetController {
      * @return ResponseEntity containing the cardio set response
      */
     @GetMapping("/cardio/{setId}")
-    public ResponseEntity<CardioSetResponse> getCardioSetById(@PathVariable Long setId) {
-        CardioSetResponse cardioSetResponse = cardioSetService.getCardioSetById(setId);
+    public ResponseEntity<SetResponse> getCardioSetById(@PathVariable Long setId) {
+        SetResponse cardioSetResponse = cardioSetService.getCardioSetById(setId);
         return ResponseEntity.ok(cardioSetResponse);
     }
     
@@ -186,9 +182,9 @@ public class SetController {
      * @return ResponseEntity containing the updated cardio set response
      */
     @PutMapping("/cardio/{setId}")
-    public ResponseEntity<CardioSetResponse> updateCardioSet(@PathVariable Long setId, 
-                                                            @Valid @RequestBody CreateCardioSetRequest createCardioSetRequest) {
-        CardioSetResponse cardioSetResponse = cardioSetService.updateCardioSet(setId, createCardioSetRequest);
+    public ResponseEntity<SetResponse> updateCardioSet(@PathVariable Long setId, 
+                                                            @Valid @RequestBody CreateSetRequest createCardioSetRequest) {
+        SetResponse cardioSetResponse = cardioSetService.updateCardioSet(setId, createCardioSetRequest);
         return ResponseEntity.ok(cardioSetResponse);
     }
     
@@ -213,13 +209,13 @@ public class SetController {
      * @return ResponseEntity containing the created flexibility set response
      */
     @PostMapping("/flexibility")
-    public ResponseEntity<FlexibilitySetResponse> createFlexibilitySet(@Valid @RequestBody CreateFlexibilitySetRequest createFlexibilitySetRequest) {
+    public ResponseEntity<SetResponse> createFlexibilitySet(@Valid @RequestBody CreateSetRequest createFlexibilitySetRequest) {
         logger.debug("Creating flexibility set for workoutExerciseId={}, duration={}, intensity={}", 
                     createFlexibilitySetRequest.getWorkoutExerciseId(), 
                     createFlexibilitySetRequest.getDurationInSeconds(), 
                     createFlexibilitySetRequest.getIntensity());
         
-        FlexibilitySetResponse flexibilitySetResponse = flexibilitySetService.createFlexibilitySet(createFlexibilitySetRequest);
+        SetResponse flexibilitySetResponse = flexibilitySetService.createFlexibilitySet(createFlexibilitySetRequest);
         
         logger.info("Flexibility set created successfully. setId={}, workoutExerciseId={}, duration={}, intensity={}", 
                    flexibilitySetResponse.getSetId(), 
@@ -237,8 +233,8 @@ public class SetController {
      * @return ResponseEntity containing list of flexibility set responses
      */
     @GetMapping("/flexibility/workout-exercise/{workoutExerciseId}")
-    public ResponseEntity<List<FlexibilitySetResponse>> getFlexibilitySetsByWorkoutExercise(@PathVariable Long workoutExerciseId) {
-        List<FlexibilitySetResponse> flexibilitySetResponses = flexibilitySetService.getFlexibilitySetsByWorkoutExercise(workoutExerciseId);
+    public ResponseEntity<List<SetResponse>> getFlexibilitySetsByWorkoutExercise(@PathVariable Long workoutExerciseId) {
+        List<SetResponse> flexibilitySetResponses = flexibilitySetService.getFlexibilitySetsByWorkoutExercise(workoutExerciseId);
         return ResponseEntity.ok(flexibilitySetResponses);
     }
     
@@ -249,8 +245,8 @@ public class SetController {
      * @return ResponseEntity containing the flexibility set response
      */
     @GetMapping("/flexibility/{setId}")
-    public ResponseEntity<FlexibilitySetResponse> getFlexibilitySetById(@PathVariable Long setId) {
-        FlexibilitySetResponse flexibilitySetResponse = flexibilitySetService.getFlexibilitySetById(setId);
+    public ResponseEntity<SetResponse> getFlexibilitySetById(@PathVariable Long setId) {
+        SetResponse flexibilitySetResponse = flexibilitySetService.getFlexibilitySetById(setId);
         return ResponseEntity.ok(flexibilitySetResponse);
     }
     
@@ -262,9 +258,9 @@ public class SetController {
      * @return ResponseEntity containing the updated flexibility set response
      */
     @PutMapping("/flexibility/{setId}")
-    public ResponseEntity<FlexibilitySetResponse> updateFlexibilitySet(@PathVariable Long setId, 
-                                                                     @Valid @RequestBody CreateFlexibilitySetRequest createFlexibilitySetRequest) {
-        FlexibilitySetResponse flexibilitySetResponse = flexibilitySetService.updateFlexibilitySet(setId, createFlexibilitySetRequest);
+    public ResponseEntity<SetResponse> updateFlexibilitySet(@PathVariable Long setId, 
+                                                                     @Valid @RequestBody CreateSetRequest createFlexibilitySetRequest) {
+        SetResponse flexibilitySetResponse = flexibilitySetService.updateFlexibilitySet(setId, createFlexibilitySetRequest);
         return ResponseEntity.ok(flexibilitySetResponse);
     }
     

@@ -95,4 +95,107 @@ public interface WorkoutExerciseRepository extends JpaRepository<WorkoutExercise
      */
     @Query("SELECT we FROM WorkoutExercise we JOIN FETCH we.exercise WHERE we.workoutSession.sessionId = :sessionId ORDER BY we.orderInWorkout ASC")
     List<WorkoutExercise> findBySessionIdWithExercise(@Param("sessionId") Long sessionId);
+    
+    /**
+     * Find workout exercise by ID with all sets eagerly fetched.
+     * Prevents N+1 query problem when accessing all set types.
+     * 
+     * @param workoutExerciseId the workout exercise ID
+     * @return optional workout exercise with all sets eagerly loaded
+     */
+    @Query("SELECT DISTINCT we FROM WorkoutExercise we " +
+           "LEFT JOIN FETCH we.strengthSets " +
+           "LEFT JOIN FETCH we.cardioSets " +
+           "LEFT JOIN FETCH we.flexibilitySets " +
+           "WHERE we.workoutExerciseId = :workoutExerciseId")
+    Optional<WorkoutExercise> findByIdWithAllSets(@Param("workoutExerciseId") Long workoutExerciseId);
+    
+    /**
+     * Find workout exercises by session ID with all sets eagerly fetched.
+     * Prevents N+1 query problem when accessing all set types for all exercises.
+     * 
+     * @param sessionId the workout session ID
+     * @return list of workout exercises with all sets eagerly loaded
+     */
+    @Query("SELECT DISTINCT we FROM WorkoutExercise we " +
+           "LEFT JOIN FETCH we.exercise " +
+           "LEFT JOIN FETCH we.strengthSets " +
+           "LEFT JOIN FETCH we.cardioSets " +
+           "LEFT JOIN FETCH we.flexibilitySets " +
+           "WHERE we.workoutSession.sessionId = :sessionId " +
+           "ORDER BY we.orderInWorkout ASC")
+    List<WorkoutExercise> findBySessionIdWithAllSets(@Param("sessionId") Long sessionId);
+    
+    /**
+     * Find workout exercise by ID with exercise and all sets eagerly fetched.
+     * Comprehensive fetch to prevent all N+1 query problems.
+     * 
+     * @param workoutExerciseId the workout exercise ID
+     * @return optional workout exercise with exercise and all sets eagerly loaded
+     */
+    @Query("SELECT DISTINCT we FROM WorkoutExercise we " +
+           "LEFT JOIN FETCH we.exercise " +
+           "LEFT JOIN FETCH we.strengthSets " +
+           "LEFT JOIN FETCH we.cardioSets " +
+           "LEFT JOIN FETCH we.flexibilitySets " +
+           "WHERE we.workoutExerciseId = :workoutExerciseId")
+    Optional<WorkoutExercise> findByIdWithExerciseAndAllSets(@Param("workoutExerciseId") Long workoutExerciseId);
+    
+    /**
+     * Find workout exercises by session ID with smart loading.
+     * Only loads exercise details, sets are loaded separately based on type.
+     * 
+     * @param sessionId the workout session ID
+     * @return list of workout exercises with exercise details loaded
+     */
+    @Query("SELECT DISTINCT we FROM WorkoutExercise we " +
+           "LEFT JOIN FETCH we.exercise " +
+           "WHERE we.workoutSession.sessionId = :sessionId " +
+           "ORDER BY we.orderInWorkout ASC")
+    List<WorkoutExercise> findBySessionIdWithExerciseDetails(@Param("sessionId") Long sessionId);
+    
+    /**
+     * Find strength exercises with their sets for a session.
+     * Only loads strength sets for strength exercises.
+     * 
+     * @param sessionId the workout session ID
+     * @return list of strength workout exercises with strength sets loaded
+     */
+    @Query("SELECT DISTINCT we FROM WorkoutExercise we " +
+           "LEFT JOIN FETCH we.exercise e " +
+           "LEFT JOIN FETCH we.strengthSets " +
+           "WHERE we.workoutSession.sessionId = :sessionId " +
+           "AND e.type = 'STRENGTH' " +
+           "ORDER BY we.orderInWorkout ASC")
+    List<WorkoutExercise> findStrengthExercisesWithSets(@Param("sessionId") Long sessionId);
+    
+    /**
+     * Find cardio exercises with their sets for a session.
+     * Only loads cardio sets for cardio exercises.
+     * 
+     * @param sessionId the workout session ID
+     * @return list of cardio workout exercises with cardio sets loaded
+     */
+    @Query("SELECT DISTINCT we FROM WorkoutExercise we " +
+           "LEFT JOIN FETCH we.exercise e " +
+           "LEFT JOIN FETCH we.cardioSets " +
+           "WHERE we.workoutSession.sessionId = :sessionId " +
+           "AND e.type = 'CARDIO' " +
+           "ORDER BY we.orderInWorkout ASC")
+    List<WorkoutExercise> findCardioExercisesWithSets(@Param("sessionId") Long sessionId);
+    
+    /**
+     * Find flexibility exercises with their sets for a session.
+     * Only loads flexibility sets for flexibility exercises.
+     * 
+     * @param sessionId the workout session ID
+     * @return list of flexibility workout exercises with flexibility sets loaded
+     */
+    @Query("SELECT DISTINCT we FROM WorkoutExercise we " +
+           "LEFT JOIN FETCH we.exercise e " +
+           "LEFT JOIN FETCH we.flexibilitySets " +
+           "WHERE we.workoutSession.sessionId = :sessionId " +
+           "AND e.type = 'FLEXIBILITY' " +
+           "ORDER BY we.orderInWorkout ASC")
+    List<WorkoutExercise> findFlexibilityExercisesWithSets(@Param("sessionId") Long sessionId);
 }

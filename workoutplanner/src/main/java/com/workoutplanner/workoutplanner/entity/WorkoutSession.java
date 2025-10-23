@@ -2,6 +2,7 @@ package com.workoutplanner.workoutplanner.entity;
 
 import com.workoutplanner.workoutplanner.enums.WorkoutStatus;
 import com.workoutplanner.workoutplanner.validation.ValidWorkoutDates;
+import com.workoutplanner.workoutplanner.validation.ValidationGroups;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
@@ -12,6 +13,7 @@ import org.hibernate.validator.constraints.Length;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Table(name = "workout_sessions")
@@ -20,7 +22,7 @@ import java.util.List;
 @NoArgsConstructor
 @ToString(exclude = {"user", "workoutExercises"})
 @ValidWorkoutDates
-public class WorkoutSession {
+public class WorkoutSession extends AuditableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,23 +30,32 @@ public class WorkoutSession {
     private Long sessionId;
 
     @Column(name = "name", nullable = false, length = 100)
-    @NotBlank(message = "Workout session name is required")
-    @Length(min = 2, max = 100, message = "Workout session name must be between 2 and 100 characters")
-    @Pattern(regexp = "^[a-zA-Z0-9\\s\\-()]+$", message = "Workout session name can only contain letters, numbers, spaces, hyphens, and parentheses")
+    @NotBlank(groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
+              message = "Workout session name is required")
+    @Length(min = 2, max = 100, 
+            groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
+            message = "Workout session name must be between 2 and 100 characters")
+    @Pattern(regexp = "^[a-zA-Z0-9\\s\\-()]+$", 
+             groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
+             message = "Workout session name can only contain letters, numbers, spaces, hyphens, and parentheses")
     private String name;
 
     @Column(name = "description", length = 1000)
-    @Length(max = 1000, message = "Description must not exceed 1000 characters")
+    @Length(max = 1000, 
+            groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
+            message = "Description must not exceed 1000 characters")
     private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    @NotNull(message = "User is required")
+    @NotNull(groups = {ValidationGroups.Create.class}, 
+             message = "User is required for workout session creation")
     private User user;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    @NotNull(message = "Workout status is required")
+    @NotNull(groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
+             message = "Workout status is required")
     private WorkoutStatus status;
 
     @Column(name = "started_at")
@@ -65,4 +76,47 @@ public class WorkoutSession {
     @OneToMany(mappedBy = "workoutSession", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @OrderBy("orderInWorkout ASC")
     private List<WorkoutExercise> workoutExercises = new ArrayList<>();
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version = 0L;
+
+    /**
+     * Equals method following Hibernate best practices.
+     * Uses database ID for equality when entity is persisted,
+     * falls back to field comparison for transient entities.
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        
+        WorkoutSession that = (WorkoutSession) o;
+        
+        // If both entities are persisted (have IDs), use ID for equality
+        if (sessionId != null && that.sessionId != null) {
+            return Objects.equals(sessionId, that.sessionId);
+        }
+        
+        // For transient entities, compare unique fields (name, user, and startedAt)
+        return Objects.equals(name, that.name) &&
+               Objects.equals(user, that.user) &&
+               Objects.equals(startedAt, that.startedAt);
+    }
+
+    /**
+     * HashCode method following Hibernate best practices.
+     * Uses database ID when entity is persisted,
+     * falls back to unique fields for transient entities.
+     */
+    @Override
+    public int hashCode() {
+        // If entity is persisted, use ID for hash
+        if (sessionId != null) {
+            return Objects.hash(sessionId);
+        }
+        
+        // For transient entities, use unique fields
+        return Objects.hash(name, user, startedAt);
+    }
 }

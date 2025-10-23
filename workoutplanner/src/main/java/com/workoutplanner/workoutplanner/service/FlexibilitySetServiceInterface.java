@@ -1,7 +1,7 @@
 package com.workoutplanner.workoutplanner.service;
 
-import com.workoutplanner.workoutplanner.dto.request.CreateFlexibilitySetRequest;
-import com.workoutplanner.workoutplanner.dto.response.FlexibilitySetResponse;
+import com.workoutplanner.workoutplanner.dto.request.CreateSetRequest;
+import com.workoutplanner.workoutplanner.dto.response.SetResponse;
 
 import java.util.List;
 
@@ -20,7 +20,7 @@ public interface FlexibilitySetServiceInterface {
      * @param createFlexibilitySetRequest the flexibility set creation request
      * @return FlexibilitySetResponse the created flexibility set response
      */
-    FlexibilitySetResponse createFlexibilitySet(CreateFlexibilitySetRequest createFlexibilitySetRequest);
+    SetResponse createFlexibilitySet(CreateSetRequest createSetRequest);
     
     /**
      * Get flexibility set by ID.
@@ -28,7 +28,7 @@ public interface FlexibilitySetServiceInterface {
      * @param setId the set ID
      * @return FlexibilitySetResponse the flexibility set response
      */
-    FlexibilitySetResponse getFlexibilitySetById(Long setId);
+    SetResponse getFlexibilitySetById(Long setId);
     
     /**
      * Get flexibility sets by workout exercise ID.
@@ -36,7 +36,7 @@ public interface FlexibilitySetServiceInterface {
      * @param workoutExerciseId the workout exercise ID
      * @return List of FlexibilitySetResponse
      */
-    List<FlexibilitySetResponse> getFlexibilitySetsByWorkoutExercise(Long workoutExerciseId);
+    List<SetResponse> getFlexibilitySetsByWorkoutExercise(Long workoutExerciseId);
     
     /**
      * Update flexibility set.
@@ -45,7 +45,7 @@ public interface FlexibilitySetServiceInterface {
      * @param createFlexibilitySetRequest the updated flexibility set information
      * @return FlexibilitySetResponse the updated flexibility set response
      */
-    FlexibilitySetResponse updateFlexibilitySet(Long setId, CreateFlexibilitySetRequest createFlexibilitySetRequest);
+    SetResponse updateFlexibilitySet(Long setId, CreateSetRequest createSetRequest);
     
     /**
      * Delete flexibility set.
@@ -60,5 +60,5 @@ public interface FlexibilitySetServiceInterface {
      * @param sessionId the workout session ID
      * @return List of FlexibilitySetResponse
      */
-    List<FlexibilitySetResponse> getFlexibilitySetsByWorkoutSession(Long sessionId);
+    List<SetResponse> getFlexibilitySetsByWorkoutSession(Long sessionId);
 }

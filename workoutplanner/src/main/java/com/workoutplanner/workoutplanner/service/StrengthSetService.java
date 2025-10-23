@@ -1,7 +1,7 @@
 package com.workoutplanner.workoutplanner.service;
 
-import com.workoutplanner.workoutplanner.dto.request.CreateStrengthSetRequest;
-import com.workoutplanner.workoutplanner.dto.response.StrengthSetResponse;
+import com.workoutplanner.workoutplanner.dto.request.CreateSetRequest;
+import com.workoutplanner.workoutplanner.dto.response.SetResponse;
 import com.workoutplanner.workoutplanner.entity.StrengthSet;
 import com.workoutplanner.workoutplanner.entity.WorkoutExercise;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
@@ -48,20 +48,20 @@ public class StrengthSetService implements StrengthSetServiceInterface {
      * Create a new strength set.
      *
      * @param createStrengthSetRequest the strength set creation request
-     * @return StrengthSetResponse the created strength set response
+     * @return SetResponse the created strength set response
      */
     @Transactional
-    public StrengthSetResponse createStrengthSet(CreateStrengthSetRequest createStrengthSetRequest) {
+    public SetResponse createStrengthSet(CreateSetRequest createSetRequest) {
         logger.debug("SERVICE: Creating strength set. workoutExerciseId={}, setNumber={}, reps={}, weight={}", 
-                    createStrengthSetRequest.getWorkoutExerciseId(), createStrengthSetRequest.getSetNumber(),
-                    createStrengthSetRequest.getReps(), createStrengthSetRequest.getWeight());
+                    createSetRequest.getWorkoutExerciseId(), createSetRequest.getSetNumber(),
+                    createSetRequest.getReps(), createSetRequest.getWeight());
         
         // Validate workout exercise exists
-        WorkoutExercise workoutExercise = workoutExerciseRepository.findById(createStrengthSetRequest.getWorkoutExerciseId())
-                .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", createStrengthSetRequest.getWorkoutExerciseId()));
+        WorkoutExercise workoutExercise = workoutExerciseRepository.findById(createSetRequest.getWorkoutExerciseId())
+                .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", createSetRequest.getWorkoutExerciseId()));
 
         // Map request to entity using mapper
-        StrengthSet strengthSet = workoutMapper.toStrengthSetEntity(createStrengthSetRequest);
+        StrengthSet strengthSet = workoutMapper.toStrengthSetEntity(createSetRequest);
         
         // Set the workout exercise (not handled by mapper)
         strengthSet.setWorkoutExercise(workoutExercise);
@@ -72,33 +72,33 @@ public class StrengthSetService implements StrengthSetServiceInterface {
                    savedStrengthSet.getSetId(), savedStrengthSet.getWorkoutExercise().getWorkoutExerciseId(),
                    savedStrengthSet.getSetNumber());
         
-        return workoutMapper.toStrengthSetResponse(savedStrengthSet);
+        return workoutMapper.toSetResponse(savedStrengthSet);
     }
 
     /**
      * Get strength set by ID.
      *
      * @param setId the set ID
-     * @return StrengthSetResponse the strength set response
+     * @return SetResponse the strength set response
      */
     @Transactional(readOnly = true)
-    public StrengthSetResponse getStrengthSetById(Long setId) {
+    public SetResponse getStrengthSetById(Long setId) {
         StrengthSet strengthSet = strengthSetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Strength set", "ID", setId));
 
-        return workoutMapper.toStrengthSetResponse(strengthSet);
+        return workoutMapper.toSetResponse(strengthSet);
     }
 
     /**
      * Get strength sets by workout exercise ID.
      *
      * @param workoutExerciseId the workout exercise ID
-     * @return List of StrengthSetResponse
+     * @return List of SetResponse
      */
     @Transactional(readOnly = true)
-    public List<StrengthSetResponse> getStrengthSetsByWorkoutExercise(Long workoutExerciseId) {
+    public List<SetResponse> getStrengthSetsByWorkoutExercise(Long workoutExerciseId) {
         List<StrengthSet> strengthSets = strengthSetRepository.findByWorkoutExerciseWorkoutExerciseIdOrderBySetNumber(workoutExerciseId);
-        return workoutMapper.toStrengthSetResponseList(strengthSets);
+        return workoutMapper.toSetResponseList(strengthSets);
     }
 
     /**
@@ -106,10 +106,10 @@ public class StrengthSetService implements StrengthSetServiceInterface {
      *
      * @param setId the set ID
      * @param createStrengthSetRequest the updated strength set information
-     * @return StrengthSetResponse the updated strength set response
+     * @return SetResponse the updated strength set response
      */
     @Transactional
-    public StrengthSetResponse updateStrengthSet(Long setId, CreateStrengthSetRequest createStrengthSetRequest) {
+    public SetResponse updateStrengthSet(Long setId, CreateSetRequest createStrengthSetRequest) {
         StrengthSet strengthSet = strengthSetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Strength set", "ID", setId));
 
@@ -117,7 +117,7 @@ public class StrengthSetService implements StrengthSetServiceInterface {
         workoutMapper.updateStrengthSetEntity(createStrengthSetRequest, strengthSet);
 
         StrengthSet savedStrengthSet = strengthSetRepository.save(strengthSet);
-        return workoutMapper.toStrengthSetResponse(savedStrengthSet);
+        return workoutMapper.toSetResponse(savedStrengthSet);
     }
 
     /**
@@ -145,11 +145,11 @@ public class StrengthSetService implements StrengthSetServiceInterface {
      * Get all strength sets for a workout session.
      *
      * @param sessionId the workout session ID
-     * @return List of StrengthSetResponse
+     * @return List of SetResponse
      */
     @Transactional(readOnly = true)
-    public List<StrengthSetResponse> getStrengthSetsByWorkoutSession(Long sessionId) {
+    public List<SetResponse> getStrengthSetsByWorkoutSession(Long sessionId) {
         List<StrengthSet> strengthSets = strengthSetRepository.findByWorkoutExerciseWorkoutSessionSessionId(sessionId);
-        return workoutMapper.toStrengthSetResponseList(strengthSets);
+        return workoutMapper.toSetResponseList(strengthSets);
     }
 }

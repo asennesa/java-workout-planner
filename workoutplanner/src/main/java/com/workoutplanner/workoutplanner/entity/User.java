@@ -10,9 +10,11 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import com.workoutplanner.workoutplanner.enums.UserRole;
+import com.workoutplanner.workoutplanner.validation.ValidationGroups;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Objects;
 
 @Entity
 @Table(name = "users")
@@ -27,32 +29,54 @@ public class User implements UserDetails {
     private Long userId;
 
     @Column(name = "username", unique = true, nullable = false, length = 50)
-    @NotBlank(message = "Username is required")
-    @Length(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
-    @Pattern(regexp = "^[a-zA-Z0-9_]+$", message = "Username can only contain letters, numbers, and underscores")
+    @NotBlank(groups = {ValidationGroups.Create.class, ValidationGroups.Auth.class}, 
+              message = "Username is required for registration and authentication")
+    @Length(min = 3, max = 50, 
+            groups = {ValidationGroups.Create.class, ValidationGroups.Update.class, ValidationGroups.Auth.class}, 
+            message = "Username must be between 3 and 50 characters")
+    @Pattern(regexp = "^[a-zA-Z0-9_]+$", 
+             groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
+             message = "Username can only contain letters, numbers, and underscores")
     private String username;
 
     @Column(name = "password_hash", nullable = false)
-    @NotBlank(message = "Password hash is required")
-    @Length(min = 60, max = 255, message = "Password hash must be a valid bcrypt hash")
+    @NotBlank(groups = {ValidationGroups.Create.class, ValidationGroups.Auth.class}, 
+              message = "Password is required for registration and authentication")
+    @Length(min = 8, max = 255, 
+            groups = {ValidationGroups.Create.class, ValidationGroups.Update.class, ValidationGroups.Auth.class}, 
+            message = "Password must be between 8 and 255 characters")
     private String passwordHash;
 
     @Column(name = "email", unique = true, nullable = false)
-    @NotBlank(message = "Email is required")
-    @Email(message = "Email must be a valid email address")
-    @Length(max = 255, message = "Email must not exceed 255 characters")
+    @NotBlank(groups = {ValidationGroups.Create.class, ValidationGroups.SecureUpdate.class}, 
+              message = "Email is required")
+    @Email(groups = {ValidationGroups.Create.class, ValidationGroups.SecureUpdate.class}, 
+           message = "Email must be a valid email address")
+    @Length(max = 255, 
+            groups = {ValidationGroups.Create.class, ValidationGroups.SecureUpdate.class}, 
+            message = "Email must not exceed 255 characters")
     private String email;
 
     @Column(name = "first_name", nullable = false, length = 50)
-    @NotBlank(message = "First name is required")
-    @Length(min = 1, max = 50, message = "First name must be between 1 and 50 characters")
-    @Pattern(regexp = "^[a-zA-Z\\s'-]+$", message = "First name can only contain letters, spaces, hyphens, and apostrophes")
+    @NotBlank(groups = {ValidationGroups.Create.class, ValidationGroups.SecureUpdate.class}, 
+              message = "First name is required")
+    @Length(min = 1, max = 50, 
+            groups = {ValidationGroups.Create.class, ValidationGroups.SecureUpdate.class}, 
+            message = "First name must be between 1 and 50 characters")
+    @Pattern(regexp = "^[a-zA-Z\\s'-]+$", 
+             groups = {ValidationGroups.Create.class, ValidationGroups.SecureUpdate.class}, 
+             message = "First name can only contain letters, spaces, hyphens, and apostrophes")
     private String firstName;
 
     @Column(name = "last_name", nullable = false, length = 50)
-    @NotBlank(message = "Last name is required")
-    @Length(min = 1, max = 50, message = "Last name must be between 1 and 50 characters")
-    @Pattern(regexp = "^[a-zA-Z\\s'-]+$", message = "Last name can only contain letters, spaces, hyphens, and apostrophes")
+    @NotBlank(groups = {ValidationGroups.Create.class, ValidationGroups.SecureUpdate.class}, 
+              message = "Last name is required")
+    @Length(min = 1, max = 50, 
+            groups = {ValidationGroups.Create.class, ValidationGroups.SecureUpdate.class}, 
+            message = "Last name must be between 1 and 50 characters")
+    @Pattern(regexp = "^[a-zA-Z\\s'-]+$", 
+             groups = {ValidationGroups.Create.class, ValidationGroups.SecureUpdate.class}, 
+             message = "Last name can only contain letters, spaces, hyphens, and apostrophes")
     private String lastName;
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -76,6 +100,10 @@ public class User implements UserDetails {
 
     @Column(name = "credentials_non_expired", nullable = false)
     private boolean credentialsNonExpired = true;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version = 0L;
 
     /**
      * JPA lifecycle callbacks for automatic timestamp management
@@ -125,5 +153,43 @@ public class User implements UserDetails {
     @Override
     public boolean isEnabled() {
         return enabled;
+    }
+
+    /**
+     * Equals method following Hibernate best practices.
+     * Uses database ID for equality when entity is persisted,
+     * falls back to field comparison for transient entities.
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        
+        User user = (User) o;
+        
+        // If both entities are persisted (have IDs), use ID for equality
+        if (userId != null && user.userId != null) {
+            return Objects.equals(userId, user.userId);
+        }
+        
+        // For transient entities, compare unique fields (username and email)
+        return Objects.equals(username, user.username) &&
+               Objects.equals(email, user.email);
+    }
+
+    /**
+     * HashCode method following Hibernate best practices.
+     * Uses database ID when entity is persisted,
+     * falls back to unique fields for transient entities.
+     */
+    @Override
+    public int hashCode() {
+        // If entity is persisted, use ID for hash
+        if (userId != null) {
+            return Objects.hash(userId);
+        }
+        
+        // For transient entities, use unique fields
+        return Objects.hash(username, email);
     }
 }

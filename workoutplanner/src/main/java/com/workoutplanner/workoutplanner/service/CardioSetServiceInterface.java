@@ -1,7 +1,7 @@
 package com.workoutplanner.workoutplanner.service;
 
-import com.workoutplanner.workoutplanner.dto.request.CreateCardioSetRequest;
-import com.workoutplanner.workoutplanner.dto.response.CardioSetResponse;
+import com.workoutplanner.workoutplanner.dto.request.CreateSetRequest;
+import com.workoutplanner.workoutplanner.dto.response.SetResponse;
 
 import java.util.List;
 
@@ -20,7 +20,7 @@ public interface CardioSetServiceInterface {
      * @param createCardioSetRequest the cardio set creation request
      * @return CardioSetResponse the created cardio set response
      */
-    CardioSetResponse createCardioSet(CreateCardioSetRequest createCardioSetRequest);
+    SetResponse createCardioSet(CreateSetRequest createSetRequest);
     
     /**
      * Get cardio set by ID.
@@ -28,7 +28,7 @@ public interface CardioSetServiceInterface {
      * @param setId the set ID
      * @return CardioSetResponse the cardio set response
      */
-    CardioSetResponse getCardioSetById(Long setId);
+    SetResponse getCardioSetById(Long setId);
     
     /**
      * Get cardio sets by workout exercise ID.
@@ -36,7 +36,7 @@ public interface CardioSetServiceInterface {
      * @param workoutExerciseId the workout exercise ID
      * @return List of CardioSetResponse
      */
-    List<CardioSetResponse> getCardioSetsByWorkoutExercise(Long workoutExerciseId);
+    List<SetResponse> getCardioSetsByWorkoutExercise(Long workoutExerciseId);
     
     /**
      * Update cardio set.
@@ -45,7 +45,7 @@ public interface CardioSetServiceInterface {
      * @param createCardioSetRequest the updated cardio set information
      * @return CardioSetResponse the updated cardio set response
      */
-    CardioSetResponse updateCardioSet(Long setId, CreateCardioSetRequest createCardioSetRequest);
+    SetResponse updateCardioSet(Long setId, CreateSetRequest createSetRequest);
     
     /**
      * Delete cardio set.
@@ -60,5 +60,5 @@ public interface CardioSetServiceInterface {
      * @param sessionId the workout session ID
      * @return List of CardioSetResponse
      */
-    List<CardioSetResponse> getCardioSetsByWorkoutSession(Long sessionId);
+    List<SetResponse> getCardioSetsByWorkoutSession(Long sessionId);
 }

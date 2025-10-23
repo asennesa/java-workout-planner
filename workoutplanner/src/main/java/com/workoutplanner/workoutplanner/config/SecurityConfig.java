@@ -4,9 +4,6 @@ import com.workoutplanner.workoutplanner.service.OAuth2UserService;
 import com.workoutplanner.workoutplanner.service.TokenRevocationService;
 import com.workoutplanner.workoutplanner.service.JwtService;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.io.ClassPathResource;
@@ -718,7 +716,7 @@ public class SecurityConfig {
         @Value("${app.oauth2.frontend-url:http://localhost:3000}")
         private String frontendUrl;
         
-        public OAuth2AuthenticationSuccessHandler(JwtService jwtService) {
+        public OAuth2AuthenticationSuccessHandler(@Lazy JwtService jwtService) {
             this.jwtService = jwtService;
         }
         

@@ -1,8 +1,7 @@
 package com.workoutplanner.workoutplanner.service;
 
-import com.workoutplanner.workoutplanner.dto.request.ChangePasswordRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateUserRequest;
-import com.workoutplanner.workoutplanner.dto.request.UpdateUserRequest;
+import com.workoutplanner.workoutplanner.dto.request.UserUpdateRequest;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.UserResponse;
 import org.springframework.data.domain.Pageable;
@@ -70,26 +69,31 @@ public interface UserServiceInterface {
     PagedResponse<UserResponse> getAllUsers(Pageable pageable);
     
     /**
-     * Update user information (excluding password).
-     * For password changes, use changePassword method.
+     * Update user profile with basic information (no password verification required).
+     * 
+     * This method handles non-sensitive profile updates like firstName and lastName.
      * 
      * @param userId the user ID
-     * @param updateUserRequest the updated user information
-     * @return the updated user response
+     * @param userUpdateRequest the user update request
+     * @return UserResponse the updated user response
      * @throws com.workoutplanner.workoutplanner.exception.ResourceNotFoundException if user not found
-     * @throws com.workoutplanner.workoutplanner.exception.ResourceConflictException if username or email already exists
      */
-    UserResponse updateUser(Long userId, UpdateUserRequest updateUserRequest);
-    
+    UserResponse updateUserBasic(Long userId, UserUpdateRequest userUpdateRequest);
+
     /**
-     * Change user password with verification of current password.
+     * Update user profile securely with password verification.
+     * 
+     * This method handles sensitive profile updates like email and password changes.
+     * Requires current password verification for security.
      * 
      * @param userId the user ID
-     * @param changePasswordRequest the password change request
+     * @param userUpdateRequest the user update request
+     * @return UserResponse the updated user response
      * @throws com.workoutplanner.workoutplanner.exception.ResourceNotFoundException if user not found
-     * @throws com.workoutplanner.workoutplanner.exception.BusinessLogicException if current password is incorrect or passwords don't match
+     * @throws com.workoutplanner.workoutplanner.exception.BusinessLogicException if current password is incorrect or validation fails
      */
-    void changePassword(Long userId, ChangePasswordRequest changePasswordRequest);
+    UserResponse updateUserProfileSecurely(Long userId, UserUpdateRequest userUpdateRequest);
+    
     
     /**
      * Delete user by ID.
