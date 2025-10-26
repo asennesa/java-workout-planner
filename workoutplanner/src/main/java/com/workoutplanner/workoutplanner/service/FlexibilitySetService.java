@@ -5,6 +5,7 @@ import com.workoutplanner.workoutplanner.dto.response.SetResponse;
 import com.workoutplanner.workoutplanner.entity.FlexibilitySet;
 import com.workoutplanner.workoutplanner.entity.WorkoutExercise;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
+import com.workoutplanner.workoutplanner.mapper.BaseSetMapper;
 import com.workoutplanner.workoutplanner.mapper.WorkoutMapper;
 import com.workoutplanner.workoutplanner.repository.FlexibilitySetRepository;
 import com.workoutplanner.workoutplanner.repository.WorkoutExerciseRepository;
@@ -31,6 +32,7 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
     private final FlexibilitySetRepository flexibilitySetRepository;
     private final WorkoutExerciseRepository workoutExerciseRepository;
     private final WorkoutMapper workoutMapper;
+    private final BaseSetMapper baseSetMapper;
     
     /**
      * Constructor injection for dependencies.
@@ -38,10 +40,12 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
      */
     public FlexibilitySetService(FlexibilitySetRepository flexibilitySetRepository,
                                 WorkoutExerciseRepository workoutExerciseRepository,
-                                WorkoutMapper workoutMapper) {
+                                WorkoutMapper workoutMapper,
+                                BaseSetMapper baseSetMapper) {
         this.flexibilitySetRepository = flexibilitySetRepository;
         this.workoutExerciseRepository = workoutExerciseRepository;
         this.workoutMapper = workoutMapper;
+        this.baseSetMapper = baseSetMapper;
     }
 
     /**
@@ -69,7 +73,7 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
                    savedFlexibilitySet.getSetId(), savedFlexibilitySet.getWorkoutExercise().getWorkoutExerciseId(),
                    savedFlexibilitySet.getSetNumber());
         
-        return workoutMapper.toSetResponse(savedFlexibilitySet);
+        return baseSetMapper.toSetResponse(savedFlexibilitySet);
     }
 
     /**
@@ -83,7 +87,7 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
         FlexibilitySet flexibilitySet = flexibilitySetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Flexibility set", "ID", setId));
 
-        return workoutMapper.toSetResponse(flexibilitySet);
+        return baseSetMapper.toSetResponse(flexibilitySet);
     }
 
     /**
@@ -95,7 +99,7 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
     @Transactional(readOnly = true)
     public List<SetResponse> getSetsByWorkoutExercise(Long workoutExerciseId) {
         List<FlexibilitySet> flexibilitySets = flexibilitySetRepository.findByWorkoutExercise_WorkoutExerciseIdOrderBySetNumberAsc(workoutExerciseId);
-        return workoutMapper.toFlexibilitySetResponseList(flexibilitySets);
+        return baseSetMapper.toFlexibilitySetResponseList(flexibilitySets);
     }
 
     /**
@@ -113,7 +117,7 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
         workoutMapper.updateFlexibilitySetEntity(createFlexibilitySetRequest, flexibilitySet);
 
         FlexibilitySet savedFlexibilitySet = flexibilitySetRepository.save(flexibilitySet);
-        return workoutMapper.toSetResponse(savedFlexibilitySet);
+        return baseSetMapper.toSetResponse(savedFlexibilitySet);
     }
 
     /**
@@ -146,6 +150,6 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
     @Transactional(readOnly = true)
     public List<SetResponse> getSetsByWorkoutSession(Long sessionId) {
         List<FlexibilitySet> flexibilitySets = flexibilitySetRepository.findByWorkoutExercise_WorkoutSession_SessionId(sessionId);
-        return workoutMapper.toFlexibilitySetResponseList(flexibilitySets);
+        return baseSetMapper.toFlexibilitySetResponseList(flexibilitySets);
     }
 }

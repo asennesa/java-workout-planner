@@ -9,6 +9,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 
+import java.util.List;
+
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public abstract class BaseSetMapper {
 
@@ -39,7 +41,7 @@ public abstract class BaseSetMapper {
     @Mapping(target = "durationInSeconds", ignore = true)
     @Mapping(target = "intensity", ignore = true)
     @Mapping(target = "stretchType", ignore = true)
-    abstract SetResponse toSetResponse(StrengthSet set);
+    public abstract SetResponse toSetResponse(StrengthSet set);
 
     @Mapping(target = "workoutExerciseId", source = "workoutExercise.workoutExerciseId")
     @Mapping(target = "reps", ignore = true)
@@ -47,7 +49,7 @@ public abstract class BaseSetMapper {
     @Mapping(target = "distanceUnit", ignore = true)
     @Mapping(target = "intensity", ignore = true)
     @Mapping(target = "stretchType", ignore = true)
-    abstract SetResponse toSetResponse(CardioSet set);
+    public abstract SetResponse toSetResponse(CardioSet set);
 
     @Mapping(target = "workoutExerciseId", source = "workoutExercise.workoutExerciseId")
     @Mapping(target = "reps", ignore = true)
@@ -55,5 +57,20 @@ public abstract class BaseSetMapper {
     @Mapping(target = "distance", ignore = true)
     @Mapping(target = "distanceUnit", ignore = true)
     @Mapping(target = "durationInSeconds", ignore = true)
-    abstract SetResponse toSetResponse(FlexibilitySet set);
+    public abstract SetResponse toSetResponse(FlexibilitySet set);
+
+    /**
+     * Maps list of StrengthSet entities to list of SetResponse DTOs
+     */
+    public abstract List<SetResponse> toSetResponseList(List<StrengthSet> strengthSets);
+
+    /**
+     * Maps list of CardioSet entities to list of SetResponse DTOs
+     */
+    public abstract List<SetResponse> toCardioSetResponseList(List<CardioSet> cardioSets);
+
+    /**
+     * Maps list of FlexibilitySet entities to list of SetResponse DTOs
+     */
+    public abstract List<SetResponse> toFlexibilitySetResponseList(List<FlexibilitySet> flexibilitySets);
 }

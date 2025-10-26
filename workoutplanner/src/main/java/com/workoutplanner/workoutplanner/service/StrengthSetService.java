@@ -5,6 +5,7 @@ import com.workoutplanner.workoutplanner.dto.response.SetResponse;
 import com.workoutplanner.workoutplanner.entity.StrengthSet;
 import com.workoutplanner.workoutplanner.entity.WorkoutExercise;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
+import com.workoutplanner.workoutplanner.mapper.BaseSetMapper;
 import com.workoutplanner.workoutplanner.mapper.WorkoutMapper;
 import com.workoutplanner.workoutplanner.repository.StrengthSetRepository;
 import com.workoutplanner.workoutplanner.repository.WorkoutExerciseRepository;
@@ -31,6 +32,7 @@ public class StrengthSetService implements StrengthSetServiceInterface {
     private final StrengthSetRepository strengthSetRepository;
     private final WorkoutExerciseRepository workoutExerciseRepository;
     private final WorkoutMapper workoutMapper;
+    private final BaseSetMapper baseSetMapper;
     
     /**
      * Constructor injection for dependencies.
@@ -38,10 +40,12 @@ public class StrengthSetService implements StrengthSetServiceInterface {
      */
     public StrengthSetService(StrengthSetRepository strengthSetRepository,
                              WorkoutExerciseRepository workoutExerciseRepository,
-                             WorkoutMapper workoutMapper) {
+                             WorkoutMapper workoutMapper,
+                             BaseSetMapper baseSetMapper) {
         this.strengthSetRepository = strengthSetRepository;
         this.workoutExerciseRepository = workoutExerciseRepository;
         this.workoutMapper = workoutMapper;
+        this.baseSetMapper = baseSetMapper;
     }
 
     /**
@@ -69,7 +73,7 @@ public class StrengthSetService implements StrengthSetServiceInterface {
                    savedStrengthSet.getSetId(), savedStrengthSet.getWorkoutExercise().getWorkoutExerciseId(),
                    savedStrengthSet.getSetNumber());
         
-        return workoutMapper.toSetResponse(savedStrengthSet);
+        return baseSetMapper.toSetResponse(savedStrengthSet);
     }
 
     /**
@@ -83,7 +87,7 @@ public class StrengthSetService implements StrengthSetServiceInterface {
         StrengthSet strengthSet = strengthSetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Strength set", "ID", setId));
 
-        return workoutMapper.toSetResponse(strengthSet);
+        return baseSetMapper.toSetResponse(strengthSet);
     }
 
     /**
@@ -95,7 +99,7 @@ public class StrengthSetService implements StrengthSetServiceInterface {
     @Transactional(readOnly = true)
     public List<SetResponse> getSetsByWorkoutExercise(Long workoutExerciseId) {
         List<StrengthSet> strengthSets = strengthSetRepository.findByWorkoutExercise_WorkoutExerciseIdOrderBySetNumberAsc(workoutExerciseId);
-        return workoutMapper.toSetResponseList(strengthSets);
+        return baseSetMapper.toSetResponseList(strengthSets);
     }
 
     /**
@@ -113,7 +117,7 @@ public class StrengthSetService implements StrengthSetServiceInterface {
         workoutMapper.updateStrengthSetEntity(createStrengthSetRequest, strengthSet);
 
         StrengthSet savedStrengthSet = strengthSetRepository.save(strengthSet);
-        return workoutMapper.toSetResponse(savedStrengthSet);
+        return baseSetMapper.toSetResponse(savedStrengthSet);
     }
 
     /**
@@ -146,6 +150,6 @@ public class StrengthSetService implements StrengthSetServiceInterface {
     @Transactional(readOnly = true)
     public List<SetResponse> getSetsByWorkoutSession(Long sessionId) {
         List<StrengthSet> strengthSets = strengthSetRepository.findByWorkoutExercise_WorkoutSession_SessionId(sessionId);
-        return workoutMapper.toSetResponseList(strengthSets);
+        return baseSetMapper.toSetResponseList(strengthSets);
     }
 }
