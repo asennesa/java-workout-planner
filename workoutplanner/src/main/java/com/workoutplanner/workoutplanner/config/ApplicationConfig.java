@@ -27,6 +27,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.util.Arrays;
 import java.util.UUID;
 
@@ -49,8 +50,6 @@ import java.util.UUID;
 @Configuration
 public class ApplicationConfig {
 
-    // ==================== REDIS CONFIGURATION ====================
-    
     @Value("${spring.redis.host:localhost}")
     private String redisHost;
 
@@ -95,7 +94,6 @@ public class ApplicationConfig {
         RedisTemplate<String, String> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
         
-        // Use String serializer for keys and values for security data
         template.setKeySerializer(new StringRedisSerializer());
         template.setValueSerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
@@ -105,23 +103,6 @@ public class ApplicationConfig {
         return template;
     }
 
-    // ==================== METRICS CONFIGURATION ====================
-
-    /**
-     * Security metrics bean for monitoring authentication and authorization events.
-     * Provides comprehensive security monitoring and alerting capabilities.
-     * 
-     * @param meterRegistry Micrometer meter registry for metrics collection
-     * @return SecurityMetrics instance
-     */
-    @Bean
-    public SecurityMetrics securityMetrics(MeterRegistry meterRegistry) {
-        return new SecurityMetrics(meterRegistry);
-    }
-
-    // ==================== WEB CONFIGURATION ====================
-
-    // CORS Configuration Properties
     @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:3001}")
     private String allowedOrigins;
 
@@ -169,6 +150,16 @@ public class ApplicationConfig {
         return factory;
     }
 
+    /**
+     * Clock bean for time operations.
+     * Provides a consistent time source for validators and services,
+     * making testing easier and ensuring time zone consistency.
+     */
+    @Bean
+    public Clock clock() {
+        return Clock.systemDefaultZone();
+    }
+
     // ==================== LOGGING FILTER ====================
 
     /**
@@ -194,11 +185,9 @@ public class ApplicationConfig {
                                       HttpServletResponse response,
                                       FilterChain filterChain) throws ServletException, IOException {
             try {
-                // Generate a unique correlation ID for each request
                 String correlationId = UUID.randomUUID().toString();
                 MDC.put("correlationId", correlationId);
                 
-                // Extract API version from request URI
                 String requestUri = request.getRequestURI();
                 String apiVersion = extractApiVersion(requestUri);
                 if (apiVersion != null) {
@@ -213,7 +202,7 @@ public class ApplicationConfig {
                 filterChain.doFilter(request, response);
             } finally {
                 logger.info("Outgoing Response: {} {} Status: {}", request.getMethod(), request.getRequestURI(), response.getStatus());
-                MDC.clear(); // Clear MDC to prevent memory leaks
+                MDC.clear();
             }
         }
 

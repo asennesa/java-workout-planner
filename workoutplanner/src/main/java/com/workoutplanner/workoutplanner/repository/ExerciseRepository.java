@@ -52,6 +52,24 @@ public interface ExerciseRepository extends JpaRepository<Exercise, Long> {
     List<Exercise> findByTypeAndTargetMuscleGroup(ExerciseType type, TargetMuscleGroup targetMuscleGroup);
     
     /**
+     * Find exercises by type and difficulty level.
+     * 
+     * @param type the exercise type
+     * @param difficultyLevel the difficulty level
+     * @return list of exercises matching both criteria
+     */
+    List<Exercise> findByTypeAndDifficultyLevel(ExerciseType type, DifficultyLevel difficultyLevel);
+    
+    /**
+     * Find exercises by target muscle group and difficulty level.
+     * 
+     * @param targetMuscleGroup the target muscle group
+     * @param difficultyLevel the difficulty level
+     * @return list of exercises matching both criteria
+     */
+    List<Exercise> findByTargetMuscleGroupAndDifficultyLevel(TargetMuscleGroup targetMuscleGroup, DifficultyLevel difficultyLevel);
+    
+    /**
      * Find exercises by name containing (case-insensitive).
      * Spring Data JPA automatically generates safe query with proper escaping.
      * Input should be pre-sanitized in the service layer to escape LIKE wildcards.
@@ -73,7 +91,7 @@ public interface ExerciseRepository extends JpaRepository<Exercise, Long> {
            "(:type IS NULL OR e.type = :type) AND " +
            "(:targetMuscleGroup IS NULL OR e.targetMuscleGroup = :targetMuscleGroup) AND " +
            "(:difficultyLevel IS NULL OR e.difficultyLevel = :difficultyLevel)")
-    List<Exercise> findByCriteria(@Param("type") ExerciseType type,
-                                  @Param("targetMuscleGroup") TargetMuscleGroup targetMuscleGroup,
-                                  @Param("difficultyLevel") DifficultyLevel difficultyLevel);
+    List<Exercise> findByTypeAndTargetMuscleGroupAndDifficultyLevel(@Param("type") ExerciseType type,
+                                                                    @Param("targetMuscleGroup") TargetMuscleGroup targetMuscleGroup,
+                                                                    @Param("difficultyLevel") DifficultyLevel difficultyLevel);
 }

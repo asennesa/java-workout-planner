@@ -51,19 +51,16 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
      * @return SetResponse the created flexibility set response
      */
     @Transactional
-    public SetResponse createFlexibilitySet(CreateSetRequest createFlexibilitySetRequest) {
+    public SetResponse createSet(CreateSetRequest createFlexibilitySetRequest) {
         logger.debug("SERVICE: Creating flexibility set. workoutExerciseId={}, setNumber={}, duration={}s, intensity={}", 
                     createFlexibilitySetRequest.getWorkoutExerciseId(), createFlexibilitySetRequest.getSetNumber(),
                     createFlexibilitySetRequest.getDurationInSeconds(), createFlexibilitySetRequest.getIntensity());
         
-        // Validate workout exercise exists
         WorkoutExercise workoutExercise = workoutExerciseRepository.findById(createFlexibilitySetRequest.getWorkoutExerciseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", createFlexibilitySetRequest.getWorkoutExerciseId()));
 
-        // Map request to entity using mapper
         FlexibilitySet flexibilitySet = workoutMapper.toFlexibilitySetEntity(createFlexibilitySetRequest);
         
-        // Set the workout exercise (not handled by mapper)
         flexibilitySet.setWorkoutExercise(workoutExercise);
 
         FlexibilitySet savedFlexibilitySet = flexibilitySetRepository.save(flexibilitySet);
@@ -82,7 +79,7 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
      * @return SetResponse the flexibility set response
      */
     @Transactional(readOnly = true)
-    public SetResponse getFlexibilitySetById(Long setId) {
+    public SetResponse getSetById(Long setId) {
         FlexibilitySet flexibilitySet = flexibilitySetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Flexibility set", "ID", setId));
 
@@ -96,8 +93,8 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
      * @return List of SetResponse
      */
     @Transactional(readOnly = true)
-    public List<SetResponse> getFlexibilitySetsByWorkoutExercise(Long workoutExerciseId) {
-        List<FlexibilitySet> flexibilitySets = flexibilitySetRepository.findByWorkoutExerciseWorkoutExerciseIdOrderBySetNumber(workoutExerciseId);
+    public List<SetResponse> getSetsByWorkoutExercise(Long workoutExerciseId) {
+        List<FlexibilitySet> flexibilitySets = flexibilitySetRepository.findByWorkoutExercise_WorkoutExerciseIdOrderBySetNumberAsc(workoutExerciseId);
         return workoutMapper.toFlexibilitySetResponseList(flexibilitySets);
     }
 
@@ -109,11 +106,10 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
      * @return SetResponse the updated flexibility set response
      */
     @Transactional
-    public SetResponse updateFlexibilitySet(Long setId, CreateSetRequest createFlexibilitySetRequest) {
+    public SetResponse updateSet(Long setId, CreateSetRequest createFlexibilitySetRequest) {
         FlexibilitySet flexibilitySet = flexibilitySetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Flexibility set", "ID", setId));
 
-        // Update fields using mapper
         workoutMapper.updateFlexibilitySetEntity(createFlexibilitySetRequest, flexibilitySet);
 
         FlexibilitySet savedFlexibilitySet = flexibilitySetRepository.save(flexibilitySet);
@@ -126,7 +122,7 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
      * @param setId the set ID
      */
     @Transactional
-    public void deleteFlexibilitySet(Long setId) {
+    public void deleteSet(Long setId) {
         logger.debug("SERVICE: Deleting flexibility set. setId={}", setId);
         
         FlexibilitySet flexibilitySet = flexibilitySetRepository.findById(setId)
@@ -148,8 +144,8 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
      * @return List of SetResponse
      */
     @Transactional(readOnly = true)
-    public List<SetResponse> getFlexibilitySetsByWorkoutSession(Long sessionId) {
-        List<FlexibilitySet> flexibilitySets = flexibilitySetRepository.findByWorkoutExerciseWorkoutSessionSessionId(sessionId);
+    public List<SetResponse> getSetsByWorkoutSession(Long sessionId) {
+        List<FlexibilitySet> flexibilitySets = flexibilitySetRepository.findByWorkoutExercise_WorkoutSession_SessionId(sessionId);
         return workoutMapper.toFlexibilitySetResponseList(flexibilitySets);
     }
 }

@@ -4,6 +4,7 @@ import com.workoutplanner.workoutplanner.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -46,6 +47,22 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
     
     /**
+     * Find user by username (case-insensitive).
+     * 
+     * @param username the username to search for
+     * @return Optional containing the user if found
+     */
+    Optional<User> findByUsernameIgnoreCase(String username);
+    
+    /**
+     * Find user by email (case-insensitive).
+     * 
+     * @param email the email to search for
+     * @return Optional containing the user if found
+     */
+    Optional<User> findByEmailIgnoreCase(String email);
+    
+    /**
      * Find users by first name containing (case-insensitive).
      * Spring Data JPA automatically generates safe query with proper escaping.
      * Input should be pre-sanitized in the service layer to escape LIKE wildcards.
@@ -53,5 +70,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @param firstName the first name to search for (should be pre-sanitized)
      * @return list of users matching the criteria
      */
-    java.util.List<User> findByFirstNameContainingIgnoreCase(String firstName);
+    List<User> findByFirstNameContainingIgnoreCase(String firstName);
 }

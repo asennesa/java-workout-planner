@@ -2,6 +2,7 @@ package com.workoutplanner.workoutplanner.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -23,6 +24,9 @@ public class RefreshTokenService {
 
     private final JwtService jwtService;
     private final TokenRevocationService tokenRevocationService;
+
+    @Value("${app.jwt.refresh-expiration:604800000}")
+    private int jwtRefreshExpirationMs;
 
     // Store active refresh tokens (use Redis in production)
     private final ConcurrentHashMap<String, RefreshTokenInfo> activeRefreshTokens = new ConcurrentHashMap<>();
@@ -113,8 +117,8 @@ public class RefreshTokenService {
      * @param userId user ID
      */
     private void storeRefreshToken(String refreshToken, String username, Long userId) {
-        Date expiresAt = new Date(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000); // 7 days
-        RefreshTokenInfo tokenInfo = new RefreshTokenInfo(username, userId, expiresAt);
+        Date expiresAt = new Date(System.currentTimeMillis() + jwtRefreshExpirationMs);
+        RefreshTokenInfo tokenInfo = new RefreshTokenInfo(username, expiresAt);
         activeRefreshTokens.put(refreshToken, tokenInfo);
         
         logger.debug("Stored refresh token for user: {}", username);
@@ -207,21 +211,15 @@ public class RefreshTokenService {
      */
     private static class RefreshTokenInfo {
         private final String username;
-        private final Long userId;
         private final Date expiresAt;
 
-        public RefreshTokenInfo(String username, Long userId, Date expiresAt) {
+        public RefreshTokenInfo(String username, Date expiresAt) {
             this.username = username;
-            this.userId = userId;
             this.expiresAt = expiresAt;
         }
 
         public String getUsername() {
             return username;
-        }
-
-        public Long getUserId() {
-            return userId;
         }
 
         public Date getExpiresAt() {

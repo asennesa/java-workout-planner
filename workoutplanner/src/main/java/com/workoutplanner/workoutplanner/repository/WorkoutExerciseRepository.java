@@ -1,11 +1,8 @@
 package com.workoutplanner.workoutplanner.repository;
 
-import com.workoutplanner.workoutplanner.entity.Exercise;
 import com.workoutplanner.workoutplanner.entity.WorkoutExercise;
-import com.workoutplanner.workoutplanner.entity.WorkoutSession;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -19,72 +16,14 @@ import java.util.Optional;
 public interface WorkoutExerciseRepository extends JpaRepository<WorkoutExercise, Long> {
     
     /**
-     * Find workout exercises by workout session.
-     * 
-     * @param workoutSession the workout session
-     * @return list of workout exercises for the session
-     */
-    List<WorkoutExercise> findByWorkoutSession(WorkoutSession workoutSession);
-    
-    /**
-     * Find workout exercises by workout session ID.
-     * 
-     * @param sessionId the workout session ID
-     * @return list of workout exercises for the session
-     */
-    List<WorkoutExercise> findByWorkoutSessionSessionId(Long sessionId);
-    
-    /**
-     * Find workout exercises by exercise.
-     * 
-     * @param exercise the exercise
-     * @return list of workout exercises using the specified exercise
-     */
-    List<WorkoutExercise> findByExercise(Exercise exercise);
-    
-    /**
-     * Find workout exercises by exercise ID.
-     * 
-     * @param exerciseId the exercise ID
-     * @return list of workout exercises using the specified exercise
-     */
-    List<WorkoutExercise> findByExerciseExerciseId(Long exerciseId);
-    
-    /**
-     * Find workout exercises by workout session, ordered by order in workout.
-     * 
-     * @param workoutSession the workout session
-     * @return list of workout exercises ordered by their position in the workout
-     */
-    @Query("SELECT we FROM WorkoutExercise we WHERE we.workoutSession = :workoutSession ORDER BY we.orderInWorkout ASC")
-    List<WorkoutExercise> findByWorkoutSessionOrderByOrderInWorkout(@Param("workoutSession") WorkoutSession workoutSession);
-    
-    /**
-     * Find workout exercises by workout session ID, ordered by order in workout.
-     * 
-     * @param sessionId the workout session ID
-     * @return list of workout exercises ordered by their position in the workout
-     */
-    @Query("SELECT we FROM WorkoutExercise we WHERE we.workoutSession.sessionId = :sessionId ORDER BY we.orderInWorkout ASC")
-    List<WorkoutExercise> findByWorkoutSessionIdOrderByOrderInWorkout(@Param("sessionId") Long sessionId);
-    
-    /**
-     * Find workout exercises by workout session ID, ordered by order in workout.
-     * 
-     * @param sessionId the workout session ID
-     * @return list of workout exercises ordered by their position in the workout
-     */
-    List<WorkoutExercise> findByWorkoutSessionSessionIdOrderByOrderInWorkout(Long sessionId);
-    
-    /**
      * Find workout exercise by ID with exercise eagerly fetched.
      * Prevents N+1 query problem when accessing exercise details.
      * 
      * @param workoutExerciseId the workout exercise ID
      * @return optional workout exercise with exercise eagerly loaded
      */
-    @Query("SELECT we FROM WorkoutExercise we JOIN FETCH we.exercise WHERE we.workoutExerciseId = :workoutExerciseId")
-    Optional<WorkoutExercise> findByIdWithExercise(@Param("workoutExerciseId") Long workoutExerciseId);
+    @EntityGraph(attributePaths = "exercise")
+    Optional<WorkoutExercise> findWithExerciseByWorkoutExerciseId(Long workoutExerciseId);
     
     /**
      * Find workout exercises by session ID with exercise eagerly fetched.
@@ -93,66 +32,8 @@ public interface WorkoutExerciseRepository extends JpaRepository<WorkoutExercise
      * @param sessionId the workout session ID
      * @return list of workout exercises with exercise eagerly loaded
      */
-    @Query("SELECT we FROM WorkoutExercise we JOIN FETCH we.exercise WHERE we.workoutSession.sessionId = :sessionId ORDER BY we.orderInWorkout ASC")
-    List<WorkoutExercise> findBySessionIdWithExercise(@Param("sessionId") Long sessionId);
-    
-    /**
-     * Find workout exercise by ID with all sets eagerly fetched.
-     * Prevents N+1 query problem when accessing all set types.
-     * 
-     * @param workoutExerciseId the workout exercise ID
-     * @return optional workout exercise with all sets eagerly loaded
-     */
-    @Query("SELECT DISTINCT we FROM WorkoutExercise we " +
-           "LEFT JOIN FETCH we.strengthSets " +
-           "LEFT JOIN FETCH we.cardioSets " +
-           "LEFT JOIN FETCH we.flexibilitySets " +
-           "WHERE we.workoutExerciseId = :workoutExerciseId")
-    Optional<WorkoutExercise> findByIdWithAllSets(@Param("workoutExerciseId") Long workoutExerciseId);
-    
-    /**
-     * Find workout exercises by session ID with all sets eagerly fetched.
-     * Prevents N+1 query problem when accessing all set types for all exercises.
-     * 
-     * @param sessionId the workout session ID
-     * @return list of workout exercises with all sets eagerly loaded
-     */
-    @Query("SELECT DISTINCT we FROM WorkoutExercise we " +
-           "LEFT JOIN FETCH we.exercise " +
-           "LEFT JOIN FETCH we.strengthSets " +
-           "LEFT JOIN FETCH we.cardioSets " +
-           "LEFT JOIN FETCH we.flexibilitySets " +
-           "WHERE we.workoutSession.sessionId = :sessionId " +
-           "ORDER BY we.orderInWorkout ASC")
-    List<WorkoutExercise> findBySessionIdWithAllSets(@Param("sessionId") Long sessionId);
-    
-    /**
-     * Find workout exercise by ID with exercise and all sets eagerly fetched.
-     * Comprehensive fetch to prevent all N+1 query problems.
-     * 
-     * @param workoutExerciseId the workout exercise ID
-     * @return optional workout exercise with exercise and all sets eagerly loaded
-     */
-    @Query("SELECT DISTINCT we FROM WorkoutExercise we " +
-           "LEFT JOIN FETCH we.exercise " +
-           "LEFT JOIN FETCH we.strengthSets " +
-           "LEFT JOIN FETCH we.cardioSets " +
-           "LEFT JOIN FETCH we.flexibilitySets " +
-           "WHERE we.workoutExerciseId = :workoutExerciseId")
-    Optional<WorkoutExercise> findByIdWithExerciseAndAllSets(@Param("workoutExerciseId") Long workoutExerciseId);
-    
-    /**
-     * Find workout exercises by session ID with smart loading.
-     * Only loads exercise details, sets are loaded separately based on type.
-     * 
-     * @param sessionId the workout session ID
-     * @return list of workout exercises with exercise details loaded
-     */
-    @Query("SELECT DISTINCT we FROM WorkoutExercise we " +
-           "LEFT JOIN FETCH we.exercise " +
-           "WHERE we.workoutSession.sessionId = :sessionId " +
-           "ORDER BY we.orderInWorkout ASC")
-    List<WorkoutExercise> findBySessionIdWithExerciseDetails(@Param("sessionId") Long sessionId);
+    @EntityGraph(attributePaths = "exercise")
+    List<WorkoutExercise> findByWorkoutSession_SessionIdOrderByOrderInWorkoutAsc(Long sessionId);
     
     /**
      * Find strength exercises with their sets for a session.
@@ -161,13 +42,8 @@ public interface WorkoutExerciseRepository extends JpaRepository<WorkoutExercise
      * @param sessionId the workout session ID
      * @return list of strength workout exercises with strength sets loaded
      */
-    @Query("SELECT DISTINCT we FROM WorkoutExercise we " +
-           "LEFT JOIN FETCH we.exercise e " +
-           "LEFT JOIN FETCH we.strengthSets " +
-           "WHERE we.workoutSession.sessionId = :sessionId " +
-           "AND e.type = 'STRENGTH' " +
-           "ORDER BY we.orderInWorkout ASC")
-    List<WorkoutExercise> findStrengthExercisesWithSets(@Param("sessionId") Long sessionId);
+    @EntityGraph(attributePaths = {"exercise", "strengthSets"})
+    List<WorkoutExercise> findStrengthExercisesWithSetsByWorkoutSession_SessionIdAndExercise_TypeOrderByOrderInWorkoutAsc(Long sessionId, String type);
     
     /**
      * Find cardio exercises with their sets for a session.
@@ -176,13 +52,8 @@ public interface WorkoutExerciseRepository extends JpaRepository<WorkoutExercise
      * @param sessionId the workout session ID
      * @return list of cardio workout exercises with cardio sets loaded
      */
-    @Query("SELECT DISTINCT we FROM WorkoutExercise we " +
-           "LEFT JOIN FETCH we.exercise e " +
-           "LEFT JOIN FETCH we.cardioSets " +
-           "WHERE we.workoutSession.sessionId = :sessionId " +
-           "AND e.type = 'CARDIO' " +
-           "ORDER BY we.orderInWorkout ASC")
-    List<WorkoutExercise> findCardioExercisesWithSets(@Param("sessionId") Long sessionId);
+    @EntityGraph(attributePaths = {"exercise", "cardioSets"})
+    List<WorkoutExercise> findCardioExercisesWithSetsByWorkoutSession_SessionIdAndExercise_TypeOrderByOrderInWorkoutAsc(Long sessionId, String type);
     
     /**
      * Find flexibility exercises with their sets for a session.
@@ -191,11 +62,6 @@ public interface WorkoutExerciseRepository extends JpaRepository<WorkoutExercise
      * @param sessionId the workout session ID
      * @return list of flexibility workout exercises with flexibility sets loaded
      */
-    @Query("SELECT DISTINCT we FROM WorkoutExercise we " +
-           "LEFT JOIN FETCH we.exercise e " +
-           "LEFT JOIN FETCH we.flexibilitySets " +
-           "WHERE we.workoutSession.sessionId = :sessionId " +
-           "AND e.type = 'FLEXIBILITY' " +
-           "ORDER BY we.orderInWorkout ASC")
-    List<WorkoutExercise> findFlexibilityExercisesWithSets(@Param("sessionId") Long sessionId);
+    @EntityGraph(attributePaths = {"exercise", "flexibilitySets"})
+    List<WorkoutExercise> findFlexibilityExercisesWithSetsByWorkoutSession_SessionIdAndExercise_TypeOrderByOrderInWorkoutAsc(Long sessionId, String type);
 }

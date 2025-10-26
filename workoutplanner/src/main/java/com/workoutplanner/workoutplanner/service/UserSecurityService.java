@@ -21,7 +21,7 @@ public class UserSecurityService {
      * @return true if access is allowed
      */
     public boolean canAccessUser(Authentication authentication, Long userId) {
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof User)) {
             return false;
         }
         
@@ -45,7 +45,7 @@ public class UserSecurityService {
      * @return true if modification is allowed
      */
     public boolean canModifyUser(Authentication authentication, Long userId) {
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof User)) {
             return false;
         }
         
@@ -69,7 +69,7 @@ public class UserSecurityService {
      * @return true if deletion is allowed
      */
     public boolean canDeleteUser(Authentication authentication, Long userId) {
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (authentication == null || !authentication.isAuthenticated() || !(authentication.getPrincipal() instanceof User)) {
             return false;
         }
         

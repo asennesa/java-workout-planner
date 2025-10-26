@@ -12,6 +12,7 @@ import com.workoutplanner.workoutplanner.entity.WorkoutExercise;
 import com.workoutplanner.workoutplanner.entity.User;
 import com.workoutplanner.workoutplanner.entity.Exercise;
 import com.workoutplanner.workoutplanner.enums.WorkoutStatus;
+import com.workoutplanner.workoutplanner.enums.ExerciseType;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.exception.OptimisticLockConflictException;
 import com.workoutplanner.workoutplanner.mapper.WorkoutMapper;
@@ -27,6 +28,9 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Service implementation for managing workout session operations.
@@ -74,30 +78,24 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
         logger.debug("SERVICE: Creating workout session. userId={}, name={}, status={}", 
                     createWorkoutRequest.getUserId(), createWorkoutRequest.getName(), createWorkoutRequest.getStatus());
         
-        // Validate user exists
         User user = userRepository.findById(createWorkoutRequest.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "ID", createWorkoutRequest.getUserId()));
 
-        // Map request to entity using mapper
         WorkoutSession workoutSession = workoutMapper.toEntity(createWorkoutRequest);
         
-        // Set the user (not handled by mapper)
         workoutSession.setUser(user);
 
-        // Set timestamps
         LocalDateTime now = LocalDateTime.now();
         if (workoutSession.getStartedAt() == null && createWorkoutRequest.getStatus() == WorkoutStatus.IN_PROGRESS) {
             workoutSession.setStartedAt(now);
         }
 
-        // Save workout session
         WorkoutSession savedWorkoutSession = workoutSessionRepository.save(workoutSession);
 
         logger.info("SERVICE: Workout session created successfully. sessionId={}, userId={}, name={}, status={}", 
                    savedWorkoutSession.getSessionId(), savedWorkoutSession.getUser().getUserId(), 
                    savedWorkoutSession.getName(), savedWorkoutSession.getStatus());
 
-        // Convert to response DTO
         return workoutMapper.toWorkoutResponse(savedWorkoutSession);
     }
 
@@ -110,7 +108,7 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
      */
     @Transactional(readOnly = true)
     public WorkoutResponse getWorkoutSessionById(Long sessionId) {
-        WorkoutSession workoutSession = workoutSessionRepository.findByIdWithUser(sessionId)
+        WorkoutSession workoutSession = workoutSessionRepository.findWithUserBySessionId(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
 
         return workoutMapper.toWorkoutResponse(workoutSession);
@@ -125,7 +123,7 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
      */
     @Transactional(readOnly = true)
     public List<WorkoutResponse> getWorkoutSessionsByUserId(Long userId) {
-        List<WorkoutSession> workoutSessions = workoutSessionRepository.findByUserIdWithUser(userId);
+        List<WorkoutSession> workoutSessions = workoutSessionRepository.findByUser_UserIdOrderByStartedAtDesc(userId);
         return workoutMapper.toWorkoutResponseList(workoutSessions);
     }
 
@@ -152,16 +150,13 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
         logger.info("Loading workout session {} with smart loading", sessionId);
         
         // Load workout session with user
-        WorkoutSession workoutSession = workoutSessionRepository.findByIdWithUser(sessionId)
+        WorkoutSession workoutSession = workoutSessionRepository.findWithUserBySessionId(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
         
-        // Load exercises with their exercise details
-        List<WorkoutExercise> exercises = workoutExerciseRepository.findBySessionIdWithExerciseDetails(sessionId);
+        List<WorkoutExercise> exercises = workoutExerciseRepository.findByWorkoutSession_SessionIdOrderByOrderInWorkoutAsc(sessionId);
         
-        // Smart loading: Load sets based on exercise type
         loadSetsBasedOnExerciseType(sessionId, exercises);
         
-        // Set the exercises on the workout session
         workoutSession.setWorkoutExercises(exercises);
         
         logger.info("Successfully loaded workout session {} with {} exercises using smart loading", 
@@ -180,42 +175,33 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
     private void loadSetsBasedOnExerciseType(Long sessionId, List<WorkoutExercise> exercises) {
         logger.debug("Starting smart loading for session {} with {} exercises", sessionId, exercises.size());
         
-        // Load strength exercises with their sets
-        List<WorkoutExercise> strengthExercises = workoutExerciseRepository.findStrengthExercisesWithSets(sessionId);
+        Map<Long, WorkoutExercise> strengthExercises = workoutExerciseRepository.findStrengthExercisesWithSetsByWorkoutSession_SessionIdAndExercise_TypeOrderByOrderInWorkoutAsc(sessionId, "STRENGTH")
+                .stream().collect(Collectors.toMap(WorkoutExercise::getWorkoutExerciseId, Function.identity()));
         logger.debug("Loaded {} strength exercises with sets", strengthExercises.size());
         
-        // Load cardio exercises with their sets
-        List<WorkoutExercise> cardioExercises = workoutExerciseRepository.findCardioExercisesWithSets(sessionId);
+        Map<Long, WorkoutExercise> cardioExercises = workoutExerciseRepository.findCardioExercisesWithSetsByWorkoutSession_SessionIdAndExercise_TypeOrderByOrderInWorkoutAsc(sessionId, "CARDIO")
+                .stream().collect(Collectors.toMap(WorkoutExercise::getWorkoutExerciseId, Function.identity()));
         logger.debug("Loaded {} cardio exercises with sets", cardioExercises.size());
         
-        // Load flexibility exercises with their sets
-        List<WorkoutExercise> flexibilityExercises = workoutExerciseRepository.findFlexibilityExercisesWithSets(sessionId);
+        Map<Long, WorkoutExercise> flexibilityExercises = workoutExerciseRepository.findFlexibilityExercisesWithSetsByWorkoutSession_SessionIdAndExercise_TypeOrderByOrderInWorkoutAsc(sessionId, "FLEXIBILITY")
+                .stream().collect(Collectors.toMap(WorkoutExercise::getWorkoutExerciseId, Function.identity()));
         logger.debug("Loaded {} flexibility exercises with sets", flexibilityExercises.size());
         
-        // Merge the loaded exercises back into the main list
-        // This ensures the exercises have their sets loaded
         for (WorkoutExercise exercise : exercises) {
-            // Find the corresponding exercise with loaded sets
-            strengthExercises.stream()
-                .filter(se -> se.getWorkoutExerciseId().equals(exercise.getWorkoutExerciseId()))
-                .findFirst()
-                .ifPresent(loadedExercise -> {
-                    exercise.setStrengthSets(loadedExercise.getStrengthSets());
-                });
-            
-            cardioExercises.stream()
-                .filter(ce -> ce.getWorkoutExerciseId().equals(exercise.getWorkoutExerciseId()))
-                .findFirst()
-                .ifPresent(loadedExercise -> {
-                    exercise.setCardioSets(loadedExercise.getCardioSets());
-                });
-            
-            flexibilityExercises.stream()
-                .filter(fe -> fe.getWorkoutExerciseId().equals(exercise.getWorkoutExerciseId()))
-                .findFirst()
-                .ifPresent(loadedExercise -> {
-                    exercise.setFlexibilitySets(loadedExercise.getFlexibilitySets());
-                });
+            WorkoutExercise strengthExercise = strengthExercises.get(exercise.getWorkoutExerciseId());
+            if (strengthExercise != null) {
+                exercise.setStrengthSets(strengthExercise.getStrengthSets());
+            }
+
+            WorkoutExercise cardioExercise = cardioExercises.get(exercise.getWorkoutExerciseId());
+            if (cardioExercise != null) {
+                exercise.setCardioSets(cardioExercise.getCardioSets());
+            }
+
+            WorkoutExercise flexibilityExercise = flexibilityExercises.get(exercise.getWorkoutExerciseId());
+            if (flexibilityExercise != null) {
+                exercise.setFlexibilitySets(flexibilityExercise.getFlexibilitySets());
+            }
         }
         
         logger.debug("Completed smart loading for session {}", sessionId);
@@ -254,10 +240,8 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
             WorkoutSession workoutSession = workoutSessionRepository.findById(sessionId)
                     .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
 
-            // Update fields using mapper
             workoutMapper.updateEntity(createWorkoutRequest, workoutSession);
 
-            // Handle status transitions
             handleStatusTransition(workoutSession, createWorkoutRequest.getStatus());
 
             WorkoutSession savedWorkoutSession = workoutSessionRepository.save(workoutSession);
@@ -305,6 +289,17 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
         }
     }
 
+    public WorkoutResponse performAction(Long sessionId, String action) {
+        WorkoutStatus status = switch (action.toLowerCase()) {
+            case "start", "resume" -> WorkoutStatus.IN_PROGRESS;
+            case "pause" -> WorkoutStatus.PAUSED;
+            case "complete" -> WorkoutStatus.COMPLETED;
+            case "cancel" -> WorkoutStatus.CANCELLED;
+            default -> throw new IllegalArgumentException("Invalid action: " + action);
+        };
+        return updateWorkoutSessionStatus(sessionId, status);
+    }
+
     /**
      * Delete workout session.
      *
@@ -335,18 +330,14 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
      */
     @Transactional
     public WorkoutExerciseResponse addExerciseToWorkout(CreateWorkoutExerciseRequest createWorkoutExerciseRequest) {
-        // Validate workout session exists
         WorkoutSession workoutSession = workoutSessionRepository.findById(createWorkoutExerciseRequest.getSessionId())
                 .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", createWorkoutExerciseRequest.getSessionId()));
 
-        // Validate exercise exists
         Exercise exercise = exerciseRepository.findById(createWorkoutExerciseRequest.getExerciseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Exercise", "ID", createWorkoutExerciseRequest.getExerciseId()));
 
-        // Map request to entity using mapper
         WorkoutExercise workoutExercise = workoutMapper.toWorkoutExerciseEntity(createWorkoutExerciseRequest);
         
-        // Set relationships (not handled by mapper)
         workoutExercise.setWorkoutSession(workoutSession);
         workoutExercise.setExercise(exercise);
 
@@ -376,8 +367,43 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
      */
     @Transactional(readOnly = true)
     public List<WorkoutExerciseResponse> getWorkoutExercises(Long sessionId) {
-        List<WorkoutExercise> workoutExercises = workoutExerciseRepository.findBySessionIdWithExercise(sessionId);
+        List<WorkoutExercise> workoutExercises = workoutExerciseRepository.findByWorkoutSession_SessionIdOrderByOrderInWorkoutAsc(sessionId);
         return workoutMapper.toWorkoutExerciseResponseList(workoutExercises);
+    }
+
+    /**
+     * Validates that exercise type matches the provided set types.
+     * This business logic was moved from ValidExerciseTypeValidator to follow
+     * best practices of keeping complex business logic in the service layer.
+     *
+     * @param workoutExercise the workout exercise to validate
+     * @return true if exercise type matches set types, false otherwise
+     */
+    public boolean validateExerciseTypeConsistency(WorkoutExercise workoutExercise) {
+        if (workoutExercise == null || workoutExercise.getExercise() == null) {
+            return true;
+        }
+        
+        ExerciseType exerciseType = workoutExercise.getExercise().getType();
+        
+        if (exerciseType == null) {
+            return true;
+        }
+        
+        boolean hasStrengthSets = workoutExercise.getStrengthSets() != null && !workoutExercise.getStrengthSets().isEmpty();
+        boolean hasCardioSets = workoutExercise.getCardioSets() != null && !workoutExercise.getCardioSets().isEmpty();
+        boolean hasFlexibilitySets = workoutExercise.getFlexibilitySets() != null && !workoutExercise.getFlexibilitySets().isEmpty();
+        
+        switch (exerciseType) {
+            case STRENGTH:
+                return hasStrengthSets && !hasCardioSets && !hasFlexibilitySets;
+            case CARDIO:
+                return hasCardioSets && !hasStrengthSets && !hasFlexibilitySets;
+            case FLEXIBILITY:
+                return hasFlexibilitySets && !hasStrengthSets && !hasCardioSets;
+            default:
+                return false;
+        }
     }
 
     /**
@@ -398,7 +424,6 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
             case COMPLETED:
                 if (workoutSession.getStartedAt() != null && workoutSession.getCompletedAt() == null) {
                     workoutSession.setCompletedAt(now);
-                    // Calculate duration if not set
                     if (workoutSession.getActualDurationInMinutes() == null) {
                         long durationMinutes = java.time.Duration.between(workoutSession.getStartedAt(), now).toMinutes();
                         workoutSession.setActualDurationInMinutes((int) durationMinutes);
@@ -407,10 +432,8 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
                 break;
             case CANCELLED:
             case PAUSED:
-                // No automatic timestamp changes for these statuses
                 break;
             case PLANNED:
-                // Reset timestamps when going back to planned
                 workoutSession.setStartedAt(null);
                 workoutSession.setCompletedAt(null);
                 workoutSession.setActualDurationInMinutes(null);

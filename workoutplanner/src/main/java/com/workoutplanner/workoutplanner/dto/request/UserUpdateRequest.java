@@ -20,7 +20,7 @@ import org.hibernate.validator.constraints.Length;
  * 
  * Usage:
  * - Basic updates: Use ValidationGroups.BasicUpdate.class
- * - Secure updates: Use ValidationGroups.SecureUpdate.class
+ * - Secure updates: Use ValidationGroups.Update.class
  * - Password changes: Include currentPassword, newPassword, confirmPassword
  * 
  * @author WorkoutPlanner Team
@@ -34,10 +34,10 @@ public class UserUpdateRequest {
      * This field is mandatory when performing sensitive operations like
      * email changes or password updates.
      */
-    @NotBlank(groups = {ValidationGroups.SecureUpdate.class}, 
+    @NotBlank(groups = {ValidationGroups.Update.class}, 
               message = "Current password is required for secure profile updates")
     @Length(min = 8, max = 255, 
-            groups = {ValidationGroups.SecureUpdate.class}, 
+            groups = {ValidationGroups.Update.class}, 
             message = "Current password must be between 8 and 255 characters")
     private String currentPassword;
 
@@ -46,10 +46,10 @@ public class UserUpdateRequest {
      * This field is optional - only provided if user wants to change email.
      * For email changes, currentPassword is required for security.
      */
-    @Email(groups = {ValidationGroups.BasicUpdate.class, ValidationGroups.SecureUpdate.class}, 
+    @Email(groups = {ValidationGroups.Update.class}, 
            message = "Email must be a valid email address")
     @Length(max = 255, 
-            groups = {ValidationGroups.BasicUpdate.class, ValidationGroups.SecureUpdate.class}, 
+            groups = {ValidationGroups.Update.class}, 
             message = "Email must not exceed 255 characters")
     private String email;
 
@@ -58,10 +58,10 @@ public class UserUpdateRequest {
      * This field is optional - only provided if user wants to change first name.
      */
     @Length(min = 1, max = 50, 
-            groups = {ValidationGroups.BasicUpdate.class, ValidationGroups.SecureUpdate.class}, 
+            groups = {ValidationGroups.Update.class}, 
             message = "First name must be between 1 and 50 characters")
     @Pattern(regexp = "^[a-zA-Z\\s'-]+$", 
-             groups = {ValidationGroups.BasicUpdate.class, ValidationGroups.SecureUpdate.class}, 
+             groups = {ValidationGroups.Update.class}, 
              message = "First name can only contain letters, spaces, hyphens, and apostrophes")
     private String firstName;
 
@@ -70,10 +70,10 @@ public class UserUpdateRequest {
      * This field is optional - only provided if user wants to change last name.
      */
     @Length(min = 1, max = 50, 
-            groups = {ValidationGroups.BasicUpdate.class, ValidationGroups.SecureUpdate.class}, 
+            groups = {ValidationGroups.Update.class}, 
             message = "Last name must be between 1 and 50 characters")
     @Pattern(regexp = "^[a-zA-Z\\s'-]+$", 
-             groups = {ValidationGroups.BasicUpdate.class, ValidationGroups.SecureUpdate.class}, 
+             groups = {ValidationGroups.Update.class}, 
              message = "Last name can only contain letters, spaces, hyphens, and apostrophes")
     private String lastName;
 
@@ -83,10 +83,10 @@ public class UserUpdateRequest {
      * When provided, currentPassword is required for verification.
      */
     @Length(min = 8, max = 255, 
-            groups = {ValidationGroups.SecureUpdate.class}, 
+            groups = {ValidationGroups.Update.class}, 
             message = "New password must be between 8 and 255 characters")
     @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).*$", 
-             groups = {ValidationGroups.SecureUpdate.class}, 
+             groups = {ValidationGroups.Update.class}, 
              message = "Password must contain at least one lowercase letter, one uppercase letter, and one digit")
     private String newPassword;
 
@@ -95,11 +95,10 @@ public class UserUpdateRequest {
      * This field is required if newPassword is provided.
      */
     @Length(min = 8, max = 255, 
-            groups = {ValidationGroups.SecureUpdate.class}, 
+            groups = {ValidationGroups.Update.class}, 
             message = "Password confirmation must be between 8 and 255 characters")
     private String confirmPassword;
 
-    // Constructors
     public UserUpdateRequest() {}
 
     public UserUpdateRequest(String email, String firstName, String lastName) {
@@ -118,7 +117,6 @@ public class UserUpdateRequest {
         this.confirmPassword = confirmPassword;
     }
 
-    // Getters and Setters
     public String getCurrentPassword() {
         return currentPassword;
     }
@@ -167,7 +165,6 @@ public class UserUpdateRequest {
         this.confirmPassword = confirmPassword;
     }
 
-    // Helper methods for business logic
     /**
      * Check if this is a basic update (no password verification required).
      * Basic updates include: firstName, lastName changes only.

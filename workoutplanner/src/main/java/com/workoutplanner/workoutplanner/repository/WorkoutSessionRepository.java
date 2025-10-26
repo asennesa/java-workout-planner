@@ -1,14 +1,11 @@
 package com.workoutplanner.workoutplanner.repository;
 
-import com.workoutplanner.workoutplanner.entity.User;
 import com.workoutplanner.workoutplanner.entity.WorkoutSession;
 import com.workoutplanner.workoutplanner.enums.WorkoutStatus;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,22 +17,6 @@ import java.util.Optional;
 public interface WorkoutSessionRepository extends JpaRepository<WorkoutSession, Long> {
     
     /**
-     * Find workout sessions by user.
-     * 
-     * @param user the user
-     * @return list of workout sessions for the user
-     */
-    List<WorkoutSession> findByUser(User user);
-    
-    /**
-     * Find workout sessions by user ID.
-     * 
-     * @param userId the user ID
-     * @return list of workout sessions for the user
-     */
-    List<WorkoutSession> findByUserUserId(Long userId);
-    
-    /**
      * Find workout sessions by status.
      * 
      * @param status the workout status
@@ -44,57 +25,13 @@ public interface WorkoutSessionRepository extends JpaRepository<WorkoutSession, 
     List<WorkoutSession> findByStatus(WorkoutStatus status);
     
     /**
-     * Find workout sessions by user and status.
-     * 
-     * @param user the user
-     * @param status the workout status
-     * @return list of workout sessions for the user with the specified status
-     */
-    List<WorkoutSession> findByUserAndStatus(User user, WorkoutStatus status);
-    
-    /**
      * Find workout sessions by user ID and status.
      * 
      * @param userId the user ID
      * @param status the workout status
      * @return list of workout sessions for the user with the specified status
      */
-    List<WorkoutSession> findByUserUserIdAndStatus(Long userId, WorkoutStatus status);
-    
-    /**
-     * Find workout sessions by date range.
-     * 
-     * @param startDate the start date
-     * @param endDate the end date
-     * @return list of workout sessions within the date range
-     */
-    @Query("SELECT ws FROM WorkoutSession ws WHERE ws.startedAt BETWEEN :startDate AND :endDate")
-    List<WorkoutSession> findByDateRange(@Param("startDate") LocalDateTime startDate, 
-                                        @Param("endDate") LocalDateTime endDate);
-    
-    /**
-     * Find workout sessions by user and date range.
-     * 
-     * @param userId the user ID
-     * @param startDate the start date
-     * @param endDate the end date
-     * @return list of workout sessions for the user within the date range
-     */
-    @Query("SELECT ws FROM WorkoutSession ws WHERE ws.user.userId = :userId AND ws.startedAt BETWEEN :startDate AND :endDate")
-    List<WorkoutSession> findByUserAndDateRange(@Param("userId") Long userId,
-                                                @Param("startDate") LocalDateTime startDate, 
-                                                @Param("endDate") LocalDateTime endDate);
-    
-    /**
-     * Find recent workout sessions for a user.
-     * 
-     * @param userId the user ID
-     * @param limit the maximum number of sessions to return
-     * @return list of recent workout sessions for the user
-     */
-    @Query("SELECT ws FROM WorkoutSession ws WHERE ws.user.userId = :userId ORDER BY ws.startedAt DESC")
-    List<WorkoutSession> findRecentByUser(@Param("userId") Long userId, 
-                                         @Param("limit") int limit);
+    List<WorkoutSession> findByUser_UserIdAndStatus(Long userId, WorkoutStatus status);
     
     /**
      * Find workout sessions by user ID, ordered by started date descending.
@@ -102,7 +39,8 @@ public interface WorkoutSessionRepository extends JpaRepository<WorkoutSession, 
      * @param userId the user ID
      * @return list of workout sessions for the user ordered by started date
      */
-    List<WorkoutSession> findByUserUserIdOrderByStartedAtDesc(Long userId);
+    @EntityGraph(attributePaths = "user")
+    List<WorkoutSession> findByUser_UserIdOrderByStartedAtDesc(Long userId);
     
     /**
      * Find workout session by ID with user eagerly fetched.
@@ -111,29 +49,6 @@ public interface WorkoutSessionRepository extends JpaRepository<WorkoutSession, 
      * @param sessionId the session ID
      * @return optional workout session with user eagerly loaded
      */
-    @Query("SELECT ws FROM WorkoutSession ws JOIN FETCH ws.user WHERE ws.sessionId = :sessionId")
-    Optional<WorkoutSession> findByIdWithUser(@Param("sessionId") Long sessionId);
-    
-    /**
-     * Find workout session by ID with user and exercises eagerly fetched.
-     * Prevents N+1 query problem when accessing related entities.
-     * 
-     * @param sessionId the session ID
-     * @return optional workout session with user and exercises eagerly loaded
-     */
-    @Query("SELECT DISTINCT ws FROM WorkoutSession ws " +
-           "LEFT JOIN FETCH ws.user " +
-           "LEFT JOIN FETCH ws.workoutExercises " +
-           "WHERE ws.sessionId = :sessionId")
-    Optional<WorkoutSession> findByIdWithUserAndExercises(@Param("sessionId") Long sessionId);
-    
-    /**
-     * Find workout sessions by user ID with user eagerly fetched.
-     * Prevents N+1 query problem when accessing user details.
-     * 
-     * @param userId the user ID
-     * @return list of workout sessions with user eagerly loaded
-     */
-    @Query("SELECT ws FROM WorkoutSession ws JOIN FETCH ws.user WHERE ws.user.userId = :userId ORDER BY ws.startedAt DESC")
-    List<WorkoutSession> findByUserIdWithUser(@Param("userId") Long userId);
+    @EntityGraph(attributePaths = "user")
+    Optional<WorkoutSession> findWithUserBySessionId(Long sessionId);
 }

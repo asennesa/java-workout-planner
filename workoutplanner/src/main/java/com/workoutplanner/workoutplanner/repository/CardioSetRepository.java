@@ -8,40 +8,24 @@ import java.util.List;
 
 /**
  * Repository interface for CardioSet entity.
- * Provides data access methods for cardio sets.
+ * Provides CRUD operations and custom queries for cardio set management.
  */
 @Repository
 public interface CardioSetRepository extends JpaRepository<CardioSet, Long> {
 
     /**
-     * Find all cardio sets for a specific workout exercise, ordered by set number.
-     *
+     * Find cardio sets by workout exercise ID, ordered by set number.
+     * 
      * @param workoutExerciseId the workout exercise ID
-     * @return List of CardioSet entities
+     * @return list of cardio sets ordered by set number
      */
-    List<CardioSet> findByWorkoutExerciseWorkoutExerciseIdOrderBySetNumber(Long workoutExerciseId);
-
+    List<CardioSet> findByWorkoutExercise_WorkoutExerciseIdOrderBySetNumberAsc(Long workoutExerciseId);
+    
     /**
-     * Find all cardio sets for a specific workout session.
-     *
+     * Find cardio sets by workout session ID.
+     * 
      * @param sessionId the workout session ID
-     * @return List of CardioSet entities
+     * @return list of cardio sets for the workout session
      */
-    List<CardioSet> findByWorkoutExerciseWorkoutSessionSessionId(Long sessionId);
-
-    /**
-     * Find all completed cardio sets for a specific workout exercise.
-     *
-     * @param workoutExerciseId the workout exercise ID
-     * @return List of completed CardioSet entities
-     */
-    List<CardioSet> findByWorkoutExerciseWorkoutExerciseIdAndCompletedTrueOrderBySetNumber(Long workoutExerciseId);
-
-    /**
-     * Count cardio sets for a specific workout exercise.
-     *
-     * @param workoutExerciseId the workout exercise ID
-     * @return number of cardio sets
-     */
-    long countByWorkoutExerciseWorkoutExerciseId(Long workoutExerciseId);
+    List<CardioSet> findByWorkoutExercise_WorkoutSession_SessionId(Long sessionId);
 }

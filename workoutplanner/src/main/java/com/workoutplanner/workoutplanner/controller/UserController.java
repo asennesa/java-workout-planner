@@ -6,11 +6,11 @@ import com.workoutplanner.workoutplanner.dto.request.UserUpdateRequest;
 import com.workoutplanner.workoutplanner.validation.ValidationGroups;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.UserResponse;
+import com.workoutplanner.workoutplanner.dto.response.ExistenceCheckResponse;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import com.workoutplanner.workoutplanner.service.UserService;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.slf4j.Logger;
@@ -23,9 +23,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * REST Controller for User operations.
@@ -57,7 +55,7 @@ public class UserController {
      * @return ResponseEntity containing the created user response
      */
     @PostMapping
-    public ResponseEntity<UserResponse> createUser(@Validated(ValidationGroups.Create.class) @RequestBody CreateUserRequest createUserRequest) {
+    public ResponseEntity<UserResponse> createUser(@Validated(ValidationGroups.UserRegistration.class) @RequestBody CreateUserRequest createUserRequest) {
         logger.debug("Creating user with username: {}", createUserRequest.getUsername());
         
         UserResponse userResponse = userService.createUser(createUserRequest);
@@ -108,44 +106,29 @@ public class UserController {
     @GetMapping("/me")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<UserResponse> getCurrentUserProfile() {
-        // Spring Security provides current user through SecurityContext
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         
         logger.debug("Getting profile for current user: {}", username);
         
-        // Use Spring Security context instead of manual user ID
         UserResponse userResponse = userService.getUserByUsername(username);
         
         logger.info("Current user profile retrieved. username={}", username);
         
         return ResponseEntity.ok(userResponse);
     }
-    
-    /**
-     * Get user by username.
-     * 
-     * @param username the username
-     * @return ResponseEntity containing the user response
-     */
-    @GetMapping("/username/{username}")
-    public ResponseEntity<UserResponse> getUserByUsername(@PathVariable String username) {
-        UserResponse userResponse = userService.getUserByUsername(username);
+
+    @GetMapping("/lookup")
+    public ResponseEntity<UserResponse> findUserByUsernameOrEmail(@RequestParam String identifier) {
+        UserResponse userResponse;
+        if (identifier.contains("@")) {
+            userResponse = userService.getUserByEmail(identifier);
+        } else {
+            userResponse = userService.getUserByUsername(identifier);
+        }
         return ResponseEntity.ok(userResponse);
     }
-    
-    /**
-     * Get user by email.
-     * 
-     * @param email the email
-     * @return ResponseEntity containing the user response
-     */
-    @GetMapping("/email/{email}")
-    public ResponseEntity<UserResponse> getUserByEmail(@PathVariable String email) {
-        UserResponse userResponse = userService.getUserByEmail(email);
-        return ResponseEntity.ok(userResponse);
-    }
-    
+
     /**
      * Get all users with pagination.
      * Supports pagination, sorting, and filtering.
@@ -188,7 +171,7 @@ public class UserController {
     @PutMapping("/{userId}")
     @PreAuthorize("hasRole('USER') and @userService.isCurrentUser(#userId)")
     public ResponseEntity<UserResponse> updateUser(@PathVariable Long userId, 
-                                                  @Validated(ValidationGroups.BasicUpdate.class) @RequestBody UserUpdateRequest userUpdateRequest) {
+                                                  @Validated(ValidationGroups.UserProfileUpdate.class) @RequestBody UserUpdateRequest userUpdateRequest) {
         // Spring Security provides current user context
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUsername = authentication.getName();
@@ -196,15 +179,7 @@ public class UserController {
         logger.debug("Updating user: userId={}, currentUser={}, isSecureUpdate={}", 
                    userId, currentUsername, userUpdateRequest.isSecureUpdate());
         
-        UserResponse userResponse;
-        
-        if (userUpdateRequest.isSecureUpdate()) {
-            // Use secure update method for sensitive changes
-            userResponse = userService.updateUserProfileSecurely(userId, userUpdateRequest);
-        } else {
-            // Use basic update method for non-sensitive changes
-            userResponse = userService.updateUserBasic(userId, userUpdateRequest);
-        }
+        UserResponse userResponse = userService.updateUser(userId, userUpdateRequest);
         
         logger.info("User updated successfully. userId={}, username={}, updatedBy={}", 
                    userResponse.getUserId(), userResponse.getUsername(), currentUsername);
@@ -260,9 +235,9 @@ public class UserController {
      * @return ResponseEntity containing boolean result
      */
     @GetMapping("/check-username")
-    public ResponseEntity<Boolean> checkUsernameExists(@RequestParam String username) {
+    public ResponseEntity<ExistenceCheckResponse> checkUsernameExists(@RequestParam String username) {
         boolean exists = userService.usernameExists(username);
-        return ResponseEntity.ok(exists);
+        return ResponseEntity.ok(new ExistenceCheckResponse(exists));
     }
     
     /**
@@ -272,8 +247,8 @@ public class UserController {
      * @return ResponseEntity containing boolean result
      */
     @GetMapping("/check-email")
-    public ResponseEntity<Boolean> checkEmailExists(@RequestParam String email) {
+    public ResponseEntity<ExistenceCheckResponse> checkEmailExists(@RequestParam String email) {
         boolean exists = userService.emailExists(email);
-        return ResponseEntity.ok(exists);
+        return ResponseEntity.ok(new ExistenceCheckResponse(exists));
     }
 }

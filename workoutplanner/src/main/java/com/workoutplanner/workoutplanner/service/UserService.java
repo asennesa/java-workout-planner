@@ -11,6 +11,7 @@ import com.workoutplanner.workoutplanner.exception.ResourceConflictException;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.mapper.UserMapper;
 import com.workoutplanner.workoutplanner.repository.UserRepository;
+import com.workoutplanner.workoutplanner.util.ValidationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -67,36 +68,29 @@ public class UserService implements UserServiceInterface, UserDetailsService {
         logger.debug("SERVICE: Creating new user. username={}, email={}", 
                     createUserRequest.getUsername(), createUserRequest.getEmail());
         
-        // Check if username already exists
         if (userRepository.existsByUsername(createUserRequest.getUsername())) {
             logger.warn("SERVICE: User creation failed - username already exists. username={}", 
                        createUserRequest.getUsername());
             throw new ResourceConflictException("User", "username", createUserRequest.getUsername());
         }
         
-        // Check if email already exists
         if (userRepository.existsByEmail(createUserRequest.getEmail())) {
             logger.warn("SERVICE: User creation failed - email already exists. email={}", 
                        createUserRequest.getEmail());
             throw new ResourceConflictException("User", "email", createUserRequest.getEmail());
         }
         
-        // Convert request to entity
         User user = userMapper.toEntity(createUserRequest);
         
-        // Hash the password
         user.setPasswordHash(passwordEncoder.encode(createUserRequest.getPassword()));
         
-        // Set default role
         user.setRole(UserRole.USER);
         
-        // Save the user
         User savedUser = userRepository.save(user);
         
         logger.info("SERVICE: User created successfully. userId={}, username={}, email={}", 
                    savedUser.getUserId(), savedUser.getUsername(), savedUser.getEmail());
         
-        // Convert to response and return
         return userMapper.toResponse(savedUser);
     }
     
@@ -192,8 +186,125 @@ public class UserService implements UserServiceInterface, UserDetailsService {
      * @throws ResourceNotFoundException if user not found
      * @throws ResourceConflictException if username or email already exists
      */
+    @Transactional
+    public UserResponse updateUser(Long userId, UserUpdateRequest userUpdateRequest) {
+        logger.debug("SERVICE: User update requested. userId={}, isSecureUpdate={}", userId, userUpdateRequest.isSecureUpdate());
+        
+        if (userUpdateRequest.isSecureUpdate()) {
+            logger.info("SERVICE: Routing to secure update for sensitive changes");
+            return updateUserProfileSecurely(userId, userUpdateRequest);
+        } else {
+            logger.info("SERVICE: Routing to basic update for non-sensitive changes");
+            return updateUserBasic(userId, userUpdateRequest);
+        }
+    }
     
-    
+    /**
+     * Update user profile with basic information (no password verification required).
+     * 
+     * This method handles non-sensitive profile updates like firstName and lastName.
+     * 
+     * @param userId the user ID
+     * @param userUpdateRequest the user update request
+     * @return UserResponse the updated user response
+     * @throws ResourceNotFoundException if user not found
+     */
+    @Transactional
+    public UserResponse updateUserBasic(Long userId, UserUpdateRequest userUpdateRequest) {
+        logger.debug("SERVICE: Basic user update requested. userId={}", userId);
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "ID", userId));
+        
+        // Update first name if provided
+        if (userUpdateRequest.getFirstName() != null && !userUpdateRequest.getFirstName().trim().isEmpty()) {
+            user.setFirstName(userUpdateRequest.getFirstName());
+            logger.info("SERVICE: User first name updated. userId={}, newFirstName={}", userId, userUpdateRequest.getFirstName());
+        }
+        
+        // Update last name if provided
+        if (userUpdateRequest.getLastName() != null && !userUpdateRequest.getLastName().trim().isEmpty()) {
+            user.setLastName(userUpdateRequest.getLastName());
+            logger.info("SERVICE: User last name updated. userId={}, newLastName={}", userId, userUpdateRequest.getLastName());
+        }
+        
+        // Save updated user
+        User savedUser = userRepository.save(user);
+        
+        logger.info("SERVICE: User updated with basic information. userId={}, nameChanged={}", 
+                   userId, userUpdateRequest.isNameChangeRequested());
+        
+        return userMapper.toResponse(savedUser);
+    }
+
+    /**
+     * Update user profile securely with password verification.
+     * 
+     * This method handles sensitive profile updates like email and password changes.
+     * Requires current password verification for security.
+     * 
+     * @param userId the user ID
+     * @param userUpdateRequest the user update request
+     * @return UserResponse the updated user response
+     * @throws ResourceNotFoundException if user not found
+     * @throws BusinessLogicException if current password is incorrect or validation fails
+     */
+    @Transactional
+    public UserResponse updateUserProfileSecurely(Long userId, UserUpdateRequest userUpdateRequest) {
+        logger.debug("SERVICE: Secure profile update requested. userId={}", userId);
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "ID", userId));
+        
+        if (!passwordEncoder.matches(userUpdateRequest.getCurrentPassword(), user.getPasswordHash())) {
+            logger.warn("SERVICE: Secure profile update failed - incorrect current password. userId={}", userId);
+            throw new BusinessLogicException("Current password is incorrect");
+        }
+        
+        if (userUpdateRequest.isEmailChangeRequested()) {
+            if (!user.getEmail().equals(userUpdateRequest.getEmail()) && 
+                userRepository.existsByEmail(userUpdateRequest.getEmail())) {
+                logger.warn("SERVICE: Secure profile update failed - email conflict. userId={}, conflictEmail={}", 
+                           userId, userUpdateRequest.getEmail());
+                throw new ResourceConflictException("User", "email", userUpdateRequest.getEmail());
+            }
+        }
+        
+        if (userUpdateRequest.isEmailChangeRequested()) {
+            user.setEmail(userUpdateRequest.getEmail());
+            logger.info("SERVICE: User email updated. userId={}, newEmail={}", userId, userUpdateRequest.getEmail());
+        }
+        
+        if (userUpdateRequest.getFirstName() != null && !userUpdateRequest.getFirstName().trim().isEmpty()) {
+            user.setFirstName(userUpdateRequest.getFirstName());
+            logger.info("SERVICE: User first name updated. userId={}, newFirstName={}", userId, userUpdateRequest.getFirstName());
+        }
+        
+        if (userUpdateRequest.getLastName() != null && !userUpdateRequest.getLastName().trim().isEmpty()) {
+            user.setLastName(userUpdateRequest.getLastName());
+            logger.info("SERVICE: User last name updated. userId={}, newLastName={}", userId, userUpdateRequest.getLastName());
+        }
+        
+        if (userUpdateRequest.isPasswordChangeRequested()) {
+            if (!userUpdateRequest.passwordsMatch()) {
+                logger.warn("SERVICE: Secure profile update failed - password confirmation mismatch. userId={}", userId);
+                throw new BusinessLogicException("New password and confirmation do not match");
+            }
+            
+            String hashedPassword = passwordEncoder.encode(userUpdateRequest.getNewPassword());
+            user.setPasswordHash(hashedPassword);
+            logger.info("SERVICE: User password updated. userId={}", userId);
+        }
+        
+        User savedUser = userRepository.save(user);
+        
+        logger.info("SERVICE: User profile updated securely. userId={}, emailChanged={}, nameChanged={}, passwordChanged={}", 
+                   userId, userUpdateRequest.isEmailChangeRequested(), 
+                   userUpdateRequest.isNameChangeRequested(), 
+                   userUpdateRequest.isPasswordChangeRequested());
+        
+        return userMapper.toResponse(savedUser);
+    }
     
     /**
      * Delete user by ID.
@@ -216,7 +327,7 @@ public class UserService implements UserServiceInterface, UserDetailsService {
         logger.info("SERVICE: User deleted successfully. userId={}, username={}, email={}", 
                    userId, username, email);
     }
-    
+
     /**
      * Search users by first name.
      * Sanitizes input to prevent SQL LIKE wildcard abuse.
@@ -228,8 +339,7 @@ public class UserService implements UserServiceInterface, UserDetailsService {
     public List<UserResponse> searchUsersByFirstName(String firstName) {
         logger.debug("SERVICE: Searching users by first name. searchTerm={}", firstName);
         
-        // Sanitize input to escape LIKE wildcards
-        String sanitizedFirstName = sanitizeLikeWildcards(firstName.trim());
+        String sanitizedFirstName = ValidationUtils.sanitizeLikeWildcards(firstName.trim());
         
         List<User> users = userRepository.findByFirstNameContainingIgnoreCase(sanitizedFirstName);
         
@@ -237,24 +347,6 @@ public class UserService implements UserServiceInterface, UserDetailsService {
                    users.size(), sanitizedFirstName);
         
         return userMapper.toResponseList(users);
-    }
-    
-    /**
-     * Sanitize string input to escape SQL LIKE wildcards.
-     * Prevents wildcard abuse in search queries.
-     * 
-     * @param input the input string to sanitize
-     * @return sanitized string with escaped wildcards
-     */
-    private String sanitizeLikeWildcards(String input) {
-        if (input == null) {
-            return "";
-        }
-        // Escape special SQL LIKE wildcards
-        // Escape backslash first to avoid double-escaping
-        return input.replace("\\", "\\\\")
-                   .replace("%", "\\%")
-                   .replace("_", "\\_");
     }
     
     /**
@@ -316,7 +408,6 @@ public class UserService implements UserServiceInterface, UserDetailsService {
                 return false;
             }
             
-            // Handle anonymous users
             if ("anonymousUser".equals(authentication.getPrincipal().toString())) {
                 logger.debug("Anonymous user cannot access user resources");
                 return false;
@@ -325,7 +416,6 @@ public class UserService implements UserServiceInterface, UserDetailsService {
             String currentUsername = authentication.getName();
             logger.debug("Checking if current user {} matches userId {}", currentUsername, userId);
             
-            // Get the user by ID and check if username matches
             User user = userRepository.findById(userId).orElse(null);
             if (user == null) {
                 logger.debug("User with ID {} not found", userId);
@@ -342,121 +432,5 @@ public class UserService implements UserServiceInterface, UserDetailsService {
             logger.error("Error checking if current user matches userId {}: {}", userId, e.getMessage(), e);
             return false;
         }
-    }
-
-    /**
-     * Update user profile with basic information (no password verification required).
-     * 
-     * This method handles non-sensitive profile updates like firstName and lastName.
-     * 
-     * @param userId the user ID
-     * @param userUpdateRequest the user update request
-     * @return UserResponse the updated user response
-     * @throws ResourceNotFoundException if user not found
-     */
-    @Transactional
-    public UserResponse updateUserBasic(Long userId, UserUpdateRequest userUpdateRequest) {
-        logger.debug("SERVICE: Basic user update requested. userId={}", userId);
-        
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "ID", userId));
-        
-        // Update first name if provided
-        if (userUpdateRequest.getFirstName() != null && !userUpdateRequest.getFirstName().trim().isEmpty()) {
-            user.setFirstName(userUpdateRequest.getFirstName());
-            logger.info("SERVICE: User first name updated. userId={}, newFirstName={}", userId, userUpdateRequest.getFirstName());
-        }
-        
-        // Update last name if provided
-        if (userUpdateRequest.getLastName() != null && !userUpdateRequest.getLastName().trim().isEmpty()) {
-            user.setLastName(userUpdateRequest.getLastName());
-            logger.info("SERVICE: User last name updated. userId={}, newLastName={}", userId, userUpdateRequest.getLastName());
-        }
-        
-        // Save updated user
-        User savedUser = userRepository.save(user);
-        
-        logger.info("SERVICE: User updated with basic information. userId={}, nameChanged={}", 
-                   userId, userUpdateRequest.isNameChangeRequested());
-        
-        return userMapper.toResponse(savedUser);
-    }
-
-    /**
-     * Update user profile securely with password verification.
-     * 
-     * This method handles sensitive profile updates like email and password changes.
-     * Requires current password verification for security.
-     * 
-     * @param userId the user ID
-     * @param userUpdateRequest the user update request
-     * @return UserResponse the updated user response
-     * @throws ResourceNotFoundException if user not found
-     * @throws BusinessLogicException if current password is incorrect or validation fails
-     */
-    @Transactional
-    public UserResponse updateUserProfileSecurely(Long userId, UserUpdateRequest userUpdateRequest) {
-        logger.debug("SERVICE: Secure profile update requested. userId={}", userId);
-        
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "ID", userId));
-        
-        // Verify current password
-        if (!passwordEncoder.matches(userUpdateRequest.getCurrentPassword(), user.getPasswordHash())) {
-            logger.warn("SERVICE: Secure profile update failed - incorrect current password. userId={}", userId);
-            throw new BusinessLogicException("Current password is incorrect");
-        }
-        
-        // Check if email change is requested and validate uniqueness
-        if (userUpdateRequest.isEmailChangeRequested()) {
-            if (!user.getEmail().equals(userUpdateRequest.getEmail()) && 
-                userRepository.existsByEmail(userUpdateRequest.getEmail())) {
-                logger.warn("SERVICE: Secure profile update failed - email conflict. userId={}, conflictEmail={}", 
-                           userId, userUpdateRequest.getEmail());
-                throw new ResourceConflictException("User", "email", userUpdateRequest.getEmail());
-            }
-        }
-        
-        // Update email if provided
-        if (userUpdateRequest.isEmailChangeRequested()) {
-            user.setEmail(userUpdateRequest.getEmail());
-            logger.info("SERVICE: User email updated. userId={}, newEmail={}", userId, userUpdateRequest.getEmail());
-        }
-        
-        // Update first name if provided
-        if (userUpdateRequest.getFirstName() != null && !userUpdateRequest.getFirstName().trim().isEmpty()) {
-            user.setFirstName(userUpdateRequest.getFirstName());
-            logger.info("SERVICE: User first name updated. userId={}, newFirstName={}", userId, userUpdateRequest.getFirstName());
-        }
-        
-        // Update last name if provided
-        if (userUpdateRequest.getLastName() != null && !userUpdateRequest.getLastName().trim().isEmpty()) {
-            user.setLastName(userUpdateRequest.getLastName());
-            logger.info("SERVICE: User last name updated. userId={}, newLastName={}", userId, userUpdateRequest.getLastName());
-        }
-        
-        // Update password if requested
-        if (userUpdateRequest.isPasswordChangeRequested()) {
-            // Validate password confirmation
-            if (!userUpdateRequest.passwordsMatch()) {
-                logger.warn("SERVICE: Secure profile update failed - password confirmation mismatch. userId={}", userId);
-                throw new BusinessLogicException("New password and confirmation do not match");
-            }
-            
-            // Hash and set new password
-            String hashedPassword = passwordEncoder.encode(userUpdateRequest.getNewPassword());
-            user.setPasswordHash(hashedPassword);
-            logger.info("SERVICE: User password updated. userId={}", userId);
-        }
-        
-        // Save updated user
-        User savedUser = userRepository.save(user);
-        
-        logger.info("SERVICE: User profile updated securely. userId={}, emailChanged={}, nameChanged={}, passwordChanged={}", 
-                   userId, userUpdateRequest.isEmailChangeRequested(), 
-                   userUpdateRequest.isNameChangeRequested(), 
-                   userUpdateRequest.isPasswordChangeRequested());
-        
-        return userMapper.toResponse(savedUser);
     }
 }

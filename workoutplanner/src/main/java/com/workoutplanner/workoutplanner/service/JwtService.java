@@ -2,7 +2,6 @@ package com.workoutplanner.workoutplanner.service;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -129,28 +128,8 @@ public class JwtService {
         claims.put("tokenType", "refresh");
         
         // Refresh tokens have longer expiration
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtRefreshExpirationMs);
-
         logger.debug("Creating refresh token for user: {}", username);
-
-        if (useRS256) {
-            return Jwts.builder()
-                    .claims(claims)
-                    .subject(username)
-                    .issuedAt(now)
-                    .expiration(expiryDate)
-                    .signWith(keyPair.getPrivate(), SignatureAlgorithm.RS256)
-                    .compact();
-        } else {
-            return Jwts.builder()
-                    .claims(claims)
-                    .subject(username)
-                    .issuedAt(now)
-                    .expiration(expiryDate)
-                    .signWith(getSigningKey())
-                    .compact();
-        }
+        return buildToken(claims, username, jwtRefreshExpirationMs);
     }
 
     /**
@@ -161,27 +140,24 @@ public class JwtService {
      * @return JWT token
      */
     private String createToken(Map<String, Object> claims, String subject) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
-
         logger.debug("Creating JWT token for user: {} using {}", subject, useRS256 ? "RS256" : "HS256");
+        return buildToken(claims, subject, jwtExpirationMs);
+    }
+
+    private String buildToken(Map<String, Object> claims, String subject, long expirationMillis) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + expirationMillis);
+
+        var builder = Jwts.builder()
+                .claims(claims)
+                .subject(subject)
+                .issuedAt(now)
+                .expiration(expiryDate);
 
         if (useRS256) {
-            return Jwts.builder()
-                    .claims(claims)
-                    .subject(subject)
-                    .issuedAt(now)
-                    .expiration(expiryDate)
-                    .signWith(keyPair.getPrivate(), SignatureAlgorithm.RS256)
-                    .compact();
+            return builder.signWith(keyPair.getPrivate()).compact();
         } else {
-            return Jwts.builder()
-                    .claims(claims)
-                    .subject(subject)
-                    .issuedAt(now)
-                    .expiration(expiryDate)
-                    .signWith(getSigningKey())
-                    .compact();
+            return builder.signWith(getSigningKey(), Jwts.SIG.HS256).compact();
         }
     }
 

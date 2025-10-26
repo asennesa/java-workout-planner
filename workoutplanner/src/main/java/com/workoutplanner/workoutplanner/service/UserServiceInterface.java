@@ -69,6 +69,20 @@ public interface UserServiceInterface {
     PagedResponse<UserResponse> getAllUsers(Pageable pageable);
     
     /**
+     * Unified method to update user profile with automatic business logic routing.
+     * 
+     * This method determines whether to use secure or basic update based on the request content.
+     * Business logic decision is made in the service layer, not the controller.
+     * 
+     * @param userId the user ID
+     * @param userUpdateRequest the user update request
+     * @return UserResponse the updated user response
+     * @throws com.workoutplanner.workoutplanner.exception.ResourceNotFoundException if user not found
+     * @throws com.workoutplanner.workoutplanner.exception.BusinessLogicException if current password is incorrect or validation fails
+     */
+    UserResponse updateUser(Long userId, UserUpdateRequest userUpdateRequest);
+
+    /**
      * Update user profile with basic information (no password verification required).
      * 
      * This method handles non-sensitive profile updates like firstName and lastName.

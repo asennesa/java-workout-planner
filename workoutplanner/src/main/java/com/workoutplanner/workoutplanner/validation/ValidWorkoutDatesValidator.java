@@ -3,40 +3,42 @@ package com.workoutplanner.workoutplanner.validation;
 import com.workoutplanner.workoutplanner.entity.WorkoutSession;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
+import org.springframework.beans.factory.annotation.Autowired;
+import java.time.Clock;
 import java.time.LocalDateTime;
 
 /**
  * Validator implementation for ValidWorkoutDates annotation.
- * Validates workout session date constraints.
+ * Validates workout session date constraints using an injectable Clock bean
+ * for better testability and time zone consistency.
  */
 public class ValidWorkoutDatesValidator implements ConstraintValidator<ValidWorkoutDates, WorkoutSession> {
     
+    @Autowired
+    private Clock clock;
+    
     @Override
     public void initialize(ValidWorkoutDates constraintAnnotation) {
-        // No initialization needed
     }
     
     @Override
     public boolean isValid(WorkoutSession workoutSession, ConstraintValidatorContext context) {
         if (workoutSession == null) {
-            return true; // Let other validations handle null
+            return true;
         }
         
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime startedAt = workoutSession.getStartedAt();
         LocalDateTime completedAt = workoutSession.getCompletedAt();
         
-        // If startedAt is provided, it cannot be in the future
         if (startedAt != null && startedAt.isAfter(now)) {
             return false;
         }
         
-        // If both dates are provided, completedAt cannot be before startedAt
         if (startedAt != null && completedAt != null && completedAt.isBefore(startedAt)) {
             return false;
         }
         
-        // If completedAt is provided, it cannot be in the future
         if (completedAt != null && completedAt.isAfter(now)) {
             return false;
         }

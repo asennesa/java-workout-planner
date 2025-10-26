@@ -3,11 +3,17 @@ package com.workoutplanner.workoutplanner.controller;
 import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
 import com.workoutplanner.workoutplanner.dto.request.LoginRequest;
 import com.workoutplanner.workoutplanner.dto.response.JwtResponse;
+import com.workoutplanner.workoutplanner.dto.response.TokenRefreshResponse;
+import com.workoutplanner.workoutplanner.dto.response.TokenRevocationResponse;
+import com.workoutplanner.workoutplanner.dto.response.TokenValidationResponse;
+import com.workoutplanner.workoutplanner.dto.response.UserProfileResponse;
 import com.workoutplanner.workoutplanner.entity.User;
 import com.workoutplanner.workoutplanner.service.JwtService;
 import com.workoutplanner.workoutplanner.service.UserService;
 import com.workoutplanner.workoutplanner.service.TokenRevocationService;
 import com.workoutplanner.workoutplanner.service.RefreshTokenService;
+import com.workoutplanner.workoutplanner.util.SecurityConstants;
+import com.workoutplanner.workoutplanner.util.ValidationUtils;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 import org.slf4j.Logger;
@@ -21,8 +27,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 /**
  * REST Controller for authentication operations.
@@ -79,7 +84,7 @@ public class AuthController {
             // Generate JWT token
             String jwt = jwtService.generateToken(user);
 
-            logger.info("User logged in successfully: {}", sanitizeUsername(loginRequest.getUsername()));
+            logger.info("User logged in successfully: {}", ValidationUtils.sanitizeForLogging(loginRequest.getUsername()));
 
             // Create response
             JwtResponse response = new JwtResponse(
@@ -97,7 +102,7 @@ public class AuthController {
         } catch (Exception e) {
             // Log security event without exposing sensitive information
             logger.warn("Authentication failed for user: {} from IP: {}", 
-                       sanitizeUsername(loginRequest.getUsername()), 
+                       ValidationUtils.sanitizeForLogging(loginRequest.getUsername()), 
                        getClientIpAddress(request));
             throw new UsernameNotFoundException("Invalid username or password");
         }
@@ -110,28 +115,22 @@ public class AuthController {
      * @return ResponseEntity with validation result
      */
     @PostMapping("/validate")
-    public ResponseEntity<Map<String, Object>> validateToken(@RequestParam @Size(max = 2000) String token) {
+    public ResponseEntity<TokenValidationResponse> validateToken(@RequestParam @Size(max = 2000) String token) {
         try {
             String username = jwtService.extractUsername(token);
             User user = (User) userService.loadUserByUsername(username);
             
             boolean isValid = jwtService.isTokenValid(token, user);
             
-            Map<String, Object> response = new HashMap<>();
-            response.put("valid", isValid);
             if (isValid) {
-                response.put("username", username);
-                response.put("userId", user.getUserId());
-                response.put("role", user.getRole().name());
+                return ResponseEntity.ok(new TokenValidationResponse(true, username, user.getUserId(), user.getRole().name()));
             }
             
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(new TokenValidationResponse(false));
             
         } catch (Exception e) {
             logger.error("Token validation failed: {}", e.getMessage());
-            Map<String, Object> response = new HashMap<>();
-            response.put("valid", false);
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(new TokenValidationResponse(false));
         }
     }
 
@@ -144,33 +143,20 @@ public class AuthController {
      */
     @GetMapping("/profile")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Map<String, Object>> getProfile(Authentication authentication) {
+    public ResponseEntity<UserProfileResponse> getProfile(Authentication authentication) {
         User user = (User) authentication.getPrincipal();
         
-        Map<String, Object> profile = new HashMap<>();
-        profile.put("userId", user.getUserId());
-        profile.put("username", user.getUsername());
-        profile.put("email", user.getEmail());
-        profile.put("firstName", user.getFirstName());
-        profile.put("lastName", user.getLastName());
-        profile.put("role", user.getRole().name());
-        profile.put("createdAt", user.getCreatedAt());
+        UserProfileResponse profile = new UserProfileResponse(
+            user.getUserId(),
+            user.getUsername(),
+            user.getEmail(),
+            user.getFirstName(),
+            user.getLastName(),
+            user.getRole().name(),
+            user.getCreatedAt()
+        );
         
         return ResponseEntity.ok(profile);
-    }
-    
-    /**
-     * Sanitize username for logging to prevent log injection.
-     * 
-     * @param username Username to sanitize
-     * @return Sanitized username
-     */
-    private String sanitizeUsername(String username) {
-        if (username == null) {
-            return "null";
-        }
-        // Remove potentially dangerous characters
-        return username.replaceAll("[\\r\\n\\t]", "_");
     }
     
     /**
@@ -201,29 +187,21 @@ public class AuthController {
      */
     @PostMapping("/revoke")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Map<String, Object>> revokeToken(@RequestParam @Size(max = 2000) String token) {
-        Map<String, Object> response = new HashMap<>();
-        
+    public ResponseEntity<TokenRevocationResponse> revokeToken(@RequestParam @Size(max = 2000) String token) {
         try {
             boolean revoked = tokenRevocationService.revokeToken(token);
             
             if (revoked) {
-                response.put("success", true);
-                response.put("message", "Token revoked successfully");
                 logger.info("Token revoked successfully");
+                return ResponseEntity.ok(new TokenRevocationResponse(true, "Token revoked successfully"));
             } else {
-                response.put("success", false);
-                response.put("message", "Failed to revoke token");
                 logger.warn("Failed to revoke token");
+                return ResponseEntity.ok(new TokenRevocationResponse(false, "Failed to revoke token"));
             }
-            
-            return ResponseEntity.ok(response);
             
         } catch (Exception e) {
             logger.error("Error revoking token: {}", e.getMessage());
-            response.put("success", false);
-            response.put("message", "Token revocation failed");
-            return ResponseEntity.badRequest().body(response);
+            return ResponseEntity.badRequest().body(new TokenRevocationResponse(false, "Token revocation failed"));
         }
     }
 
@@ -234,9 +212,7 @@ public class AuthController {
      * @return ResponseEntity with new token pair
      */
     @PostMapping("/refresh")
-    public ResponseEntity<Map<String, Object>> refreshToken(@RequestParam @Size(max = 2000) String refreshToken) {
-        Map<String, Object> response = new HashMap<>();
-        
+    public ResponseEntity<TokenRefreshResponse> refreshToken(@RequestParam @Size(max = 2000) String refreshToken) {
         try {
             // Extract username from refresh token
             String username = jwtService.extractUsername(refreshToken);
@@ -247,19 +223,20 @@ public class AuthController {
                 refreshToken, username, user.getUserId()
             );
             
-            response.put("access_token", tokenPair.getAccessToken());
-            response.put("refresh_token", tokenPair.getRefreshToken());
-            response.put("token_type", "Bearer");
-            response.put("expires_in", 900); // 15 minutes
+            TokenRefreshResponse response = new TokenRefreshResponse(
+                tokenPair.getAccessToken(),
+                tokenPair.getRefreshToken(),
+                SecurityConstants.TOKEN_TYPE_BEARER,
+                jwtService.getTokenExpirationSeconds()
+            );
             
             logger.info("Token refreshed successfully for user: {}", username);
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
             logger.error("Error refreshing token: {}", e.getMessage());
-            response.put("error", "Token refresh failed");
-            response.put("message", e.getMessage());
-            return ResponseEntity.badRequest().body(response);
+            // In a real-world scenario, you might want a more specific error DTO
+            throw new RuntimeException("Token refresh failed", e);
         }
     }
 }

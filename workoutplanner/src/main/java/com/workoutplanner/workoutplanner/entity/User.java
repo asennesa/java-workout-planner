@@ -29,10 +29,10 @@ public class User implements UserDetails {
     private Long userId;
 
     @Column(name = "username", unique = true, nullable = false, length = 50)
-    @NotBlank(groups = {ValidationGroups.Create.class, ValidationGroups.Auth.class}, 
-              message = "Username is required for registration and authentication")
+    @NotBlank(groups = {ValidationGroups.Create.class}, 
+              message = "Username is required")
     @Length(min = 3, max = 50, 
-            groups = {ValidationGroups.Create.class, ValidationGroups.Update.class, ValidationGroups.Auth.class}, 
+            groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
             message = "Username must be between 3 and 50 characters")
     @Pattern(regexp = "^[a-zA-Z0-9_]+$", 
              groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
@@ -40,42 +40,42 @@ public class User implements UserDetails {
     private String username;
 
     @Column(name = "password_hash", nullable = false)
-    @NotBlank(groups = {ValidationGroups.Create.class, ValidationGroups.Auth.class}, 
-              message = "Password is required for registration and authentication")
+    @NotBlank(groups = {ValidationGroups.Create.class}, 
+              message = "Password is required")
     @Length(min = 8, max = 255, 
-            groups = {ValidationGroups.Create.class, ValidationGroups.Update.class, ValidationGroups.Auth.class}, 
+            groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
             message = "Password must be between 8 and 255 characters")
     private String passwordHash;
 
     @Column(name = "email", unique = true, nullable = false)
-    @NotBlank(groups = {ValidationGroups.Create.class, ValidationGroups.SecureUpdate.class}, 
+    @NotBlank(groups = {ValidationGroups.Create.class}, 
               message = "Email is required")
-    @Email(groups = {ValidationGroups.Create.class, ValidationGroups.SecureUpdate.class}, 
+    @Email(groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
            message = "Email must be a valid email address")
     @Length(max = 255, 
-            groups = {ValidationGroups.Create.class, ValidationGroups.SecureUpdate.class}, 
+            groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
             message = "Email must not exceed 255 characters")
     private String email;
 
     @Column(name = "first_name", nullable = false, length = 50)
-    @NotBlank(groups = {ValidationGroups.Create.class, ValidationGroups.SecureUpdate.class}, 
+    @NotBlank(groups = {ValidationGroups.Create.class}, 
               message = "First name is required")
     @Length(min = 1, max = 50, 
-            groups = {ValidationGroups.Create.class, ValidationGroups.SecureUpdate.class}, 
+            groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
             message = "First name must be between 1 and 50 characters")
     @Pattern(regexp = "^[a-zA-Z\\s'-]+$", 
-             groups = {ValidationGroups.Create.class, ValidationGroups.SecureUpdate.class}, 
+             groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
              message = "First name can only contain letters, spaces, hyphens, and apostrophes")
     private String firstName;
 
     @Column(name = "last_name", nullable = false, length = 50)
-    @NotBlank(groups = {ValidationGroups.Create.class, ValidationGroups.SecureUpdate.class}, 
+    @NotBlank(groups = {ValidationGroups.Create.class}, 
               message = "Last name is required")
     @Length(min = 1, max = 50, 
-            groups = {ValidationGroups.Create.class, ValidationGroups.SecureUpdate.class}, 
+            groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
             message = "Last name must be between 1 and 50 characters")
     @Pattern(regexp = "^[a-zA-Z\\s'-]+$", 
-             groups = {ValidationGroups.Create.class, ValidationGroups.SecureUpdate.class}, 
+             groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
              message = "Last name can only contain letters, spaces, hyphens, and apostrophes")
     private String lastName;
 
@@ -119,7 +119,6 @@ public class User implements UserDetails {
         updatedAt = LocalDateTime.now();
     }
 
-    // UserDetails implementation methods
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name()));
@@ -167,12 +166,10 @@ public class User implements UserDetails {
         
         User user = (User) o;
         
-        // If both entities are persisted (have IDs), use ID for equality
         if (userId != null && user.userId != null) {
             return Objects.equals(userId, user.userId);
         }
         
-        // For transient entities, compare unique fields (username and email)
         return Objects.equals(username, user.username) &&
                Objects.equals(email, user.email);
     }
@@ -184,12 +181,10 @@ public class User implements UserDetails {
      */
     @Override
     public int hashCode() {
-        // If entity is persisted, use ID for hash
         if (userId != null) {
             return Objects.hash(userId);
         }
         
-        // For transient entities, use unique fields
         return Objects.hash(username, email);
     }
 }

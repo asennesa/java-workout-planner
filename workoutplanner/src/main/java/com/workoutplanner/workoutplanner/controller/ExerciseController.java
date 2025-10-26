@@ -99,57 +99,6 @@ public class ExerciseController {
     }
     
     /**
-     * Get exercises by type.
-     * 
-     * @param type the exercise type
-     * @return ResponseEntity containing list of exercises of the specified type
-     */
-    @GetMapping("/type/{type}")
-    public ResponseEntity<List<ExerciseResponse>> getExercisesByType(@PathVariable ExerciseType type) {
-        List<ExerciseResponse> exerciseResponses = exerciseService.getExercisesByType(type);
-        return ResponseEntity.ok(exerciseResponses);
-    }
-    
-    /**
-     * Get exercises by target muscle group.
-     * 
-     * @param targetMuscleGroup the target muscle group
-     * @return ResponseEntity containing list of exercises targeting the specified muscle group
-     */
-    @GetMapping("/muscle-group/{targetMuscleGroup}")
-    public ResponseEntity<List<ExerciseResponse>> getExercisesByTargetMuscleGroup(@PathVariable TargetMuscleGroup targetMuscleGroup) {
-        List<ExerciseResponse> exerciseResponses = exerciseService.getExercisesByTargetMuscleGroup(targetMuscleGroup);
-        return ResponseEntity.ok(exerciseResponses);
-    }
-    
-    /**
-     * Get exercises by difficulty level.
-     * 
-     * @param difficultyLevel the difficulty level
-     * @return ResponseEntity containing list of exercises of the specified difficulty
-     */
-    @GetMapping("/difficulty/{difficultyLevel}")
-    public ResponseEntity<List<ExerciseResponse>> getExercisesByDifficultyLevel(@PathVariable DifficultyLevel difficultyLevel) {
-        List<ExerciseResponse> exerciseResponses = exerciseService.getExercisesByDifficultyLevel(difficultyLevel);
-        return ResponseEntity.ok(exerciseResponses);
-    }
-    
-    /**
-     * Get exercises by type and target muscle group.
-     * 
-     * @param type the exercise type
-     * @param targetMuscleGroup the target muscle group
-     * @return ResponseEntity containing list of exercises matching both criteria
-     */
-    @GetMapping("/type/{type}/muscle-group/{targetMuscleGroup}")
-    public ResponseEntity<List<ExerciseResponse>> getExercisesByTypeAndTargetMuscleGroup(
-            @PathVariable ExerciseType type, 
-            @PathVariable TargetMuscleGroup targetMuscleGroup) {
-        List<ExerciseResponse> exerciseResponses = exerciseService.getExercisesByTypeAndTargetMuscleGroup(type, targetMuscleGroup);
-        return ResponseEntity.ok(exerciseResponses);
-    }
-    
-    /**
      * Search exercises by name.
      * Input is validated and sanitized to prevent SQL injection and wildcard abuse.
      * 

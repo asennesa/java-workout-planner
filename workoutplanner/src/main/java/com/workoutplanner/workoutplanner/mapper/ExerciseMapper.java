@@ -5,6 +5,7 @@ import com.workoutplanner.workoutplanner.dto.response.ExerciseResponse;
 import com.workoutplanner.workoutplanner.entity.Exercise;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.InheritConfiguration;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.MappingTarget;
 
@@ -24,7 +25,12 @@ public interface ExerciseMapper {
     /**
      * Maps CreateExerciseRequest to Exercise entity.
      */
-    @Mapping(target = "exerciseId", ignore = true) // Will be set by JPA
+    @Mapping(target = "exerciseId", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "createdBy", ignore = true)
+    @Mapping(target = "updatedBy", ignore = true)
     Exercise toEntity(CreateExerciseRequest createExerciseRequest);
 
     /**
@@ -41,6 +47,6 @@ public interface ExerciseMapper {
      * Updates existing Exercise entity with data from CreateExerciseRequest.
      * Useful for update operations
      */
-    @Mapping(target = "exerciseId", ignore = true) // Never update the ID
+    @InheritConfiguration(name = "toEntity")
     void updateEntity(CreateExerciseRequest createExerciseRequest, @MappingTarget Exercise exercise);
 }

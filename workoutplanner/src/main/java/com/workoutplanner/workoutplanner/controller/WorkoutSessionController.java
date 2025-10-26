@@ -2,16 +2,15 @@ package com.workoutplanner.workoutplanner.controller;
 
 import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutRequest;
+import com.workoutplanner.workoutplanner.dto.request.WorkoutActionRequest;
 import com.workoutplanner.workoutplanner.exception.OptimisticLockConflictException;
 import com.workoutplanner.workoutplanner.validation.ValidationGroups;
-import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutExerciseRequest;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutExerciseResponse;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-import com.workoutplanner.workoutplanner.enums.WorkoutStatus;
 import com.workoutplanner.workoutplanner.service.WorkoutSessionService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -55,7 +54,7 @@ public class WorkoutSessionController {
      * @return ResponseEntity containing the created workout response
      */
     @PostMapping
-    public ResponseEntity<WorkoutResponse> createWorkoutSession(@Validated(ValidationGroups.Create.class) @RequestBody CreateWorkoutRequest createWorkoutRequest) {
+    public ResponseEntity<WorkoutResponse> createWorkoutSession(@Validated(ValidationGroups.WorkoutSessionCreation.class) @RequestBody CreateWorkoutRequest createWorkoutRequest) {
         logger.debug("Creating workout session for userId={}", 
                     createWorkoutRequest.getUserId());
         
@@ -127,27 +126,8 @@ public class WorkoutSessionController {
      */
     @PutMapping("/{sessionId}")
     public ResponseEntity<WorkoutResponse> updateWorkoutSession(@PathVariable Long sessionId, 
-                                                               @Validated(ValidationGroups.Update.class) @RequestBody CreateWorkoutRequest createWorkoutRequest) {
+                                                               @Validated(ValidationGroups.WorkoutSessionUpdate.class) @RequestBody CreateWorkoutRequest createWorkoutRequest) {
         WorkoutResponse workoutResponse = workoutSessionService.updateWorkoutSession(sessionId, createWorkoutRequest);
-        return ResponseEntity.ok(workoutResponse);
-    }
-    
-    /**
-     * Update workout session status.
-     * 
-     * @param sessionId the session ID
-     * @param status the new status
-     * @return ResponseEntity containing the updated workout response
-     */
-    @PutMapping("/{sessionId}/status")
-    public ResponseEntity<WorkoutResponse> updateWorkoutSessionStatus(@PathVariable Long sessionId, 
-                                                                      @RequestParam WorkoutStatus status) {
-        logger.info("Updating workout session status: sessionId={}, newStatus={}", sessionId, status);
-        
-        WorkoutResponse workoutResponse = workoutSessionService.updateWorkoutSessionStatus(sessionId, status);
-        
-        logger.info("Workout session status updated successfully. sessionId={}, status={}", sessionId, status);
-        
         return ResponseEntity.ok(workoutResponse);
     }
     
@@ -162,31 +142,14 @@ public class WorkoutSessionController {
         workoutSessionService.deleteWorkoutSession(sessionId);
         return ResponseEntity.noContent().build();
     }
-    
-    /**
-     * Add exercise to workout session.
-     * 
-     * @param createWorkoutExerciseRequest the workout exercise request
-     * @return ResponseEntity containing the created workout exercise response
-     */
-    @PostMapping("/exercises")
-    public ResponseEntity<WorkoutExerciseResponse> addExerciseToWorkout(@Valid @RequestBody CreateWorkoutExerciseRequest createWorkoutExerciseRequest) {
-        WorkoutExerciseResponse workoutExerciseResponse = workoutSessionService.addExerciseToWorkout(createWorkoutExerciseRequest);
-        return ResponseEntity.status(HttpStatus.CREATED).body(workoutExerciseResponse);
+
+    @PostMapping("/{sessionId}/action")
+    public ResponseEntity<WorkoutResponse> performWorkoutAction(@PathVariable Long sessionId, @Valid @RequestBody WorkoutActionRequest actionRequest) {
+        logger.info("Performing action '{}' on workout session: sessionId={}", actionRequest.getAction(), sessionId);
+        WorkoutResponse workoutResponse = workoutSessionService.performAction(sessionId, actionRequest.getAction());
+        return ResponseEntity.ok(workoutResponse);
     }
-    
-    /**
-     * Remove exercise from workout session.
-     * 
-     * @param workoutExerciseId the workout exercise ID
-     * @return ResponseEntity with no content
-     */
-    @DeleteMapping("/exercises/{workoutExerciseId}")
-    public ResponseEntity<Void> removeExerciseFromWorkout(@PathVariable Long workoutExerciseId) {
-        workoutSessionService.removeExerciseFromWorkout(workoutExerciseId);
-        return ResponseEntity.noContent().build();
-    }
-    
+
     /**
      * Get exercises for a workout session.
      * 
@@ -197,76 +160,6 @@ public class WorkoutSessionController {
     public ResponseEntity<List<WorkoutExerciseResponse>> getWorkoutExercises(@PathVariable Long sessionId) {
         List<WorkoutExerciseResponse> workoutExerciseResponses = workoutSessionService.getWorkoutExercises(sessionId);
         return ResponseEntity.ok(workoutExerciseResponses);
-    }
-    
-    /**
-     * Start a workout session.
-     * 
-     * @param sessionId the session ID
-     * @return ResponseEntity containing the updated workout response
-     */
-    @PostMapping("/{sessionId}/start")
-    public ResponseEntity<WorkoutResponse> startWorkoutSession(@PathVariable Long sessionId) {
-        logger.info("Starting workout session: sessionId={}", sessionId);
-        
-        WorkoutResponse workoutResponse = workoutSessionService.updateWorkoutSessionStatus(sessionId, WorkoutStatus.IN_PROGRESS);
-        
-        logger.info("Workout session started. sessionId={}", sessionId);
-        
-        return ResponseEntity.ok(workoutResponse);
-    }
-    
-    /**
-     * Pause a workout session.
-     * 
-     * @param sessionId the session ID
-     * @return ResponseEntity containing the updated workout response
-     */
-    @PostMapping("/{sessionId}/pause")
-    public ResponseEntity<WorkoutResponse> pauseWorkoutSession(@PathVariable Long sessionId) {
-        WorkoutResponse workoutResponse = workoutSessionService.updateWorkoutSessionStatus(sessionId, WorkoutStatus.PAUSED);
-        return ResponseEntity.ok(workoutResponse);
-    }
-    
-    /**
-     * Resume a workout session.
-     * 
-     * @param sessionId the session ID
-     * @return ResponseEntity containing the updated workout response
-     */
-    @PostMapping("/{sessionId}/resume")
-    public ResponseEntity<WorkoutResponse> resumeWorkoutSession(@PathVariable Long sessionId) {
-        WorkoutResponse workoutResponse = workoutSessionService.updateWorkoutSessionStatus(sessionId, WorkoutStatus.IN_PROGRESS);
-        return ResponseEntity.ok(workoutResponse);
-    }
-    
-    /**
-     * Complete a workout session.
-     * 
-     * @param sessionId the session ID
-     * @return ResponseEntity containing the updated workout response
-     */
-    @PostMapping("/{sessionId}/complete")
-    public ResponseEntity<WorkoutResponse> completeWorkoutSession(@PathVariable Long sessionId) {
-        logger.info("Completing workout session: sessionId={}", sessionId);
-        
-        WorkoutResponse workoutResponse = workoutSessionService.updateWorkoutSessionStatus(sessionId, WorkoutStatus.COMPLETED);
-        
-        logger.info("Workout session completed successfully. sessionId={}", sessionId);
-        
-        return ResponseEntity.ok(workoutResponse);
-    }
-    
-    /**
-     * Cancel a workout session.
-     * 
-     * @param sessionId the session ID
-     * @return ResponseEntity containing the updated workout response
-     */
-    @PostMapping("/{sessionId}/cancel")
-    public ResponseEntity<WorkoutResponse> cancelWorkoutSession(@PathVariable Long sessionId) {
-        WorkoutResponse workoutResponse = workoutSessionService.updateWorkoutSessionStatus(sessionId, WorkoutStatus.CANCELLED);
-        return ResponseEntity.ok(workoutResponse);
     }
     
     /**
