@@ -1,6 +1,5 @@
 package com.workoutplanner.workoutplanner.config;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,11 +23,13 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.time.Clock;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -109,7 +110,7 @@ public class ApplicationConfig {
     @Value("${app.cors.allowed-methods:GET,POST,PUT,DELETE,OPTIONS}")
     private String allowedMethods;
 
-    @Value("${app.cors.allowed-headers:*}")
+    @Value("${app.cors.allowed-headers:Content-Type,Authorization,X-Requested-With}")
     private String allowedHeaders;
 
     @Value("${app.cors.allow-credentials:true}")
@@ -127,7 +128,11 @@ public class ApplicationConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.asList(allowedOrigins.split(",")));
+        
+        // Use setAllowedOriginPatterns for more flexibility than setAllowedOrigins
+        List<String> allowedOriginsList = Arrays.asList(allowedOrigins.split(","));
+        configuration.setAllowedOriginPatterns(allowedOriginsList);
+        
         configuration.setAllowedMethods(Arrays.asList(allowedMethods.split(",")));
         configuration.setAllowedHeaders(Arrays.asList(allowedHeaders.split(",")));
         configuration.setAllowCredentials(allowCredentials);
@@ -181,9 +186,9 @@ public class ApplicationConfig {
         private static final Logger logger = LoggerFactory.getLogger(LoggingFilter.class);
 
         @Override
-        protected void doFilterInternal(HttpServletRequest request,
-                                      HttpServletResponse response,
-                                      FilterChain filterChain) throws ServletException, IOException {
+        protected void doFilterInternal(@NonNull HttpServletRequest request,
+                                      @NonNull HttpServletResponse response,
+                                      @NonNull FilterChain filterChain) throws ServletException, IOException {
             try {
                 String correlationId = UUID.randomUUID().toString();
                 MDC.put("correlationId", correlationId);

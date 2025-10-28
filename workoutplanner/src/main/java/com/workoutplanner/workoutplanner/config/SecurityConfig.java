@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -60,6 +61,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -344,24 +346,25 @@ public class SecurityConfig {
 
         private static final Logger logger = LoggerFactory.getLogger(RateLimitingFilter.class);
         
-        // Rate limiting configuration - configurable via properties
         @Value("${app.rate-limit.requests-per-minute:10}")
         private int requestsPerMinute;
         
-        @Value("${app.rate-limit.burst-capacity:20}")
-        private int burstCapacity;
+        @Autowired(required = false)
+        private RedisTemplate<String, String> redisTemplate;
         
-        // In-memory rate limiting store (use Redis in production)
-        private final ConcurrentHashMap<String, RateLimitInfo> rateLimitStore = new ConcurrentHashMap<>();
-        
-        // Rate limiting window in milliseconds
-        private static final long WINDOW_SIZE_MS = 60_000; // 1 minute
+        private static final long WINDOW_SIZE_SECONDS = 60; // 1 minute
 
         @Override
         protected void doFilterInternal(HttpServletRequest request, 
                                       HttpServletResponse response, 
                                       FilterChain filterChain) throws ServletException, IOException {
             
+            if (redisTemplate == null) {
+                logger.warn("Redis not available, rate limiting is disabled.");
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             String clientIp = getClientIpAddress(request);
             String requestPath = request.getRequestURI();
             
@@ -370,7 +373,7 @@ public class SecurityConfig {
                 if (!isAllowed(clientIp, requestPath)) {
                     logger.warn("Rate limit exceeded for IP: {} on endpoint: {}", clientIp, requestPath);
                     response.setStatus(429); // Too Many Requests
-                    response.setHeader("Retry-After", "60");
+                    response.setHeader("Retry-After", String.valueOf(WINDOW_SIZE_SECONDS));
                     response.getWriter().write("{\"error\":\"Rate limit exceeded. Please try again later.\"}");
                     response.setContentType("application/json");
                     return;
@@ -388,21 +391,27 @@ public class SecurityConfig {
          * @return true if allowed, false if rate limited
          */
         private boolean isAllowed(String clientIp, String requestPath) {
-            String key = clientIp + ":" + requestPath;
-            long currentTime = System.currentTimeMillis();
+            String key = "rate-limit:" + clientIp + ":" + requestPath;
             
-            RateLimitInfo rateLimitInfo = rateLimitStore.computeIfAbsent(key, 
-                k -> new RateLimitInfo(currentTime, new AtomicInteger(0)));
-            
-            // Reset window if expired
-            if (currentTime - rateLimitInfo.getWindowStart() > WINDOW_SIZE_MS) {
-                rateLimitInfo.setWindowStart(currentTime);
-                rateLimitInfo.getRequestCount().set(0);
+            try {
+                Long currentCount = redisTemplate.opsForValue().increment(key);
+
+                if (currentCount != null) {
+                    // If it's a new key, set the expiration
+                    if (currentCount == 1) {
+                        redisTemplate.expire(key, WINDOW_SIZE_SECONDS, java.util.concurrent.TimeUnit.SECONDS);
+                    }
+                    return currentCount <= requestsPerMinute;
+                }
+                
+                // If redis increment fails, allow the request to be safe
+                return true;
+
+            } catch (Exception e) {
+                logger.error("Error during rate limiting check with Redis. Allowing request.", e);
+                // In case of Redis error, it's safer to allow the request than to block legitimate users
+                return true;
             }
-            
-            // Check if within rate limit
-            int currentCount = rateLimitInfo.getRequestCount().incrementAndGet();
-            return currentCount <= requestsPerMinute;
         }
 
         /**
@@ -437,30 +446,6 @@ public class SecurityConfig {
             return request.getRemoteAddr();
         }
 
-        /**
-         * Rate limit information holder.
-         */
-        private static class RateLimitInfo {
-            private long windowStart;
-            private final AtomicInteger requestCount;
-
-            public RateLimitInfo(long windowStart, AtomicInteger requestCount) {
-                this.windowStart = windowStart;
-                this.requestCount = requestCount;
-            }
-
-            public long getWindowStart() {
-                return windowStart;
-            }
-
-            public void setWindowStart(long windowStart) {
-                this.windowStart = windowStart;
-            }
-
-            public AtomicInteger getRequestCount() {
-                return requestCount;
-            }
-        }
     }
 
     /**
@@ -686,6 +671,18 @@ public class SecurityConfig {
                     return;
                 }
                 
+                // Check if the token was issued before the user's tokens were last revoked
+                if (userDetails instanceof com.workoutplanner.workoutplanner.entity.User) {
+                    com.workoutplanner.workoutplanner.entity.User user = (com.workoutplanner.workoutplanner.entity.User) userDetails;
+                    Date tokenIssuedAt = jwtService.extractIssuedAt(jwt);
+                    if (user.getTokensValidFrom() != null && tokenIssuedAt != null && tokenIssuedAt.before(user.getTokensValidFrom())) {
+                        logger.warn("Attempted to use an old JWT token for user: {}. Token issued at: {}, valid from: {}", 
+                                    username, tokenIssuedAt, user.getTokensValidFrom());
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
+                }
+
                 if (jwtService.isTokenValid(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,

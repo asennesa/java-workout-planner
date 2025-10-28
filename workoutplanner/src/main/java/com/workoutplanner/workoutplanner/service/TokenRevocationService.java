@@ -4,12 +4,16 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import com.workoutplanner.workoutplanner.repository.UserRepository;
+import com.workoutplanner.workoutplanner.entity.User;
 
 import java.security.KeyPair;
 import java.util.Date;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 /**
  * Service for JWT token revocation management.
@@ -26,18 +30,18 @@ public class TokenRevocationService {
 
     private static final Logger logger = LoggerFactory.getLogger(TokenRevocationService.class);
 
+    private static final String REVOKED_TOKENS_PREFIX = "revoked_jwt::";
+
     private final KeyPair keyPair;
+    private final RedisTemplate<String, String> redisTemplate;
+    private final UserRepository userRepository;
 
-    // In-memory blacklist (use Redis in production)
-    private final ConcurrentHashMap<String, Date> revokedTokens = new ConcurrentHashMap<>();
-
-    @Value("${app.jwt.blacklist-cleanup-interval:3600000}")
-    private long blacklistCleanupInterval;
-
-    private long lastCleanupTime = System.currentTimeMillis();
-
-    public TokenRevocationService(KeyPair keyPair) {
+    public TokenRevocationService(KeyPair keyPair, 
+                                @Autowired(required = false) RedisTemplate<String, String> redisTemplate,
+                                UserRepository userRepository) {
         this.keyPair = keyPair;
+        this.redisTemplate = redisTemplate;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -47,19 +51,33 @@ public class TokenRevocationService {
      * @return true if token was successfully revoked
      */
     public boolean revokeToken(String token) {
+        if (redisTemplate == null) {
+            logger.warn("Redis is not available. Token revocation is disabled.");
+            return false;
+        }
+
         try {
-            // Extract token ID (jti) if present
             String tokenId = extractTokenId(token);
             if (tokenId != null) {
-                revokedTokens.put(tokenId, new Date());
-                logger.info("Token revoked successfully: {}", tokenId);
-                return true;
+                Date expiration = extractExpiration(token);
+                if (expiration != null) {
+                    long ttl = expiration.getTime() - System.currentTimeMillis();
+                    if (ttl > 0) {
+                        String redisKey = REVOKED_TOKENS_PREFIX + tokenId;
+                        redisTemplate.opsForValue().set(redisKey, String.valueOf(expiration.getTime()), ttl, TimeUnit.MILLISECONDS);
+                        logger.info("Token revoked successfully: {} with TTL: {}ms", tokenId, ttl);
+                        return true;
+                    } else {
+                        logger.warn("Token is already expired, no need to revoke: {}", tokenId);
+                        return false;
+                    }
+                } else {
+                    logger.error("Failed to revoke token: could not extract expiration time.");
+                    return false;
+                }
             } else {
-                // Fallback: use full token hash
-                String tokenHash = String.valueOf(token.hashCode());
-                revokedTokens.put(tokenHash, new Date());
-                logger.info("Token revoked successfully (by hash): {}", tokenHash);
-                return true;
+                logger.error("Failed to revoke token: it does not contain a 'jti' (JWT ID) claim.");
+                return false;
             }
         } catch (Exception e) {
             logger.error("Failed to revoke token: {}", e.getMessage());
@@ -74,18 +92,19 @@ public class TokenRevocationService {
      * @return true if token is revoked
      */
     public boolean isTokenRevoked(String token) {
+        if (redisTemplate == null) {
+            logger.warn("Redis is not available. Token revocation is disabled.");
+            return false;
+        }
+        
         try {
-            // Clean up old entries periodically
-            cleanupExpiredEntries();
-
-            // Extract token ID (jti) if present
             String tokenId = extractTokenId(token);
             if (tokenId != null) {
-                return revokedTokens.containsKey(tokenId);
+                String redisKey = REVOKED_TOKENS_PREFIX + tokenId;
+                return Boolean.TRUE.equals(redisTemplate.hasKey(redisKey));
             } else {
-                // Fallback: check by token hash
-                String tokenHash = String.valueOf(token.hashCode());
-                return revokedTokens.containsKey(tokenHash);
+                logger.warn("Could not check token revocation: no 'jti' (JWT ID) claim found.");
+                return false;
             }
         } catch (Exception e) {
             logger.error("Failed to check token revocation status: {}", e.getMessage());
@@ -100,15 +119,16 @@ public class TokenRevocationService {
      * @return number of tokens revoked
      */
     public int revokeAllUserTokens(String username) {
-        int revokedCount = 0;
-        
-        // In a real implementation, you would:
-        // 1. Query database for all active tokens for the user
-        // 2. Add them to the blacklist
-        // 3. Optionally notify the user
-        
-        logger.info("Revoked all tokens for user: {}", username);
-        return revokedCount;
+        User user = userRepository.findByUsername(username).orElse(null);
+        if (user != null) {
+            user.setTokensValidFrom(new Date());
+            userRepository.save(user);
+            logger.info("Revoked all tokens for user: {} by updating tokens_valid_from timestamp", username);
+            return 1; // Indicates success
+        } else {
+            logger.warn("Could not revoke tokens for user: {}. User not found.", username);
+            return 0; // Indicates failure
+        }
     }
 
     /**
@@ -119,13 +139,7 @@ public class TokenRevocationService {
      */
     private String extractTokenId(String token) {
         try {
-            Claims claims = Jwts.parser()
-                    .verifyWith(keyPair.getPublic())
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
-            
-            return claims.getId();
+            return extractClaim(token, Claims::getId);
         } catch (Exception e) {
             logger.debug("Could not extract token ID: {}", e.getMessage());
             return null;
@@ -133,48 +147,38 @@ public class TokenRevocationService {
     }
 
     /**
-     * Clean up expired entries from the blacklist.
-     * This prevents memory leaks in long-running applications.
+     * Extract expiration date from JWT token.
+     *
+     * @param token JWT token
+     * @return expiration date or null if not present
      */
-    private void cleanupExpiredEntries() {
-        long currentTime = System.currentTimeMillis();
-        
-        // Only cleanup if enough time has passed
-        if (currentTime - lastCleanupTime < blacklistCleanupInterval) {
-            return;
-        }
-        
+    private Date extractExpiration(String token) {
         try {
-            // Remove entries older than 24 hours
-            Date cutoffDate = new Date(currentTime - 24 * 60 * 60 * 1000);
-            
-            revokedTokens.entrySet().removeIf(entry -> 
-                entry.getValue().before(cutoffDate)
-            );
-            
-            lastCleanupTime = currentTime;
-            logger.debug("Cleaned up expired blacklist entries. Current size: {}", revokedTokens.size());
-            
+            return extractClaim(token, Claims::getExpiration);
         } catch (Exception e) {
-            logger.error("Failed to cleanup expired blacklist entries: {}", e.getMessage());
+            logger.debug("Could not extract token expiration: {}", e.getMessage());
+            return null;
         }
     }
 
     /**
-     * Get the current size of the blacklist.
-     * 
-     * @return number of revoked tokens
+     * Extracts a specific claim from JWT token.
+     *
+     * @param token JWT token
+     * @param claimsResolver function to extract the claim
+     * @param <T> type of the claim
+     * @return extracted claim
      */
-    public int getBlacklistSize() {
-        return revokedTokens.size();
+    private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+        final Claims claims = extractAllClaims(token);
+        return claimsResolver.apply(claims);
     }
-
-    /**
-     * Clear all revoked tokens (use with caution).
-     * This should only be used for testing or emergency situations.
-     */
-    public void clearBlacklist() {
-        revokedTokens.clear();
-        logger.warn("Token blacklist cleared - all previously revoked tokens are now valid again!");
+    
+    private Claims extractAllClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(keyPair.getPublic())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }

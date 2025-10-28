@@ -14,6 +14,7 @@ import java.security.KeyPair;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 
 /**
@@ -41,7 +42,7 @@ public class JwtService {
     public JwtService(KeyPair keyPair, TokenRevocationService tokenRevocationService) {
         this.keyPair = keyPair;
         this.tokenRevocationService = tokenRevocationService;
-        this.useRS256 = true; // Use RS256 for production security
+        this.useRS256 = keyPair != null;
     }
 
     /**
@@ -62,6 +63,16 @@ public class JwtService {
      */
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
+    }
+
+    /**
+     * Extracts issued-at date from JWT token.
+     *
+     * @param token JWT token
+     * @return issued-at date
+     */
+    public Date extractIssuedAt(String token) {
+        return extractClaim(token, Claims::getIssuedAt);
     }
 
     /**
@@ -152,7 +163,8 @@ public class JwtService {
                 .claims(claims)
                 .subject(subject)
                 .issuedAt(now)
-                .expiration(expiryDate);
+                .expiration(expiryDate)
+                .id(UUID.randomUUID().toString());
 
         if (useRS256) {
             return builder.signWith(keyPair.getPrivate()).compact();
@@ -246,16 +258,19 @@ public class JwtService {
      * @throws IllegalStateException if secret is not configured
      */
     private SecretKey getSigningKey() {
-        if (jwtSecret == null || jwtSecret.trim().isEmpty()) {
-            throw new IllegalStateException("JWT secret is not configured. Set JWT_SECRET environment variable.");
-        }
+        if (!useRS256) {
+            if (jwtSecret == null || jwtSecret.trim().isEmpty()) {
+                throw new IllegalStateException("JWT secret is not configured. Set JWT_SECRET environment variable.");
+            }
         
-        if (jwtSecret.length() < 32) {
-            throw new IllegalStateException("JWT secret must be at least 32 characters long for security.");
-        }
+            if (jwtSecret.length() < 32) {
+                throw new IllegalStateException("JWT secret must be at least 32 characters long for security.");
+            }
         
-        byte[] keyBytes = jwtSecret.getBytes();
-        return Keys.hmacShaKeyFor(keyBytes);
+            byte[] keyBytes = jwtSecret.getBytes();
+            return Keys.hmacShaKeyFor(keyBytes);
+        }
+        return null; // Not used for RS256
     }
 
     /**
