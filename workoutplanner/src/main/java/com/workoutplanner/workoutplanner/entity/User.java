@@ -106,10 +106,6 @@ public class User implements UserDetails {
     @Column(name = "version", nullable = false)
     private Long version = 0L;
 
-    @Temporal(TemporalType.TIMESTAMP)
-    @Column(name = "tokens_valid_from")
-    private Date tokensValidFrom;
-
     /**
      * JPA lifecycle callbacks for automatic timestamp management
      */
@@ -117,7 +113,6 @@ public class User implements UserDetails {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
-        tokensValidFrom = new Date();
     }
 
     @PreUpdate

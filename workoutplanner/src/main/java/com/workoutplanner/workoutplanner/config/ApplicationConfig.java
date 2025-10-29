@@ -3,11 +3,6 @@ package com.workoutplanner.workoutplanner.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
-import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -38,7 +33,6 @@ import java.util.UUID;
  * 
  * This configuration consolidates:
  * - Application metrics and monitoring
- * - Data layer configuration (Redis)
  * - Web layer configuration (CORS, validation, logging)
  * - Infrastructure concerns
  * 
@@ -50,59 +44,6 @@ import java.util.UUID;
  */
 @Configuration
 public class ApplicationConfig {
-
-    @Value("${spring.redis.host:localhost}")
-    private String redisHost;
-
-    @Value("${spring.redis.port:6379}")
-    private int redisPort;
-
-    @Value("${spring.redis.password:}")
-    private String redisPassword;
-
-    @Value("${spring.redis.database:0}")
-    private int redisDatabase;
-
-    /**
-     * Redis connection factory for production token storage.
-     * Provides Redis connection with proper configuration.
-     * 
-     * @return RedisConnectionFactory configured for the application
-     */
-    @Bean
-    public RedisConnectionFactory redisConnectionFactory() {
-        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
-        config.setHostName(redisHost);
-        config.setPort(redisPort);
-        config.setDatabase(redisDatabase);
-        
-        if (redisPassword != null && !redisPassword.isEmpty()) {
-            config.setPassword(redisPassword);
-        }
-        
-        return new LettuceConnectionFactory(config);
-    }
-
-    /**
-     * Redis template for token storage and OAuth2 state management.
-     * Optimized for security data with proper serialization.
-     * 
-     * @param connectionFactory Redis connection factory
-     * @return RedisTemplate configured for security operations
-     */
-    @Bean
-    public RedisTemplate<String, String> redisTemplate(RedisConnectionFactory connectionFactory) {
-        RedisTemplate<String, String> template = new RedisTemplate<>();
-        template.setConnectionFactory(connectionFactory);
-        
-        template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(new StringRedisSerializer());
-        template.setHashKeySerializer(new StringRedisSerializer());
-        template.setHashValueSerializer(new StringRedisSerializer());
-        
-        template.afterPropertiesSet();
-        return template;
-    }
 
     @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:3001}")
     private String allowedOrigins;

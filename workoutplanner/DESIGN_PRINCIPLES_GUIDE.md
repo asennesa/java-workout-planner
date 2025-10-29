@@ -600,8 +600,7 @@ A comprehensive guide to software design principles, patterns, and best practice
 ```
 config/
 ├── ApplicationConfig.java      # Application-level concerns
-├── SecurityConfig.java        # Security configuration
-└── SecurityMetrics.java       # Security monitoring
+└── SecurityConfig.java         # Security configuration
 ```
 
 ### Key Takeaways

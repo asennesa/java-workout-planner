@@ -118,17 +118,6 @@ public class UserController {
         return ResponseEntity.ok(userResponse);
     }
 
-    @GetMapping("/lookup")
-    public ResponseEntity<UserResponse> findUserByUsernameOrEmail(@RequestParam String identifier) {
-        UserResponse userResponse;
-        if (identifier.contains("@")) {
-            userResponse = userService.getUserByEmail(identifier);
-        } else {
-            userResponse = userService.getUserByUsername(identifier);
-        }
-        return ResponseEntity.ok(userResponse);
-    }
-
     /**
      * Get all users with pagination.
      * Supports pagination, sorting, and filtering.

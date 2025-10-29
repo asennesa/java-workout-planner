@@ -100,6 +100,7 @@ application-dev.properties
 application-prod.properties
 *.env
 .env
+.envrc
 test-env.sh
 
 # Database
@@ -127,19 +128,7 @@ yarn-error.log*
 
 # Docker
 .dockerignore
-Dockerfile
-docker-compose.yml
 docker-compose.override.yml
-
-# Kubernetes
-*.yaml
-*.yml
-!application.yml
-!application.yaml
-!bootstrap.yml
-!bootstrap.yaml
 
 # Documentation
 HELP.md
-DOCKER_COMMANDS.md
-MAVEN_COMMANDS.md

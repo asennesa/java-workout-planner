@@ -1,0 +1,6 @@
+databaseChangeLog:
+  # Empty master changelog - ready for future migrations
+  # When you want to add migrations, create them in: db/changelog/changes/
+  # Then include them here like:
+  # - include:
+  #     file: db/changelog/changes/v1.0/001-your-migration.yaml
