@@ -128,17 +128,6 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
     }
 
     /**
-     * Get all workout sessions.
-     *
-     * @return List of WorkoutResponse
-     */
-    @Transactional(readOnly = true)
-    public List<WorkoutResponse> getAllWorkoutSessions() {
-        List<WorkoutSession> workoutSessions = workoutSessionRepository.findAll();
-        return workoutMapper.toWorkoutResponseList(workoutSessions);
-    }
-
-    /**
      * Get workout session with smart loading of sets.
      * Only loads sets based on exercise type to optimize performance.
      * 

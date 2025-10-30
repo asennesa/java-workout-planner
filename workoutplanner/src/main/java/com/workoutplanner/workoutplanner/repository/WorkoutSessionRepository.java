@@ -35,20 +35,21 @@ public interface WorkoutSessionRepository extends JpaRepository<WorkoutSession, 
     
     /**
      * Find workout sessions by user ID, ordered by started date descending.
+     * Uses EntityGraph to eagerly fetch user and workoutExercises to prevent N+1 queries.
      * 
      * @param userId the user ID
      * @return list of workout sessions for the user ordered by started date
      */
-    @EntityGraph(attributePaths = "user")
+    @EntityGraph(attributePaths = {"user", "workoutExercises", "workoutExercises.exercise"})
     List<WorkoutSession> findByUser_UserIdOrderByStartedAtDesc(Long userId);
     
     /**
-     * Find workout session by ID with user eagerly fetched.
-     * Prevents N+1 query problem when accessing user details.
+     * Find workout session by ID with user and exercises eagerly fetched.
+     * Prevents N+1 query problem when accessing user details and workout exercises.
      * 
      * @param sessionId the session ID
-     * @return optional workout session with user eagerly loaded
+     * @return optional workout session with user and workoutExercises eagerly loaded
      */
-    @EntityGraph(attributePaths = "user")
+    @EntityGraph(attributePaths = {"user", "workoutExercises", "workoutExercises.exercise"})
     Optional<WorkoutSession> findWithUserBySessionId(Long sessionId);
 }

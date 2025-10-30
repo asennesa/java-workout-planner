@@ -2,6 +2,8 @@ package com.workoutplanner.workoutplanner.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -13,12 +15,28 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 /**
- * Basic security configuration for the application.
- * Uses standard session-based authentication with BCrypt password encoding.
+ * Production security configuration for the application.
+ * 
+ * Uses session-based authentication with BCrypt password encoding.
+ * 
+ * This configuration is active by default and in production.
+ * For development without authentication, use the 'dev' profile which activates DevSecurityConfig.
+ * 
+ * Security Features:
+ * - HTTP Basic authentication for REST API
+ * - BCrypt password hashing
+ * - Role-based access control (RBAC)
+ * - CORS protection with configurable origins
+ * - CSRF disabled for stateless REST API (compensated by CORS and authentication)
+ * - Secure session cookies (httpOnly, sameSite=strict)
+ * 
+ * @see ApplicationConfig for CORS configuration
+ * @see DevSecurityConfig for development-only permissive security
  */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
+@Profile("!dev") // Active in all profiles EXCEPT 'dev'
 public class SecurityConfig {
 
     private final CorsConfigurationSource corsConfigurationSource;
@@ -30,6 +48,14 @@ public class SecurityConfig {
     /**
      * Security filter chain with session-based authentication and role-based authorization.
      * 
+     * CSRF Protection:
+     * CSRF is disabled for this REST API as it uses:
+     * - Stateless authentication (HTTP Basic)
+     * - Strict CORS policy (configured in ApplicationConfig)
+     * - No browser-based cookie authentication for state
+     * 
+     * For production SPAs, consider using CSRF tokens if using session-based auth exclusively.
+     * 
      * @param http HttpSecurity configuration
      * @return SecurityFilterChain
      * @throws Exception if configuration fails
@@ -38,27 +64,33 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
-            .csrf(csrf -> csrf.disable())  // Disable CSRF for REST API
+            .csrf(csrf -> csrf.disable())  // Disabled for REST API - see method documentation
             .authorizeHttpRequests(authz -> authz
-                // Public endpoints
+                // Public endpoints - Authentication
                 .requestMatchers("/api/v1/auth/login").permitAll()
                 .requestMatchers("/api/v1/users/check-username", "/api/v1/users/check-email").permitAll()
-                .requestMatchers("POST", "/api/v1/users").permitAll()  // User registration
+                .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()  // User registration
                 
-                // Health check endpoints
+                // Public endpoints - Health checks
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                 
-                // Protected endpoints with role-based access
-                .requestMatchers("DELETE", "/api/v1/users/**").hasRole("ADMIN")
+                // Protected endpoints - User management
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/users/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/users/**").hasAnyRole("ADMIN", "USER")
                 
-                .requestMatchers("POST", "/api/v1/exercises").hasAnyRole("ADMIN", "MODERATOR")
-                .requestMatchers("PUT", "/api/v1/exercises/**").hasAnyRole("ADMIN", "MODERATOR")
-                .requestMatchers("DELETE", "/api/v1/exercises/**").hasRole("ADMIN")
+                // Protected endpoints - Exercise management
+                .requestMatchers(HttpMethod.POST, "/api/v1/exercises").hasAnyRole("ADMIN", "MODERATOR")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/exercises/**").hasAnyRole("ADMIN", "MODERATOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/exercises/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/exercises/**").hasAnyRole("ADMIN", "USER", "MODERATOR")
                 
+                // Protected endpoints - Workout management
                 .requestMatchers("/api/v1/workouts/**").hasAnyRole("ADMIN", "USER")
-                .requestMatchers("/api/v1/sets/**").hasAnyRole("ADMIN", "USER")
+                
+                // Protected endpoints - Set management (Strength, Cardio, Flexibility)
+                .requestMatchers("/api/v1/strength-sets/**").hasAnyRole("ADMIN", "USER")
+                .requestMatchers("/api/v1/cardio-sets/**").hasAnyRole("ADMIN", "USER")
+                .requestMatchers("/api/v1/flexibility-sets/**").hasAnyRole("ADMIN", "USER")
                 
                 // All other requests require authentication
                 .anyRequest().authenticated()

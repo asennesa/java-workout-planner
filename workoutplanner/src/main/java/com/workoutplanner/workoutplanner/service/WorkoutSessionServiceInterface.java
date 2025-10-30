@@ -44,13 +44,6 @@ public interface WorkoutSessionServiceInterface {
     List<WorkoutResponse> getWorkoutSessionsByUserId(Long userId);
     
     /**
-     * Get all workout sessions.
-     *
-     * @return List of WorkoutResponse
-     */
-    List<WorkoutResponse> getAllWorkoutSessions();
-    
-    /**
      * Get all workout sessions with pagination.
      *
      * @param pageable pagination information

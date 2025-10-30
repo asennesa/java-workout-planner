@@ -54,13 +54,6 @@ public interface UserServiceInterface {
     UserResponse getUserByEmail(String email);
     
     /**
-     * Get all users.
-     * 
-     * @return list of all user responses
-     */
-    List<UserResponse> getAllUsers();
-    
-    /**
      * Get all users with pagination.
      * 
      * @param pageable pagination information

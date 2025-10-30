@@ -140,17 +140,6 @@ public class UserService implements UserServiceInterface, UserDetailsService {
     }
     
     /**
-     * Get all users.
-     * 
-     * @return list of all user responses
-     */
-    @Transactional(readOnly = true)
-    public List<UserResponse> getAllUsers() {
-        List<User> users = userRepository.findAll();
-        return userMapper.toResponseList(users);
-    }
-    
-    /**
      * Get all users with pagination.
      * 
      * @param pageable pagination information (page number, size, sort)
