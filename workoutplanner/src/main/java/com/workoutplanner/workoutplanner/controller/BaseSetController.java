@@ -3,6 +3,8 @@ package com.workoutplanner.workoutplanner.controller;
 import com.workoutplanner.workoutplanner.dto.response.SetResponse;
 import com.workoutplanner.workoutplanner.service.SetServiceInterface;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +23,8 @@ import java.util.List;
  */
 public abstract class BaseSetController<T> {
 
+    private static final Logger logger = LoggerFactory.getLogger(BaseSetController.class);
+
     /**
      * Template method to get the appropriate service implementation.
      * Concrete controllers must implement this to provide their specific service.
@@ -37,7 +41,13 @@ public abstract class BaseSetController<T> {
      */
     @PostMapping
     public ResponseEntity<SetResponse> createSet(@Valid @RequestBody T createSetRequest) {
+        logger.debug("Creating set for workout exercise");
+        
         SetResponse setResponse = getService().createSet(createSetRequest);
+        
+        logger.info("Set created successfully. setId={}, setType={}", 
+                   setResponse.getSetId(), setResponse.getSetType());
+        
         return ResponseEntity.status(HttpStatus.CREATED).body(setResponse);
     }
 
@@ -49,7 +59,12 @@ public abstract class BaseSetController<T> {
      */
     @GetMapping("/workout-exercise/{workoutExerciseId}")
     public ResponseEntity<List<SetResponse>> getSetsByWorkoutExercise(@PathVariable Long workoutExerciseId) {
+        logger.debug("Getting sets for workout exercise: workoutExerciseId={}", workoutExerciseId);
+        
         List<SetResponse> setResponses = getService().getSetsByWorkoutExercise(workoutExerciseId);
+        
+        logger.info("Retrieved {} sets for workoutExerciseId={}", setResponses.size(), workoutExerciseId);
+        
         return ResponseEntity.ok(setResponses);
     }
 
@@ -61,7 +76,13 @@ public abstract class BaseSetController<T> {
      */
     @GetMapping("/{setId}")
     public ResponseEntity<SetResponse> getSetById(@PathVariable Long setId) {
+        logger.debug("Getting set by ID: setId={}", setId);
+        
         SetResponse setResponse = getService().getSetById(setId);
+        
+        logger.info("Set retrieved successfully. setId={}, setType={}", 
+                   setResponse.getSetId(), setResponse.getSetType());
+        
         return ResponseEntity.ok(setResponse);
     }
 
@@ -74,7 +95,13 @@ public abstract class BaseSetController<T> {
      */
     @PutMapping("/{setId}")
     public ResponseEntity<SetResponse> updateSet(@PathVariable Long setId, @Valid @RequestBody T createSetRequest) {
+        logger.debug("Updating set. setId={}", setId);
+        
         SetResponse setResponse = getService().updateSet(setId, createSetRequest);
+        
+        logger.info("Set updated successfully. setId={}, setType={}", 
+                   setResponse.getSetId(), setResponse.getSetType());
+        
         return ResponseEntity.ok(setResponse);
     }
 
@@ -86,7 +113,12 @@ public abstract class BaseSetController<T> {
      */
     @DeleteMapping("/{setId}")
     public ResponseEntity<Void> deleteSet(@PathVariable Long setId) {
+        logger.warn("Deleting set: setId={}", setId);
+        
         getService().deleteSet(setId);
+        
+        logger.info("Set deleted successfully. setId={}", setId);
+        
         return ResponseEntity.noContent().build();
     }
 }

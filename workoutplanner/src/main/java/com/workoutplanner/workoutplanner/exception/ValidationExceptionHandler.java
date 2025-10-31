@@ -39,8 +39,8 @@ public class ValidationExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
         
-        logger.warn("Validation failed. Fields with errors: {}", errors.keySet());
-        logger.debug("Validation error details: {}", errors);
+        logger.warn("EXCEPTION: Validation failed. Fields: {}", errors.keySet());
+        logger.debug("EXCEPTION: Validation error details: {}", errors);
         
         response.put("message", "Validation failed");
         response.put("errors", errors);
@@ -67,8 +67,8 @@ public class ValidationExceptionHandler {
             errors.put(fieldName, errorMessage);
         });
         
-        logger.warn("Constraint violation. Fields with errors: {}", errors.keySet());
-        logger.debug("Constraint violation details: {}", errors);
+        logger.warn("EXCEPTION: Constraint violation. Fields: {}", errors.keySet());
+        logger.debug("EXCEPTION: Constraint violation details: {}", errors);
         
         response.put("message", "Validation failed");
         response.put("errors", errors);
@@ -87,7 +87,7 @@ public class ValidationExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleResourceNotFoundException(ResourceNotFoundException ex) {
         Map<String, Object> response = new HashMap<>();
         
-        logger.info("Resource not found: {}", ex.getMessage());
+        logger.debug("EXCEPTION: Resource not found: {}", ex.getMessage());
         
         response.put("message", ex.getMessage());
         response.put("status", HttpStatus.NOT_FOUND.value());
@@ -105,7 +105,7 @@ public class ValidationExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleResourceConflictException(ResourceConflictException ex) {
         Map<String, Object> response = new HashMap<>();
         
-        logger.warn("Resource conflict: {}", ex.getMessage());
+        logger.warn("EXCEPTION: Resource conflict: {}", ex.getMessage());
         
         response.put("message", ex.getMessage());
         response.put("status", HttpStatus.CONFLICT.value());
@@ -123,8 +123,8 @@ public class ValidationExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleBusinessLogicException(BusinessLogicException ex) {
         Map<String, Object> response = new HashMap<>();
         
-        logger.warn("Business logic error: {}", ex.getMessage());
-        logger.debug("Business logic exception details", ex);
+        logger.warn("EXCEPTION: Business logic error: {}", ex.getMessage());
+        logger.debug("EXCEPTION: Business logic exception stack trace", ex);
         
         response.put("message", ex.getMessage());
         response.put("status", HttpStatus.BAD_REQUEST.value());
@@ -142,9 +142,10 @@ public class ValidationExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex) {
         Map<String, Object> response = new HashMap<>();
         
-        logger.error("Unexpected runtime error occurred: {}", ex.getMessage(), ex);
+        logger.error("EXCEPTION: Unexpected runtime error: {}", ex.getMessage(), ex);
         
-        response.put("message", "An unexpected error occurred: " + ex.getMessage());
+        // Don't expose internal error details to clients in production
+        response.put("message", "An unexpected error occurred. Please contact support if the problem persists.");
         response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
         
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);

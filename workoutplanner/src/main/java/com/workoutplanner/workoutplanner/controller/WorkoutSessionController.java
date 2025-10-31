@@ -87,8 +87,13 @@ public class WorkoutSessionController {
      */
     @GetMapping("/{sessionId}/smart")
     public ResponseEntity<WorkoutResponse> getWorkoutSessionWithSmartLoading(@PathVariable Long sessionId) {
-        logger.info("Smart loading requested for workout session {}", sessionId);
+        logger.debug("Getting workout session with smart loading. sessionId={}", sessionId);
+        
         WorkoutResponse workoutResponse = workoutSessionService.getWorkoutSessionWithSmartLoading(sessionId);
+        
+        logger.info("Workout session retrieved with smart loading. sessionId={}, exerciseCount={}", 
+                   sessionId, workoutResponse.getWorkoutExercises().size());
+        
         return ResponseEntity.ok(workoutResponse);
     }
     
@@ -145,8 +150,14 @@ public class WorkoutSessionController {
 
     @PostMapping("/{sessionId}/action")
     public ResponseEntity<WorkoutResponse> performWorkoutAction(@PathVariable Long sessionId, @Valid @RequestBody WorkoutActionRequest actionRequest) {
-        logger.info("Performing action '{}' on workout session: sessionId={}", actionRequest.getAction(), sessionId);
+        logger.debug("Performing action on workout session. sessionId={}, action={}", 
+                    sessionId, actionRequest.getAction());
+        
         WorkoutResponse workoutResponse = workoutSessionService.performAction(sessionId, actionRequest.getAction());
+        
+        logger.info("Action completed successfully. sessionId={}, action={}, newStatus={}", 
+                   sessionId, actionRequest.getAction(), workoutResponse.getStatus());
+        
         return ResponseEntity.ok(workoutResponse);
     }
 

@@ -111,12 +111,19 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
      */
     @Transactional
     public SetResponse updateSet(Long setId, CreateFlexibilitySetRequest createFlexibilitySetRequest) {
+        logger.debug("SERVICE: Updating flexibility set. setId={}, duration={}s, intensity={}", 
+                    setId, createFlexibilitySetRequest.getDurationInSeconds(), createFlexibilitySetRequest.getIntensity());
+        
         FlexibilitySet flexibilitySet = flexibilitySetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Flexibility set", "ID", setId));
 
         workoutMapper.updateFlexibilitySetEntity(createFlexibilitySetRequest, flexibilitySet);
 
         FlexibilitySet savedFlexibilitySet = flexibilitySetRepository.save(flexibilitySet);
+        
+        logger.info("SERVICE: Flexibility set updated successfully. setId={}, setNumber={}", 
+                   savedFlexibilitySet.getSetId(), savedFlexibilitySet.getSetNumber());
+        
         return baseSetMapper.toSetResponse(savedFlexibilitySet);
     }
 

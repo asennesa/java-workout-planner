@@ -111,12 +111,19 @@ public class CardioSetService implements CardioSetServiceInterface {
      */
     @Transactional
     public SetResponse updateSet(Long setId, CreateCardioSetRequest createCardioSetRequest) {
+        logger.debug("SERVICE: Updating cardio set. setId={}, duration={}s, distance={}", 
+                    setId, createCardioSetRequest.getDurationInSeconds(), createCardioSetRequest.getDistance());
+        
         CardioSet cardioSet = cardioSetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cardio set", "ID", setId));
 
         workoutMapper.updateCardioSetEntity(createCardioSetRequest, cardioSet);
 
         CardioSet savedCardioSet = cardioSetRepository.save(cardioSet);
+        
+        logger.info("SERVICE: Cardio set updated successfully. setId={}, setNumber={}", 
+                   savedCardioSet.getSetId(), savedCardioSet.getSetNumber());
+        
         return baseSetMapper.toSetResponse(savedCardioSet);
     }
 

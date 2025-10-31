@@ -111,12 +111,19 @@ public class StrengthSetService implements StrengthSetServiceInterface {
      */
     @Transactional
     public SetResponse updateSet(Long setId, CreateStrengthSetRequest createStrengthSetRequest) {
+        logger.debug("SERVICE: Updating strength set. setId={}, reps={}, weight={}", 
+                    setId, createStrengthSetRequest.getReps(), createStrengthSetRequest.getWeight());
+        
         StrengthSet strengthSet = strengthSetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Strength set", "ID", setId));
 
         workoutMapper.updateStrengthSetEntity(createStrengthSetRequest, strengthSet);
 
         StrengthSet savedStrengthSet = strengthSetRepository.save(strengthSet);
+        
+        logger.info("SERVICE: Strength set updated successfully. setId={}, setNumber={}", 
+                   savedStrengthSet.getSetId(), savedStrengthSet.getSetNumber());
+        
         return baseSetMapper.toSetResponse(savedStrengthSet);
     }
 

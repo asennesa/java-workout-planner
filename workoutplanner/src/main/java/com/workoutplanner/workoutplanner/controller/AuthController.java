@@ -45,7 +45,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequest loginRequest, 
                                                       HttpServletRequest request) {
-        logger.info("Login attempt for username: {}", loginRequest.getUsername());
+        logger.debug("Login attempt for username: {}", loginRequest.getUsername());
 
         try {
             Authentication authentication = authenticationManager.authenticate(
@@ -58,7 +58,8 @@ public class AuthController {
             SecurityContextHolder.getContext().setAuthentication(authentication);
             User user = (User) authentication.getPrincipal();
 
-            logger.info("User logged in successfully: {}", user.getUsername());
+            logger.info("User logged in successfully. userId={}, username={}", 
+                       user.getUserId(), user.getUsername());
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -73,7 +74,7 @@ public class AuthController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            logger.warn("Authentication failed for user: {}", loginRequest.getUsername());
+            logger.warn("Authentication failed for username: {}", loginRequest.getUsername());
             
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
