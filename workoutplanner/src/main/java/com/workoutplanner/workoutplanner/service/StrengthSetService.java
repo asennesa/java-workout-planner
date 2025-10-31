@@ -1,6 +1,6 @@
 package com.workoutplanner.workoutplanner.service;
 
-import com.workoutplanner.workoutplanner.dto.request.CreateSetRequest;
+import com.workoutplanner.workoutplanner.dto.request.CreateStrengthSetRequest;
 import com.workoutplanner.workoutplanner.dto.response.SetResponse;
 import com.workoutplanner.workoutplanner.entity.StrengthSet;
 import com.workoutplanner.workoutplanner.entity.WorkoutExercise;
@@ -55,15 +55,15 @@ public class StrengthSetService implements StrengthSetServiceInterface {
      * @return SetResponse the created strength set response
      */
     @Transactional
-    public SetResponse createSet(CreateSetRequest createSetRequest) {
+    public SetResponse createSet(CreateStrengthSetRequest createStrengthSetRequest) {
         logger.debug("SERVICE: Creating strength set. workoutExerciseId={}, setNumber={}, reps={}, weight={}", 
-                    createSetRequest.getWorkoutExerciseId(), createSetRequest.getSetNumber(),
-                    createSetRequest.getReps(), createSetRequest.getWeight());
+                    createStrengthSetRequest.getWorkoutExerciseId(), createStrengthSetRequest.getSetNumber(),
+                    createStrengthSetRequest.getReps(), createStrengthSetRequest.getWeight());
         
-        WorkoutExercise workoutExercise = workoutExerciseRepository.findById(createSetRequest.getWorkoutExerciseId())
-                .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", createSetRequest.getWorkoutExerciseId()));
+        WorkoutExercise workoutExercise = workoutExerciseRepository.findById(createStrengthSetRequest.getWorkoutExerciseId())
+                .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", createStrengthSetRequest.getWorkoutExerciseId()));
 
-        StrengthSet strengthSet = workoutMapper.toStrengthSetEntity(createSetRequest);
+        StrengthSet strengthSet = workoutMapper.toStrengthSetEntity(createStrengthSetRequest);
         
         strengthSet.setWorkoutExercise(workoutExercise);
 
@@ -110,7 +110,7 @@ public class StrengthSetService implements StrengthSetServiceInterface {
      * @return SetResponse the updated strength set response
      */
     @Transactional
-    public SetResponse updateSet(Long setId, CreateSetRequest createStrengthSetRequest) {
+    public SetResponse updateSet(Long setId, CreateStrengthSetRequest createStrengthSetRequest) {
         StrengthSet strengthSet = strengthSetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Strength set", "ID", setId));
 

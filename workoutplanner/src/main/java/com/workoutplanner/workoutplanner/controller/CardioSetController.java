@@ -1,5 +1,6 @@
 package com.workoutplanner.workoutplanner.controller;
 
+import com.workoutplanner.workoutplanner.dto.request.CreateCardioSetRequest;
 import com.workoutplanner.workoutplanner.service.CardioSetService;
 import com.workoutplanner.workoutplanner.service.SetServiceInterface;
 import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
@@ -23,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping(ApiVersionConstants.V1_BASE_PATH + "/cardio-sets")
-public class CardioSetController extends BaseSetController {
+public class CardioSetController extends BaseSetController<CreateCardioSetRequest> {
 
     private final CardioSetService cardioSetService;
 
@@ -42,7 +43,7 @@ public class CardioSetController extends BaseSetController {
      * @return CardioSetService instance
      */
     @Override
-    protected SetServiceInterface getService() {
+    protected SetServiceInterface<CreateCardioSetRequest> getService() {
         return cardioSetService;
     }
 }

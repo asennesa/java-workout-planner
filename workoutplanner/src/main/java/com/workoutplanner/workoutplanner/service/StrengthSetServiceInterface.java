@@ -1,6 +1,6 @@
 package com.workoutplanner.workoutplanner.service;
 
-import com.workoutplanner.workoutplanner.dto.request.CreateSetRequest;
+import com.workoutplanner.workoutplanner.dto.request.CreateStrengthSetRequest;
 import com.workoutplanner.workoutplanner.dto.response.SetResponse;
 
 import java.util.List;
@@ -12,6 +12,6 @@ import java.util.List;
  * This interface follows the Interface Segregation Principle by providing
  * a focused set of methods for strength set operations.
  */
-public interface StrengthSetServiceInterface extends SetServiceInterface {
+public interface StrengthSetServiceInterface extends SetServiceInterface<CreateStrengthSetRequest> {
     List<SetResponse> getSetsByWorkoutSession(Long sessionId);
 }

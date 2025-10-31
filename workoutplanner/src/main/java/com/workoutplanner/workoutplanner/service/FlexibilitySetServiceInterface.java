@@ -1,6 +1,6 @@
 package com.workoutplanner.workoutplanner.service;
 
-import com.workoutplanner.workoutplanner.dto.request.CreateSetRequest;
+import com.workoutplanner.workoutplanner.dto.request.CreateFlexibilitySetRequest;
 import com.workoutplanner.workoutplanner.dto.response.SetResponse;
 
 import java.util.List;
@@ -12,6 +12,6 @@ import java.util.List;
  * This interface follows the Interface Segregation Principle by providing
  * a focused set of methods for flexibility set operations.
  */
-public interface FlexibilitySetServiceInterface extends SetServiceInterface {
+public interface FlexibilitySetServiceInterface extends SetServiceInterface<CreateFlexibilitySetRequest> {
     List<SetResponse> getSetsByWorkoutSession(Long sessionId);
 }

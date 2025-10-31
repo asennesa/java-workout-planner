@@ -2,7 +2,9 @@ package com.workoutplanner.workoutplanner.mapper;
 
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutExerciseRequest;
-import com.workoutplanner.workoutplanner.dto.request.CreateSetRequest;
+import com.workoutplanner.workoutplanner.dto.request.CreateStrengthSetRequest;
+import com.workoutplanner.workoutplanner.dto.request.CreateCardioSetRequest;
+import com.workoutplanner.workoutplanner.dto.request.CreateFlexibilitySetRequest;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutExerciseResponse;
 import com.workoutplanner.workoutplanner.entity.WorkoutSession;
@@ -113,7 +115,7 @@ public abstract class WorkoutMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
-    public abstract StrengthSet toStrengthSetEntity(CreateSetRequest createSetRequest);
+    public abstract StrengthSet toStrengthSetEntity(CreateStrengthSetRequest createStrengthSetRequest);
 
     /**
      * Updates existing StrengthSet entity with data from CreateStrengthSetRequest.
@@ -125,7 +127,7 @@ public abstract class WorkoutMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
-    public abstract void updateStrengthSetEntity(CreateSetRequest createSetRequest, @MappingTarget StrengthSet strengthSet);
+    public abstract void updateStrengthSetEntity(CreateStrengthSetRequest createStrengthSetRequest, @MappingTarget StrengthSet strengthSet);
 
     /**
      * Maps CreateCardioSetRequest to CardioSet entity.
@@ -138,7 +140,7 @@ public abstract class WorkoutMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
-    public abstract CardioSet toCardioSetEntity(CreateSetRequest createSetRequest);
+    public abstract CardioSet toCardioSetEntity(CreateCardioSetRequest createCardioSetRequest);
 
     /**
      * Updates existing CardioSet entity with data from CreateCardioSetRequest.
@@ -150,7 +152,7 @@ public abstract class WorkoutMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
-    public abstract void updateCardioSetEntity(CreateSetRequest createSetRequest, @MappingTarget CardioSet cardioSet);
+    public abstract void updateCardioSetEntity(CreateCardioSetRequest createCardioSetRequest, @MappingTarget CardioSet cardioSet);
 
     /**
      * Maps CreateFlexibilitySetRequest to FlexibilitySet entity.
@@ -163,7 +165,7 @@ public abstract class WorkoutMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
-    public abstract FlexibilitySet toFlexibilitySetEntity(CreateSetRequest createSetRequest);
+    public abstract FlexibilitySet toFlexibilitySetEntity(CreateFlexibilitySetRequest createFlexibilitySetRequest);
 
     /**
      * Updates existing FlexibilitySet entity with data from CreateFlexibilitySetRequest.
@@ -175,5 +177,5 @@ public abstract class WorkoutMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
-    public abstract void updateFlexibilitySetEntity(CreateSetRequest createSetRequest, @MappingTarget FlexibilitySet flexibilitySet);
+    public abstract void updateFlexibilitySetEntity(CreateFlexibilitySetRequest createFlexibilitySetRequest, @MappingTarget FlexibilitySet flexibilitySet);
 }

@@ -1,6 +1,5 @@
 package com.workoutplanner.workoutplanner.controller;
 
-import com.workoutplanner.workoutplanner.dto.request.CreateSetRequest;
 import com.workoutplanner.workoutplanner.dto.response.SetResponse;
 import com.workoutplanner.workoutplanner.service.SetServiceInterface;
 import jakarta.validation.Valid;
@@ -16,9 +15,11 @@ import java.util.List;
  * This abstract class implements the Template Method pattern to provide
  * consistent CRUD operations across different set types (Strength, Cardio, Flexibility).
  * 
- * Concrete controllers only need to provide the service implementation.
+ * The generic type T allows each concrete controller to use its specific request DTO.
+ * 
+ * @param <T> The specific set request type (CreateStrengthSetRequest, CreateCardioSetRequest, etc.)
  */
-public abstract class BaseSetController {
+public abstract class BaseSetController<T> {
 
     /**
      * Template method to get the appropriate service implementation.
@@ -26,16 +27,16 @@ public abstract class BaseSetController {
      * 
      * @return SetServiceInterface implementation for the specific set type
      */
-    protected abstract SetServiceInterface getService();
+    protected abstract SetServiceInterface<T> getService();
 
     /**
      * Create a new set.
      * 
-     * @param createSetRequest the set data
+     * @param createSetRequest the set data (type-specific)
      * @return ResponseEntity containing the created set
      */
     @PostMapping
-    public ResponseEntity<SetResponse> createSet(@Valid @RequestBody CreateSetRequest createSetRequest) {
+    public ResponseEntity<SetResponse> createSet(@Valid @RequestBody T createSetRequest) {
         SetResponse setResponse = getService().createSet(createSetRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(setResponse);
     }
@@ -68,11 +69,11 @@ public abstract class BaseSetController {
      * Update an existing set.
      * 
      * @param setId the set ID
-     * @param createSetRequest the updated set data
+     * @param createSetRequest the updated set data (type-specific)
      * @return ResponseEntity containing the updated set
      */
     @PutMapping("/{setId}")
-    public ResponseEntity<SetResponse> updateSet(@PathVariable Long setId, @Valid @RequestBody CreateSetRequest createSetRequest) {
+    public ResponseEntity<SetResponse> updateSet(@PathVariable Long setId, @Valid @RequestBody T createSetRequest) {
         SetResponse setResponse = getService().updateSet(setId, createSetRequest);
         return ResponseEntity.ok(setResponse);
     }

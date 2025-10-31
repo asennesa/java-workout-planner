@@ -1,5 +1,6 @@
 package com.workoutplanner.workoutplanner.controller;
 
+import com.workoutplanner.workoutplanner.dto.request.CreateFlexibilitySetRequest;
 import com.workoutplanner.workoutplanner.service.FlexibilitySetService;
 import com.workoutplanner.workoutplanner.service.SetServiceInterface;
 import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
@@ -22,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping(ApiVersionConstants.V1_BASE_PATH + "/flexibility-sets")
-public class FlexibilitySetController extends BaseSetController {
+public class FlexibilitySetController extends BaseSetController<CreateFlexibilitySetRequest> {
 
     private final FlexibilitySetService flexibilitySetService;
 
@@ -41,7 +42,7 @@ public class FlexibilitySetController extends BaseSetController {
      * @return FlexibilitySetService instance
      */
     @Override
-    protected SetServiceInterface getService() {
+    protected SetServiceInterface<CreateFlexibilitySetRequest> getService() {
         return flexibilitySetService;
     }
 }

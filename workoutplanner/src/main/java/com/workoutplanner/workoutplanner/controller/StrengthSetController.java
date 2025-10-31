@@ -1,5 +1,6 @@
 package com.workoutplanner.workoutplanner.controller;
 
+import com.workoutplanner.workoutplanner.dto.request.CreateStrengthSetRequest;
 import com.workoutplanner.workoutplanner.service.SetServiceInterface;
 import com.workoutplanner.workoutplanner.service.StrengthSetService;
 import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
@@ -22,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping(ApiVersionConstants.V1_BASE_PATH + "/strength-sets")
-public class StrengthSetController extends BaseSetController {
+public class StrengthSetController extends BaseSetController<CreateStrengthSetRequest> {
 
     private final StrengthSetService strengthSetService;
 
@@ -41,7 +42,7 @@ public class StrengthSetController extends BaseSetController {
      * @return StrengthSetService instance
      */
     @Override
-    protected SetServiceInterface getService() {
+    protected SetServiceInterface<CreateStrengthSetRequest> getService() {
         return strengthSetService;
     }
 }

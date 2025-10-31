@@ -1,6 +1,6 @@
 package com.workoutplanner.workoutplanner.service;
 
-import com.workoutplanner.workoutplanner.dto.request.CreateSetRequest;
+import com.workoutplanner.workoutplanner.dto.request.CreateFlexibilitySetRequest;
 import com.workoutplanner.workoutplanner.dto.response.SetResponse;
 import com.workoutplanner.workoutplanner.entity.FlexibilitySet;
 import com.workoutplanner.workoutplanner.entity.WorkoutExercise;
@@ -55,7 +55,7 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
      * @return SetResponse the created flexibility set response
      */
     @Transactional
-    public SetResponse createSet(CreateSetRequest createFlexibilitySetRequest) {
+    public SetResponse createSet(CreateFlexibilitySetRequest createFlexibilitySetRequest) {
         logger.debug("SERVICE: Creating flexibility set. workoutExerciseId={}, setNumber={}, duration={}s, intensity={}", 
                     createFlexibilitySetRequest.getWorkoutExerciseId(), createFlexibilitySetRequest.getSetNumber(),
                     createFlexibilitySetRequest.getDurationInSeconds(), createFlexibilitySetRequest.getIntensity());
@@ -110,7 +110,7 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
      * @return SetResponse the updated flexibility set response
      */
     @Transactional
-    public SetResponse updateSet(Long setId, CreateSetRequest createFlexibilitySetRequest) {
+    public SetResponse updateSet(Long setId, CreateFlexibilitySetRequest createFlexibilitySetRequest) {
         FlexibilitySet flexibilitySet = flexibilitySetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Flexibility set", "ID", setId));
 

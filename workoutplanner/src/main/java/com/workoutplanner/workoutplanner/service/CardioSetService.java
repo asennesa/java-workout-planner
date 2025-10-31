@@ -1,6 +1,6 @@
 package com.workoutplanner.workoutplanner.service;
 
-import com.workoutplanner.workoutplanner.dto.request.CreateSetRequest;
+import com.workoutplanner.workoutplanner.dto.request.CreateCardioSetRequest;
 import com.workoutplanner.workoutplanner.dto.response.SetResponse;
 import com.workoutplanner.workoutplanner.entity.CardioSet;
 import com.workoutplanner.workoutplanner.entity.WorkoutExercise;
@@ -55,7 +55,7 @@ public class CardioSetService implements CardioSetServiceInterface {
      * @return SetResponse the created cardio set response
      */
     @Transactional
-    public SetResponse createSet(CreateSetRequest createCardioSetRequest) {
+    public SetResponse createSet(CreateCardioSetRequest createCardioSetRequest) {
         logger.debug("SERVICE: Creating cardio set. workoutExerciseId={}, setNumber={}, duration={}s, distance={}", 
                     createCardioSetRequest.getWorkoutExerciseId(), createCardioSetRequest.getSetNumber(),
                     createCardioSetRequest.getDurationInSeconds(), createCardioSetRequest.getDistance());
@@ -110,7 +110,7 @@ public class CardioSetService implements CardioSetServiceInterface {
      * @return SetResponse the updated cardio set response
      */
     @Transactional
-    public SetResponse updateSet(Long setId, CreateSetRequest createCardioSetRequest) {
+    public SetResponse updateSet(Long setId, CreateCardioSetRequest createCardioSetRequest) {
         CardioSet cardioSet = cardioSetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cardio set", "ID", setId));
 
