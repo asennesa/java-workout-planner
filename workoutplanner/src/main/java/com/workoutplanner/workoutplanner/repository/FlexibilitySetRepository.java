@@ -1,6 +1,7 @@
 package com.workoutplanner.workoutplanner.repository;
 
 import com.workoutplanner.workoutplanner.entity.FlexibilitySet;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -8,40 +9,28 @@ import java.util.List;
 
 /**
  * Repository interface for FlexibilitySet entity.
- * Provides data access methods for flexibility sets.
+ * Provides CRUD operations and custom queries for flexibility set management.
+ * 
+ * Uses @EntityGraph to prevent N+1 query problems when accessing workoutExercise.
  */
 @Repository
 public interface FlexibilitySetRepository extends JpaRepository<FlexibilitySet, Long> {
 
     /**
-     * Find all flexibility sets for a specific workout exercise, ordered by set number.
-     *
+     * Find flexibility sets by workout exercise ID, ordered by set number.
+     * Uses @EntityGraph to eagerly fetch workoutExercise, preventing N+1 queries.
+     * 
      * @param workoutExerciseId the workout exercise ID
-     * @return List of FlexibilitySet entities
+     * @return list of flexibility sets ordered by set number
      */
-    List<FlexibilitySet> findByWorkoutExerciseWorkoutExerciseIdOrderBySetNumber(Long workoutExerciseId);
-
+    @EntityGraph(attributePaths = {"workoutExercise"})
+    List<FlexibilitySet> findByWorkoutExercise_WorkoutExerciseIdOrderBySetNumberAsc(Long workoutExerciseId);
+    
     /**
-     * Find all flexibility sets for a specific workout session.
-     *
+     * Find flexibility sets by workout session ID.
+     * 
      * @param sessionId the workout session ID
-     * @return List of FlexibilitySet entities
+     * @return list of flexibility sets for the workout session
      */
-    List<FlexibilitySet> findByWorkoutExerciseWorkoutSessionSessionId(Long sessionId);
-
-    /**
-     * Find all completed flexibility sets for a specific workout exercise.
-     *
-     * @param workoutExerciseId the workout exercise ID
-     * @return List of completed FlexibilitySet entities
-     */
-    List<FlexibilitySet> findByWorkoutExerciseWorkoutExerciseIdAndCompletedTrueOrderBySetNumber(Long workoutExerciseId);
-
-    /**
-     * Count flexibility sets for a specific workout exercise.
-     *
-     * @param workoutExerciseId the workout exercise ID
-     * @return number of flexibility sets
-     */
-    long countByWorkoutExerciseWorkoutExerciseId(Long workoutExerciseId);
+    List<FlexibilitySet> findByWorkoutExercise_WorkoutSession_SessionId(Long sessionId);
 }

@@ -7,30 +7,44 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.validator.constraints.Length;
 
+/**
+ * DTO for creating flexibility/stretching exercise sets.
+ * 
+ * Note: workoutExerciseId is NOT included here as it comes from the URL path parameter.
+ * This follows REST best practices where resource identifiers belong in the URL.
+ * 
+ * Flexibility sets track:
+ * - Duration of stretch
+ * - Type of stretch (static, dynamic, etc.)
+ * - Intensity level (1-10 scale)
+ * 
+ * All type-specific fields are required.
+ * 
+ * @author WorkoutPlanner Team
+ * @version 1.0
+ * @since 1.0
+ */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateFlexibilitySetRequest {
 
-    @NotNull(message = "Workout exercise ID is required")
-    private Long workoutExerciseId;
-
     @NotNull(message = "Set number is required")
     @Min(value = 1, message = "Set number must be at least 1")
     @Max(value = 50, message = "Set number cannot exceed 50")
     private Integer setNumber;
 
-    @NotNull(message = "Duration is required")
+    @NotNull(message = "Duration is required for flexibility sets")
     @Min(value = 1, message = "Duration must be at least 1 second")
-    @Max(value = 3600, message = "Duration cannot exceed 1 hour (3600 seconds)")
+    @Max(value = 14400, message = "Duration cannot exceed 4 hours (14400 seconds)")
     private Integer durationInSeconds;
 
-    @NotBlank(message = "Stretch type is required")
+    @NotNull(message = "Stretch type is required for flexibility sets")
     @Length(min = 2, max = 50, message = "Stretch type must be between 2 and 50 characters")
     private String stretchType;
 
-    @NotNull(message = "Intensity is required")
+    @NotNull(message = "Intensity is required for flexibility sets")
     @Min(value = 1, message = "Intensity must be at least 1")
     @Max(value = 10, message = "Intensity cannot exceed 10")
     private Integer intensity;
@@ -44,3 +58,4 @@ public class CreateFlexibilitySetRequest {
 
     private Boolean completed = false;
 }
+

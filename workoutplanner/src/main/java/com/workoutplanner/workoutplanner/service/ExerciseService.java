@@ -10,6 +10,7 @@ import com.workoutplanner.workoutplanner.enums.TargetMuscleGroup;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.mapper.ExerciseMapper;
 import com.workoutplanner.workoutplanner.repository.ExerciseRepository;
+import com.workoutplanner.workoutplanner.util.ValidationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -179,7 +180,7 @@ public class ExerciseService implements ExerciseServiceInterface {
         logger.debug("SERVICE: Searching exercises by name. searchTerm={}", name);
         
         // Sanitize input to escape LIKE wildcards
-        String sanitizedName = sanitizeLikeWildcards(name.trim());
+        String sanitizedName = ValidationUtils.sanitizeLikeWildcards(name.trim());
         
         List<Exercise> exercises = exerciseRepository.findByNameContainingIgnoreCase(sanitizedName);
         
@@ -187,24 +188,6 @@ public class ExerciseService implements ExerciseServiceInterface {
                    exercises.size(), sanitizedName);
         
         return exerciseMapper.toResponseList(exercises);
-    }
-    
-    /**
-     * Sanitize string input to escape SQL LIKE wildcards.
-     * Prevents wildcard abuse in search queries.
-     * 
-     * @param input the input string to sanitize
-     * @return sanitized string with escaped wildcards
-     */
-    private String sanitizeLikeWildcards(String input) {
-        if (input == null) {
-            return "";
-        }
-        // Escape special SQL LIKE wildcards
-        // Escape backslash first to avoid double-escaping
-        return input.replace("\\", "\\\\")
-                   .replace("%", "\\%")
-                   .replace("_", "\\_");
     }
     
     /**
@@ -219,7 +202,7 @@ public class ExerciseService implements ExerciseServiceInterface {
     public List<ExerciseResponse> getExercisesByCriteria(ExerciseType type, 
                                                          TargetMuscleGroup targetMuscleGroup, 
                                                          DifficultyLevel difficultyLevel) {
-        List<Exercise> exercises = exerciseRepository.findByCriteria(type, targetMuscleGroup, difficultyLevel);
+        List<Exercise> exercises = exerciseRepository.findByTypeAndTargetMuscleGroupAndDifficultyLevel(type, targetMuscleGroup, difficultyLevel);
         return exerciseMapper.toResponseList(exercises);
     }
     

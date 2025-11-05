@@ -44,13 +44,6 @@ public interface WorkoutSessionServiceInterface {
     List<WorkoutResponse> getWorkoutSessionsByUserId(Long userId);
     
     /**
-     * Get all workout sessions.
-     *
-     * @return List of WorkoutResponse
-     */
-    List<WorkoutResponse> getAllWorkoutSessions();
-    
-    /**
      * Get all workout sessions with pagination.
      *
      * @param pageable pagination information
@@ -86,10 +79,11 @@ public interface WorkoutSessionServiceInterface {
     /**
      * Add exercise to workout session.
      *
-     * @param createWorkoutExerciseRequest the workout exercise request
+     * @param sessionId the workout session ID from URL path parameter
+     * @param createWorkoutExerciseRequest the workout exercise request from body
      * @return WorkoutExerciseResponse the created workout exercise response
      */
-    WorkoutExerciseResponse addExerciseToWorkout(CreateWorkoutExerciseRequest createWorkoutExerciseRequest);
+    WorkoutExerciseResponse addExerciseToWorkout(Long sessionId, CreateWorkoutExerciseRequest createWorkoutExerciseRequest);
     
     /**
      * Remove exercise from workout session.

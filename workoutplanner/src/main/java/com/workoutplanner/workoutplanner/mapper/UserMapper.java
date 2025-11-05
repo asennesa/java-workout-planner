@@ -1,7 +1,7 @@
 package com.workoutplanner.workoutplanner.mapper;
 
 import com.workoutplanner.workoutplanner.dto.request.CreateUserRequest;
-import com.workoutplanner.workoutplanner.dto.request.UpdateUserRequest;
+import com.workoutplanner.workoutplanner.dto.request.UserUpdateRequest;
 import com.workoutplanner.workoutplanner.dto.response.UserResponse;
 import com.workoutplanner.workoutplanner.entity.User;
 import org.mapstruct.Mapper;
@@ -27,10 +27,17 @@ public interface UserMapper {
      * Maps CreateUserRequest to User entity.
      * Note: passwordHash should be set separately in the service layer after hashing
      */
-    @Mapping(target = "userId", ignore = true) // Will be set by JPA
-    @Mapping(target = "passwordHash", ignore = true) // Will be set in service layer
-    @Mapping(target = "createdAt", ignore = true) // Will be set by JPA @PrePersist
-    @Mapping(target = "updatedAt", ignore = true) // Will be set by JPA @PrePersist
+    @Mapping(target = "userId", ignore = true)
+    @Mapping(target = "passwordHash", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "role", ignore = true)
+    @Mapping(target = "accountNonExpired", ignore = true)
+    @Mapping(target = "accountNonLocked", ignore = true)
+    @Mapping(target = "credentialsNonExpired", ignore = true)
+    @Mapping(target = "enabled", ignore = true)
+    @Mapping(target = "authorities", ignore = true)
     User toEntity(CreateUserRequest createUserRequest);
 
     /**
@@ -48,19 +55,34 @@ public interface UserMapper {
      * Updates existing User entity with data from CreateUserRequest.
      * Useful for update operations
      */
-    @Mapping(target = "userId", ignore = true) // Never update the ID
-    @Mapping(target = "passwordHash", ignore = true) // Handle password updates separately
-    @Mapping(target = "createdAt", ignore = true) // Never update createdAt
-    @Mapping(target = "updatedAt", ignore = true) // Will be set by JPA @PreUpdate
+    @Mapping(target = "userId", ignore = true)
+    @Mapping(target = "passwordHash", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "role", ignore = true)
+    @Mapping(target = "accountNonExpired", ignore = true)
+    @Mapping(target = "accountNonLocked", ignore = true)
+    @Mapping(target = "credentialsNonExpired", ignore = true)
+    @Mapping(target = "enabled", ignore = true)
+    @Mapping(target = "authorities", ignore = true)
     void updateEntity(CreateUserRequest createUserRequest, @MappingTarget User user);
 
     /**
      * Updates existing User entity with data from UpdateUserRequest.
      * Specifically for user profile updates (excludes password)
      */
-    @Mapping(target = "userId", ignore = true) // Never update the ID
-    @Mapping(target = "passwordHash", ignore = true) // Never update password in profile update
-    @Mapping(target = "createdAt", ignore = true) // Never update createdAt
-    @Mapping(target = "updatedAt", ignore = true) // Will be set by JPA @PreUpdate
-    void updateFromUpdateRequest(UpdateUserRequest updateUserRequest, @MappingTarget User user);
+    @Mapping(target = "userId", ignore = true)
+    @Mapping(target = "passwordHash", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "username", ignore = true)
+    @Mapping(target = "role", ignore = true)
+    @Mapping(target = "accountNonExpired", ignore = true)
+    @Mapping(target = "accountNonLocked", ignore = true)
+    @Mapping(target = "credentialsNonExpired", ignore = true)
+    @Mapping(target = "enabled", ignore = true)
+    @Mapping(target = "authorities", ignore = true)
+    void updateFromUpdateRequest(UserUpdateRequest userUpdateRequest, @MappingTarget User user);
 }

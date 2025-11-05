@@ -9,21 +9,35 @@ import org.hibernate.validator.constraints.Length;
 
 import java.math.BigDecimal;
 
+/**
+ * DTO for creating cardiovascular exercise sets.
+ * 
+ * Note: workoutExerciseId is NOT included here as it comes from the URL path parameter.
+ * This follows REST best practices where resource identifiers belong in the URL.
+ * 
+ * Cardio sets track:
+ * - Duration of exercise
+ * - Distance covered (optional)
+ * - Distance unit (optional)
+ * 
+ * Duration is required. Distance and unit are optional.
+ * 
+ * @author WorkoutPlanner Team
+ * @version 1.0
+ * @since 1.0
+ */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateCardioSetRequest {
 
-    @NotNull(message = "Workout exercise ID is required")
-    private Long workoutExerciseId;
-
     @NotNull(message = "Set number is required")
     @Min(value = 1, message = "Set number must be at least 1")
     @Max(value = 50, message = "Set number cannot exceed 50")
     private Integer setNumber;
 
-    @NotNull(message = "Duration is required")
+    @NotNull(message = "Duration is required for cardio sets")
     @Min(value = 1, message = "Duration must be at least 1 second")
     @Max(value = 14400, message = "Duration cannot exceed 4 hours (14400 seconds)")
     private Integer durationInSeconds;
@@ -44,3 +58,4 @@ public class CreateCardioSetRequest {
 
     private Boolean completed = false;
 }
+

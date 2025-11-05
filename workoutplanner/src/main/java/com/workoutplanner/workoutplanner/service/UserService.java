@@ -1,20 +1,26 @@
 package com.workoutplanner.workoutplanner.service;
 
-import com.workoutplanner.workoutplanner.dto.request.ChangePasswordRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateUserRequest;
-import com.workoutplanner.workoutplanner.dto.request.UpdateUserRequest;
+import com.workoutplanner.workoutplanner.dto.request.UserUpdateRequest;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.UserResponse;
 import com.workoutplanner.workoutplanner.entity.User;
+import com.workoutplanner.workoutplanner.enums.UserRole;
 import com.workoutplanner.workoutplanner.exception.BusinessLogicException;
 import com.workoutplanner.workoutplanner.exception.ResourceConflictException;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.mapper.UserMapper;
 import com.workoutplanner.workoutplanner.repository.UserRepository;
+import com.workoutplanner.workoutplanner.util.ValidationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +36,7 @@ import java.util.List;
  * - Write operations use @Transactional for data modification
  */
 @Service
-public class UserService implements UserServiceInterface {
+public class UserService implements UserServiceInterface, UserDetailsService {
     
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
     
@@ -62,33 +68,29 @@ public class UserService implements UserServiceInterface {
         logger.debug("SERVICE: Creating new user. username={}, email={}", 
                     createUserRequest.getUsername(), createUserRequest.getEmail());
         
-        // Check if username already exists
         if (userRepository.existsByUsername(createUserRequest.getUsername())) {
             logger.warn("SERVICE: User creation failed - username already exists. username={}", 
                        createUserRequest.getUsername());
             throw new ResourceConflictException("User", "username", createUserRequest.getUsername());
         }
         
-        // Check if email already exists
         if (userRepository.existsByEmail(createUserRequest.getEmail())) {
             logger.warn("SERVICE: User creation failed - email already exists. email={}", 
                        createUserRequest.getEmail());
             throw new ResourceConflictException("User", "email", createUserRequest.getEmail());
         }
         
-        // Convert request to entity
         User user = userMapper.toEntity(createUserRequest);
         
-        // Hash the password
         user.setPasswordHash(passwordEncoder.encode(createUserRequest.getPassword()));
         
-        // Save the user
+        user.setRole(UserRole.USER);
+        
         User savedUser = userRepository.save(user);
         
         logger.info("SERVICE: User created successfully. userId={}, username={}, email={}", 
                    savedUser.getUserId(), savedUser.getUsername(), savedUser.getEmail());
         
-        // Convert to response and return
         return userMapper.toResponse(savedUser);
     }
     
@@ -138,17 +140,6 @@ public class UserService implements UserServiceInterface {
     }
     
     /**
-     * Get all users.
-     * 
-     * @return list of all user responses
-     */
-    @Transactional(readOnly = true)
-    public List<UserResponse> getAllUsers() {
-        List<User> users = userRepository.findAll();
-        return userMapper.toResponseList(users);
-    }
-    
-    /**
      * Get all users with pagination.
      * 
      * @param pageable pagination information (page number, size, sort)
@@ -185,85 +176,123 @@ public class UserService implements UserServiceInterface {
      * @throws ResourceConflictException if username or email already exists
      */
     @Transactional
-    public UserResponse updateUser(Long userId, UpdateUserRequest updateUserRequest) {
-        logger.debug("SERVICE: Updating user. userId={}, newUsername={}, newEmail={}", 
-                    userId, updateUserRequest.getUsername(), updateUserRequest.getEmail());
+    public UserResponse updateUser(Long userId, UserUpdateRequest userUpdateRequest) {
+        logger.debug("SERVICE: User update requested. userId={}, isSecureUpdate={}", userId, userUpdateRequest.isSecureUpdate());
+        
+        if (userUpdateRequest.isSecureUpdate()) {
+            logger.info("SERVICE: Routing to secure update for sensitive changes");
+            return updateUserProfileSecurely(userId, userUpdateRequest);
+        } else {
+            logger.info("SERVICE: Routing to basic update for non-sensitive changes");
+            return updateUserBasic(userId, userUpdateRequest);
+        }
+    }
+    
+    /**
+     * Update user profile with basic information (no password verification required).
+     * 
+     * This method handles non-sensitive profile updates like firstName and lastName.
+     * 
+     * @param userId the user ID
+     * @param userUpdateRequest the user update request
+     * @return UserResponse the updated user response
+     * @throws ResourceNotFoundException if user not found
+     */
+    @Transactional
+    public UserResponse updateUserBasic(Long userId, UserUpdateRequest userUpdateRequest) {
+        logger.debug("SERVICE: Basic user update requested. userId={}", userId);
         
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "ID", userId));
         
-        // Check if new username conflicts with existing users (excluding current user)
-        if (!user.getUsername().equals(updateUserRequest.getUsername()) && 
-            userRepository.existsByUsername(updateUserRequest.getUsername())) {
-            logger.warn("SERVICE: User update failed - username conflict. userId={}, conflictUsername={}", 
-                       userId, updateUserRequest.getUsername());
-            throw new ResourceConflictException("User", "username", updateUserRequest.getUsername());
+        // Update first name if provided
+        if (userUpdateRequest.getFirstName() != null && !userUpdateRequest.getFirstName().trim().isEmpty()) {
+            user.setFirstName(userUpdateRequest.getFirstName());
+            logger.info("SERVICE: User first name updated. userId={}, newFirstName={}", userId, userUpdateRequest.getFirstName());
         }
         
-        // Check if new email conflicts with existing users (excluding current user)
-        if (!user.getEmail().equals(updateUserRequest.getEmail()) && 
-            userRepository.existsByEmail(updateUserRequest.getEmail())) {
-            logger.warn("SERVICE: User update failed - email conflict. userId={}, conflictEmail={}", 
-                       userId, updateUserRequest.getEmail());
-            throw new ResourceConflictException("User", "email", updateUserRequest.getEmail());
+        // Update last name if provided
+        if (userUpdateRequest.getLastName() != null && !userUpdateRequest.getLastName().trim().isEmpty()) {
+            user.setLastName(userUpdateRequest.getLastName());
+            logger.info("SERVICE: User last name updated. userId={}, newLastName={}", userId, userUpdateRequest.getLastName());
         }
-        
-        String oldUsername = user.getUsername();
-        String oldEmail = user.getEmail();
-        
-        // Update user fields using mapper (no password update here)
-        userMapper.updateFromUpdateRequest(updateUserRequest, user);
         
         // Save updated user
         User savedUser = userRepository.save(user);
         
-        logger.info("SERVICE: User updated successfully. userId={}, oldUsername={}, newUsername={}, oldEmail={}, newEmail={}", 
-                   userId, oldUsername, savedUser.getUsername(), oldEmail, savedUser.getEmail());
+        logger.info("SERVICE: User updated with basic information. userId={}, nameChanged={}", 
+                   userId, userUpdateRequest.isNameChangeRequested());
         
         return userMapper.toResponse(savedUser);
     }
-    
+
     /**
-     * Change user password with verification of current password.
+     * Update user profile securely with password verification.
+     * 
+     * This method handles sensitive profile updates like email and password changes.
+     * Requires current password verification for security.
      * 
      * @param userId the user ID
-     * @param changePasswordRequest the password change request
+     * @param userUpdateRequest the user update request
+     * @return UserResponse the updated user response
      * @throws ResourceNotFoundException if user not found
-     * @throws BusinessLogicException if current password is incorrect or passwords don't match
+     * @throws BusinessLogicException if current password is incorrect or validation fails
      */
     @Transactional
-    public void changePassword(Long userId, ChangePasswordRequest changePasswordRequest) {
-        logger.debug("SERVICE: Password change requested. userId={}", userId);
-        
-        // Validate that new password and confirmation match
-        if (!changePasswordRequest.passwordsMatch()) {
-            logger.warn("SERVICE: Password change failed - password mismatch. userId={}", userId);
-            throw new BusinessLogicException("New password and confirmation do not match");
-        }
+    public UserResponse updateUserProfileSecurely(Long userId, UserUpdateRequest userUpdateRequest) {
+        logger.debug("SERVICE: Secure profile update requested. userId={}", userId);
         
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "ID", userId));
         
-        // Verify current password
-        if (!passwordEncoder.matches(changePasswordRequest.getCurrentPassword(), user.getPasswordHash())) {
-            logger.warn("SERVICE: Password change failed - incorrect current password. userId={}, username={}", 
-                       userId, user.getUsername());
+        if (!passwordEncoder.matches(userUpdateRequest.getCurrentPassword(), user.getPasswordHash())) {
+            logger.warn("SERVICE: Secure profile update failed - incorrect current password. userId={}", userId);
             throw new BusinessLogicException("Current password is incorrect");
         }
         
-        // Ensure new password is different from current
-        if (passwordEncoder.matches(changePasswordRequest.getNewPassword(), user.getPasswordHash())) {
-            logger.warn("SERVICE: Password change failed - new password same as current. userId={}", userId);
-            throw new BusinessLogicException("New password must be different from current password");
+        if (userUpdateRequest.isEmailChangeRequested()) {
+            if (!user.getEmail().equals(userUpdateRequest.getEmail()) && 
+                userRepository.existsByEmail(userUpdateRequest.getEmail())) {
+                logger.warn("SERVICE: Secure profile update failed - email conflict. userId={}, conflictEmail={}", 
+                           userId, userUpdateRequest.getEmail());
+                throw new ResourceConflictException("User", "email", userUpdateRequest.getEmail());
+            }
         }
         
-        // Hash and set new password
-        user.setPasswordHash(passwordEncoder.encode(changePasswordRequest.getNewPassword()));
+        if (userUpdateRequest.isEmailChangeRequested()) {
+            user.setEmail(userUpdateRequest.getEmail());
+            logger.info("SERVICE: User email updated. userId={}, newEmail={}", userId, userUpdateRequest.getEmail());
+        }
         
-        userRepository.save(user);
+        if (userUpdateRequest.getFirstName() != null && !userUpdateRequest.getFirstName().trim().isEmpty()) {
+            user.setFirstName(userUpdateRequest.getFirstName());
+            logger.info("SERVICE: User first name updated. userId={}, newFirstName={}", userId, userUpdateRequest.getFirstName());
+        }
         
-        logger.info("SERVICE: Password changed successfully. userId={}, username={}", 
-                   userId, user.getUsername());
+        if (userUpdateRequest.getLastName() != null && !userUpdateRequest.getLastName().trim().isEmpty()) {
+            user.setLastName(userUpdateRequest.getLastName());
+            logger.info("SERVICE: User last name updated. userId={}, newLastName={}", userId, userUpdateRequest.getLastName());
+        }
+        
+        if (userUpdateRequest.isPasswordChangeRequested()) {
+            if (!userUpdateRequest.passwordsMatch()) {
+                logger.warn("SERVICE: Secure profile update failed - password confirmation mismatch. userId={}", userId);
+                throw new BusinessLogicException("New password and confirmation do not match");
+            }
+            
+            String hashedPassword = passwordEncoder.encode(userUpdateRequest.getNewPassword());
+            user.setPasswordHash(hashedPassword);
+            logger.info("SERVICE: User password updated. userId={}", userId);
+        }
+        
+        User savedUser = userRepository.save(user);
+        
+        logger.info("SERVICE: User profile updated securely. userId={}, emailChanged={}, nameChanged={}, passwordChanged={}", 
+                   userId, userUpdateRequest.isEmailChangeRequested(), 
+                   userUpdateRequest.isNameChangeRequested(), 
+                   userUpdateRequest.isPasswordChangeRequested());
+        
+        return userMapper.toResponse(savedUser);
     }
     
     /**
@@ -287,7 +316,7 @@ public class UserService implements UserServiceInterface {
         logger.info("SERVICE: User deleted successfully. userId={}, username={}, email={}", 
                    userId, username, email);
     }
-    
+
     /**
      * Search users by first name.
      * Sanitizes input to prevent SQL LIKE wildcard abuse.
@@ -299,8 +328,7 @@ public class UserService implements UserServiceInterface {
     public List<UserResponse> searchUsersByFirstName(String firstName) {
         logger.debug("SERVICE: Searching users by first name. searchTerm={}", firstName);
         
-        // Sanitize input to escape LIKE wildcards
-        String sanitizedFirstName = sanitizeLikeWildcards(firstName.trim());
+        String sanitizedFirstName = ValidationUtils.sanitizeLikeWildcards(firstName.trim());
         
         List<User> users = userRepository.findByFirstNameContainingIgnoreCase(sanitizedFirstName);
         
@@ -308,24 +336,6 @@ public class UserService implements UserServiceInterface {
                    users.size(), sanitizedFirstName);
         
         return userMapper.toResponseList(users);
-    }
-    
-    /**
-     * Sanitize string input to escape SQL LIKE wildcards.
-     * Prevents wildcard abuse in search queries.
-     * 
-     * @param input the input string to sanitize
-     * @return sanitized string with escaped wildcards
-     */
-    private String sanitizeLikeWildcards(String input) {
-        if (input == null) {
-            return "";
-        }
-        // Escape special SQL LIKE wildcards
-        // Escape backslash first to avoid double-escaping
-        return input.replace("\\", "\\\\")
-                   .replace("%", "\\%")
-                   .replace("_", "\\_");
     }
     
     /**
@@ -348,5 +358,68 @@ public class UserService implements UserServiceInterface {
     @Transactional(readOnly = true)
     public boolean emailExists(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    /**
+     * Load user by username for Spring Security authentication.
+     * 
+     * @param username the username
+     * @return UserDetails object
+     * @throws UsernameNotFoundException if user is not found
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        logger.debug("Loading user by username: {}", username);
+        
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+        
+        logger.debug("User loaded successfully: {}", username);
+        return user;
+    }
+    
+    /**
+     * Check if the current authenticated user matches the given user ID.
+     * 
+     * This method is used by Spring Security's @PreAuthorize annotation
+     * to determine if a user can access their own resources.
+     * 
+     * @param userId the user ID to check
+     * @return true if the current user matches the given user ID, false otherwise
+     */
+    public boolean isCurrentUser(Long userId) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            
+            if (authentication == null || !authentication.isAuthenticated()) {
+                logger.debug("No authenticated user found for isCurrentUser check");
+                return false;
+            }
+            
+            if ("anonymousUser".equals(authentication.getPrincipal().toString())) {
+                logger.debug("Anonymous user cannot access user resources");
+                return false;
+            }
+            
+            String currentUsername = authentication.getName();
+            logger.debug("Checking if current user {} matches userId {}", currentUsername, userId);
+            
+            User user = userRepository.findById(userId).orElse(null);
+            if (user == null) {
+                logger.debug("User with ID {} not found", userId);
+                return false;
+            }
+            
+            boolean isCurrentUser = currentUsername.equals(user.getUsername());
+            logger.debug("isCurrentUser check result: {} (currentUser={}, targetUser={})", 
+                         isCurrentUser, currentUsername, user.getUsername());
+            
+            return isCurrentUser;
+            
+        } catch (Exception e) {
+            logger.error("Error checking if current user matches userId {}: {}", userId, e.getMessage(), e);
+            return false;
+        }
     }
 }

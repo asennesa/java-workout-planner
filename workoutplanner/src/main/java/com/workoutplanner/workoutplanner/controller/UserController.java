@@ -1,29 +1,29 @@
 package com.workoutplanner.workoutplanner.controller;
 
-import com.workoutplanner.workoutplanner.config.ApiVersionConfig;
-import com.workoutplanner.workoutplanner.dto.request.ChangePasswordRequest;
+import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
 import com.workoutplanner.workoutplanner.dto.request.CreateUserRequest;
-import com.workoutplanner.workoutplanner.dto.request.UpdateUserRequest;
+import com.workoutplanner.workoutplanner.dto.request.UserUpdateRequest;
+import com.workoutplanner.workoutplanner.validation.ValidationGroups;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.UserResponse;
+import com.workoutplanner.workoutplanner.dto.response.ExistenceCheckResponse;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import com.workoutplanner.workoutplanner.service.UserService;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * REST Controller for User operations.
@@ -33,7 +33,7 @@ import java.util.Map;
  * API Version: v1
  */
 @RestController
-@RequestMapping(ApiVersionConfig.V1_BASE_PATH + "/users")
+@RequestMapping(ApiVersionConstants.V1_BASE_PATH + "/users")
 @Validated
 public class UserController {
     
@@ -55,7 +55,7 @@ public class UserController {
      * @return ResponseEntity containing the created user response
      */
     @PostMapping
-    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest createUserRequest) {
+    public ResponseEntity<UserResponse> createUser(@Validated(ValidationGroups.UserRegistration.class) @RequestBody CreateUserRequest createUserRequest) {
         logger.debug("Creating user with username: {}", createUserRequest.getUsername());
         
         UserResponse userResponse = userService.createUser(createUserRequest);
@@ -69,44 +69,55 @@ public class UserController {
     /**
      * Get user by ID.
      * 
+     * Spring Security Integration:
+     * - @PreAuthorize ensures proper authorization
+     * - Users can only access their own profile or admins can access any profile
+     * 
      * @param userId the user ID
      * @return ResponseEntity containing the user response
      */
     @GetMapping("/{userId}")
+    @PreAuthorize("hasRole('ADMIN') or @userService.isCurrentUser(#userId)")
     public ResponseEntity<UserResponse> getUserById(@PathVariable Long userId) {
-        logger.debug("Fetching user by ID: {}", userId);
+        // Spring Security provides current user context
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = authentication.getName();
+        
+        logger.debug("Getting user by ID: userId={}, requestedBy={}", userId, currentUsername);
         
         UserResponse userResponse = userService.getUserById(userId);
         
-        logger.trace("User retrieved: userId={}, username={}", userId, userResponse.getUsername());
+        logger.info("User retrieved successfully. userId={}, username={}, requestedBy={}", 
+                   userResponse.getUserId(), userResponse.getUsername(), currentUsername);
         
         return ResponseEntity.ok(userResponse);
     }
     
     /**
-     * Get user by username.
+     * Get current user profile using Spring Security context.
      * 
-     * @param username the username
-     * @return ResponseEntity containing the user response
+     * This method demonstrates proper Spring Security integration:
+     * - Uses SecurityContext to get current user
+     * - Eliminates need for manual user ID extraction
+     * - Provides better user experience
+     * 
+     * @return ResponseEntity containing the current user's profile
      */
-    @GetMapping("/username/{username}")
-    public ResponseEntity<UserResponse> getUserByUsername(@PathVariable String username) {
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<UserResponse> getCurrentUserProfile() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        
+        logger.debug("Getting profile for current user: {}", username);
+        
         UserResponse userResponse = userService.getUserByUsername(username);
+        
+        logger.info("Current user profile retrieved. username={}", username);
+        
         return ResponseEntity.ok(userResponse);
     }
-    
-    /**
-     * Get user by email.
-     * 
-     * @param email the email
-     * @return ResponseEntity containing the user response
-     */
-    @GetMapping("/email/{email}")
-    public ResponseEntity<UserResponse> getUserByEmail(@PathVariable String email) {
-        UserResponse userResponse = userService.getUserByEmail(email);
-        return ResponseEntity.ok(userResponse);
-    }
-    
+
     /**
      * Get all users with pagination.
      * Supports pagination, sorting, and filtering.
@@ -136,48 +147,36 @@ public class UserController {
     }
     
     /**
-     * Update user information (excluding password).
-     * For password changes, use the /users/{userId}/change-password endpoint.
+     * Update user information with unified DTO.
+     * 
+     * This endpoint supports both basic and secure updates:
+     * - Basic updates: firstName, lastName (no password required)
+     * - Secure updates: email, password changes (password verification required)
      * 
      * @param userId the user ID
-     * @param updateUserRequest the updated user information
+     * @param userUpdateRequest the unified user update request
      * @return ResponseEntity containing the updated user response
      */
     @PutMapping("/{userId}")
+    @PreAuthorize("hasRole('USER') and @userService.isCurrentUser(#userId)")
     public ResponseEntity<UserResponse> updateUser(@PathVariable Long userId, 
-                                                  @Valid @RequestBody UpdateUserRequest updateUserRequest) {
-        logger.debug("Updating user: userId={}", userId);
+                                                  @Validated(ValidationGroups.UserProfileUpdate.class) @RequestBody UserUpdateRequest userUpdateRequest) {
+        // Spring Security provides current user context
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = authentication.getName();
         
-        UserResponse userResponse = userService.updateUser(userId, updateUserRequest);
+        logger.debug("Updating user: userId={}, currentUser={}, isSecureUpdate={}", 
+                   userId, currentUsername, userUpdateRequest.isSecureUpdate());
         
-        logger.info("User updated successfully. userId={}, username={}", 
-                   userResponse.getUserId(), userResponse.getUsername());
+        UserResponse userResponse = userService.updateUser(userId, userUpdateRequest);
+        
+        logger.info("User updated successfully. userId={}, username={}, updatedBy={}", 
+                   userResponse.getUserId(), userResponse.getUsername(), currentUsername);
         
         return ResponseEntity.ok(userResponse);
     }
     
-    /**
-     * Change user password.
-     * Requires current password for verification.
-     * 
-     * @param userId the user ID
-     * @param changePasswordRequest the password change request
-     * @return ResponseEntity with success message
-     */
-    @PutMapping("/{userId}/change-password")
-    public ResponseEntity<Map<String, String>> changePassword(@PathVariable Long userId,
-                                                              @Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
-        logger.info("Password change requested for userId={}", userId);
-        
-        userService.changePassword(userId, changePasswordRequest);
-        
-        logger.info("Password changed successfully for userId={}", userId);
-        
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Password changed successfully");
-        
-        return ResponseEntity.ok(response);
-    }
+    
     
     /**
      * Delete user by ID.
@@ -225,9 +224,9 @@ public class UserController {
      * @return ResponseEntity containing boolean result
      */
     @GetMapping("/check-username")
-    public ResponseEntity<Boolean> checkUsernameExists(@RequestParam String username) {
+    public ResponseEntity<ExistenceCheckResponse> checkUsernameExists(@RequestParam String username) {
         boolean exists = userService.usernameExists(username);
-        return ResponseEntity.ok(exists);
+        return ResponseEntity.ok(new ExistenceCheckResponse(exists));
     }
     
     /**
@@ -237,8 +236,8 @@ public class UserController {
      * @return ResponseEntity containing boolean result
      */
     @GetMapping("/check-email")
-    public ResponseEntity<Boolean> checkEmailExists(@RequestParam String email) {
+    public ResponseEntity<ExistenceCheckResponse> checkEmailExists(@RequestParam String email) {
         boolean exists = userService.emailExists(email);
-        return ResponseEntity.ok(exists);
+        return ResponseEntity.ok(new ExistenceCheckResponse(exists));
     }
 }
