@@ -79,10 +79,11 @@ public interface WorkoutSessionServiceInterface {
     /**
      * Add exercise to workout session.
      *
-     * @param createWorkoutExerciseRequest the workout exercise request
+     * @param sessionId the workout session ID from URL path parameter
+     * @param createWorkoutExerciseRequest the workout exercise request from body
      * @return WorkoutExerciseResponse the created workout exercise response
      */
-    WorkoutExerciseResponse addExerciseToWorkout(CreateWorkoutExerciseRequest createWorkoutExerciseRequest);
+    WorkoutExerciseResponse addExerciseToWorkout(Long sessionId, CreateWorkoutExerciseRequest createWorkoutExerciseRequest);
     
     /**
      * Remove exercise from workout session.

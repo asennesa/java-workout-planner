@@ -2,7 +2,6 @@ package com.workoutplanner.workoutplanner.controller;
 
 import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
 import com.workoutplanner.workoutplanner.dto.request.LoginRequest;
-import com.workoutplanner.workoutplanner.dto.response.UserProfileResponse;
 import com.workoutplanner.workoutplanner.entity.User;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -85,32 +84,10 @@ public class AuthController {
     }
 
     /**
-     * Get current user profile.
-     * Requires authentication.
-     *
-     * @param authentication current authentication
-     * @return ResponseEntity containing user profile
-     */
-    @GetMapping("/profile")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<UserProfileResponse> getProfile(Authentication authentication) {
-        User user = (User) authentication.getPrincipal();
-        
-        UserProfileResponse profile = new UserProfileResponse(
-            user.getUserId(),
-            user.getUsername(),
-            user.getEmail(),
-            user.getFirstName(),
-            user.getLastName(),
-            user.getRole().name(),
-            user.getCreatedAt()
-        );
-        
-        return ResponseEntity.ok(profile);
-    }
-
-    /**
      * Logout current user.
+     * 
+     * Note: For user profile, use GET /api/v1/users/me instead.
+     * This follows REST best practices by keeping profile management under /users resource.
      * 
      * @return ResponseEntity with logout result
      */

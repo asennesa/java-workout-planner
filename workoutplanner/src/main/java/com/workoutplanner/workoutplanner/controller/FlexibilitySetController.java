@@ -17,12 +17,15 @@ import org.springframework.web.bind.annotation.RestController;
  * 
  * All CRUD operations are inherited from BaseSetController.
  * 
- * Endpoint: /api/v1/flexibility-sets
+ * Following REST best practices with fully nested resource hierarchy:
+ * Endpoint: /api/v1/workout-exercises/{workoutExerciseId}/flexibility-sets
+ * 
+ * This shows clear parent-child relationship: flexibility sets belong to a workout exercise.
  * 
  * @see BaseSetController for available operations
  */
 @RestController
-@RequestMapping(ApiVersionConstants.V1_BASE_PATH + "/flexibility-sets")
+@RequestMapping(ApiVersionConstants.V1_BASE_PATH + "/workout-exercises/{workoutExerciseId}/flexibility-sets")
 public class FlexibilitySetController extends BaseSetController<CreateFlexibilitySetRequest> {
 
     private final FlexibilitySetService flexibilitySetService;

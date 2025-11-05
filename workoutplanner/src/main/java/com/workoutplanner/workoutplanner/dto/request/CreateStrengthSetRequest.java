@@ -12,6 +12,9 @@ import java.math.BigDecimal;
 /**
  * DTO for creating strength training sets.
  * 
+ * Note: workoutExerciseId is NOT included here as it comes from the URL path parameter.
+ * This follows REST best practices where resource identifiers belong in the URL.
+ * 
  * Strength sets track:
  * - Number of repetitions (reps)
  * - Weight lifted
@@ -28,9 +31,6 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateStrengthSetRequest {
-
-    @NotNull(message = "Workout exercise ID is required")
-    private Long workoutExerciseId;
 
     @NotNull(message = "Set number is required")
     @Min(value = 1, message = "Set number must be at least 1")

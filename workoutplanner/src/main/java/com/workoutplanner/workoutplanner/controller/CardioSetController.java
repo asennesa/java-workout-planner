@@ -18,12 +18,15 @@ import org.springframework.web.bind.annotation.RestController;
  * 
  * All CRUD operations are inherited from BaseSetController.
  * 
- * Endpoint: /api/v1/cardio-sets
+ * Following REST best practices with fully nested resource hierarchy:
+ * Endpoint: /api/v1/workout-exercises/{workoutExerciseId}/cardio-sets
+ * 
+ * This shows clear parent-child relationship: cardio sets belong to a workout exercise.
  * 
  * @see BaseSetController for available operations
  */
 @RestController
-@RequestMapping(ApiVersionConstants.V1_BASE_PATH + "/cardio-sets")
+@RequestMapping(ApiVersionConstants.V1_BASE_PATH + "/workout-exercises/{workoutExerciseId}/cardio-sets")
 public class CardioSetController extends BaseSetController<CreateCardioSetRequest> {
 
     private final CardioSetService cardioSetService;

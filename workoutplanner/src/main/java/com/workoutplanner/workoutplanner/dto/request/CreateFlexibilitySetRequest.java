@@ -10,6 +10,9 @@ import org.hibernate.validator.constraints.Length;
 /**
  * DTO for creating flexibility/stretching exercise sets.
  * 
+ * Note: workoutExerciseId is NOT included here as it comes from the URL path parameter.
+ * This follows REST best practices where resource identifiers belong in the URL.
+ * 
  * Flexibility sets track:
  * - Duration of stretch
  * - Type of stretch (static, dynamic, etc.)
@@ -26,9 +29,6 @@ import org.hibernate.validator.constraints.Length;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateFlexibilitySetRequest {
-
-    @NotNull(message = "Workout exercise ID is required")
-    private Long workoutExerciseId;
 
     @NotNull(message = "Set number is required")
     @Min(value = 1, message = "Set number must be at least 1")

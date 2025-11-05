@@ -25,7 +25,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import jakarta.validation.ValidationException;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +52,7 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
     private final UserRepository userRepository;
     private final ExerciseRepository exerciseRepository;
     private final WorkoutMapper workoutMapper;
+    private final Clock clock;
     
     /**
      * Constructor injection for dependencies.
@@ -59,12 +62,14 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
                                 WorkoutExerciseRepository workoutExerciseRepository,
                                 UserRepository userRepository,
                                 ExerciseRepository exerciseRepository,
-                                WorkoutMapper workoutMapper) {
+                                WorkoutMapper workoutMapper,
+                                Clock clock) {
         this.workoutSessionRepository = workoutSessionRepository;
         this.workoutExerciseRepository = workoutExerciseRepository;
         this.userRepository = userRepository;
         this.exerciseRepository = exerciseRepository;
         this.workoutMapper = workoutMapper;
+        this.clock = clock;
     }
 
     /**
@@ -78,6 +83,9 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
         logger.debug("SERVICE: Creating workout session. userId={}, name={}, status={}", 
                     createWorkoutRequest.getUserId(), createWorkoutRequest.getName(), createWorkoutRequest.getStatus());
         
+        // Validate workout dates
+        validateWorkoutDates(createWorkoutRequest.getStartedAt(), createWorkoutRequest.getCompletedAt());
+        
         User user = userRepository.findById(createWorkoutRequest.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "ID", createWorkoutRequest.getUserId()));
 
@@ -85,7 +93,7 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
         
         workoutSession.setUser(user);
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         if (workoutSession.getStartedAt() == null && createWorkoutRequest.getStatus() == WorkoutStatus.IN_PROGRESS) {
             workoutSession.setStartedAt(now);
         }
@@ -226,6 +234,9 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
     @Transactional
     public WorkoutResponse updateWorkoutSession(Long sessionId, CreateWorkoutRequest createWorkoutRequest) {
         try {
+            // Validate workout dates
+            validateWorkoutDates(createWorkoutRequest.getStartedAt(), createWorkoutRequest.getCompletedAt());
+            
             WorkoutSession workoutSession = workoutSessionRepository.findById(sessionId)
                     .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
 
@@ -313,14 +324,18 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
 
     /**
      * Add exercise to workout session.
+     * 
+     * Professional approach: sessionId is passed separately as it comes from URL path,
+     * not from the request body. This follows REST best practices.
      *
-     * @param createWorkoutExerciseRequest the workout exercise request
+     * @param sessionId the workout session ID from URL path parameter
+     * @param createWorkoutExerciseRequest the workout exercise request from body
      * @return WorkoutExerciseResponse the created workout exercise response
      */
     @Transactional
-    public WorkoutExerciseResponse addExerciseToWorkout(CreateWorkoutExerciseRequest createWorkoutExerciseRequest) {
-        WorkoutSession workoutSession = workoutSessionRepository.findById(createWorkoutExerciseRequest.getSessionId())
-                .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", createWorkoutExerciseRequest.getSessionId()));
+    public WorkoutExerciseResponse addExerciseToWorkout(Long sessionId, CreateWorkoutExerciseRequest createWorkoutExerciseRequest) {
+        WorkoutSession workoutSession = workoutSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
 
         Exercise exercise = exerciseRepository.findById(createWorkoutExerciseRequest.getExerciseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Exercise", "ID", createWorkoutExerciseRequest.getExerciseId()));
@@ -396,13 +411,46 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
     }
 
     /**
+     * Validates workout dates according to business rules.
+     * Service-layer validation following best practices.
+     * 
+     * Business rules:
+     * - startedAt cannot be in the future
+     * - completedAt cannot be before startedAt
+     * - completedAt cannot be in the future
+     *
+     * @param startedAt the workout start date/time
+     * @param completedAt the workout completion date/time
+     * @throws ValidationException if dates violate business rules
+     */
+    private void validateWorkoutDates(LocalDateTime startedAt, LocalDateTime completedAt) {
+        if (startedAt == null && completedAt == null) {
+            return; // Both null is valid
+        }
+        
+        LocalDateTime now = LocalDateTime.now(clock);
+        
+        if (startedAt != null && startedAt.isAfter(now)) {
+            throw new ValidationException("Workout session cannot start in the future");
+        }
+        
+        if (startedAt != null && completedAt != null && completedAt.isBefore(startedAt)) {
+            throw new ValidationException("Workout session cannot be completed before it starts");
+        }
+        
+        if (completedAt != null && completedAt.isAfter(now)) {
+            throw new ValidationException("Workout session cannot be completed in the future");
+        }
+    }
+
+    /**
      * Handle status transitions for workout sessions.
      *
      * @param workoutSession the workout session
      * @param newStatus the new status
      */
     private void handleStatusTransition(WorkoutSession workoutSession, WorkoutStatus newStatus) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         switch (newStatus) {
             case IN_PROGRESS:

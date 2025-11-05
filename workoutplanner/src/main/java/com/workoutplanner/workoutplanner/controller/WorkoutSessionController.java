@@ -2,6 +2,7 @@ package com.workoutplanner.workoutplanner.controller;
 
 import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutRequest;
+import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutExerciseRequest;
 import com.workoutplanner.workoutplanner.dto.request.WorkoutActionRequest;
 import com.workoutplanner.workoutplanner.exception.OptimisticLockConflictException;
 import com.workoutplanner.workoutplanner.validation.ValidationGroups;
@@ -148,19 +149,57 @@ public class WorkoutSessionController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/{sessionId}/action")
-    public ResponseEntity<WorkoutResponse> performWorkoutAction(@PathVariable Long sessionId, @Valid @RequestBody WorkoutActionRequest actionRequest) {
-        logger.debug("Performing action on workout session. sessionId={}, action={}", 
+    /**
+     * Perform actions on workout (start, pause, resume, complete, cancel).
+     * 
+     * RESTful approach: Use PATCH to update workout status.
+     * This is more RESTful than POST /action because we're updating a resource attribute.
+     * 
+     * @param sessionId the session ID
+     * @param actionRequest the action to perform (converted to status)
+     * @return ResponseEntity containing the updated workout response
+     */
+    @PatchMapping("/{sessionId}/status")
+    public ResponseEntity<WorkoutResponse> updateWorkoutStatus(
+            @PathVariable Long sessionId, 
+            @Valid @RequestBody WorkoutActionRequest actionRequest) {
+        logger.debug("Updating workout status. sessionId={}, action={}", 
                     sessionId, actionRequest.getAction());
         
         WorkoutResponse workoutResponse = workoutSessionService.performAction(sessionId, actionRequest.getAction());
         
-        logger.info("Action completed successfully. sessionId={}, action={}, newStatus={}", 
+        logger.info("Workout status updated successfully. sessionId={}, action={}, newStatus={}", 
                    sessionId, actionRequest.getAction(), workoutResponse.getStatus());
         
         return ResponseEntity.ok(workoutResponse);
     }
 
+    /**
+     * Add an exercise to a workout session.
+     * 
+     * Following REST best practices: sessionId comes from URL path, not request body.
+     * This makes the API cleaner and follows the resource hierarchy pattern.
+     * 
+     * @param sessionId the session ID from path parameter
+     * @param createWorkoutExerciseRequest the workout exercise creation request from body
+     * @return ResponseEntity containing the created workout exercise response
+     */
+    @PostMapping("/{sessionId}/exercises")
+    public ResponseEntity<WorkoutExerciseResponse> addExerciseToWorkout(
+            @PathVariable Long sessionId,
+            @Valid @RequestBody CreateWorkoutExerciseRequest createWorkoutExerciseRequest) {
+        logger.debug("Adding exercise to workout session. sessionId={}, exerciseId={}", 
+                    sessionId, createWorkoutExerciseRequest.getExerciseId());
+        
+        // Pass sessionId separately - it comes from URL, not request body
+        WorkoutExerciseResponse workoutExerciseResponse = workoutSessionService.addExerciseToWorkout(sessionId, createWorkoutExerciseRequest);
+        
+        logger.info("Exercise added to workout successfully. workoutExerciseId={}, sessionId={}, exerciseId={}", 
+                   workoutExerciseResponse.getWorkoutExerciseId(), sessionId, createWorkoutExerciseRequest.getExerciseId());
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(workoutExerciseResponse);
+    }
+    
     /**
      * Get exercises for a workout session.
      * 

@@ -17,6 +17,9 @@ import java.util.List;
  * This abstract class implements the Template Method pattern to provide
  * consistent CRUD operations across different set types (Strength, Cardio, Flexibility).
  * 
+ * Following REST best practices: workoutExerciseId comes from URL path, not request body.
+ * This makes the API cleaner and follows the resource hierarchy pattern.
+ * 
  * The generic type T allows each concrete controller to use its specific request DTO.
  * 
  * @param <T> The specific set request type (CreateStrengthSetRequest, CreateCardioSetRequest, etc.)
@@ -34,19 +37,26 @@ public abstract class BaseSetController<T> {
     protected abstract SetServiceInterface<T> getService();
 
     /**
-     * Create a new set.
+     * Create a new set for a workout exercise.
      * 
-     * @param createSetRequest the set data (type-specific)
+     * Following REST best practices: workoutExerciseId comes from parent path in @RequestMapping.
+     * Full nested resource pattern: /workout-exercises/{workoutExerciseId}/strength-sets
+     * 
+     * @param workoutExerciseId the workout exercise ID from path parameter
+     * @param createSetRequest the set data (type-specific) from request body
      * @return ResponseEntity containing the created set
      */
     @PostMapping
-    public ResponseEntity<SetResponse> createSet(@Valid @RequestBody T createSetRequest) {
-        logger.debug("Creating set for workout exercise");
+    public ResponseEntity<SetResponse> createSet(
+            @PathVariable Long workoutExerciseId,
+            @Valid @RequestBody T createSetRequest) {
+        logger.debug("Creating set for workout exercise. workoutExerciseId={}", workoutExerciseId);
         
-        SetResponse setResponse = getService().createSet(createSetRequest);
+        // Pass workoutExerciseId separately - it comes from URL, not request body
+        SetResponse setResponse = getService().createSet(workoutExerciseId, createSetRequest);
         
-        logger.info("Set created successfully. setId={}, setType={}", 
-                   setResponse.getSetId(), setResponse.getSetType());
+        logger.info("Set created successfully. setId={}, setType={}, workoutExerciseId={}", 
+                   setResponse.getSetId(), setResponse.getSetType(), workoutExerciseId);
         
         return ResponseEntity.status(HttpStatus.CREATED).body(setResponse);
     }
@@ -54,12 +64,15 @@ public abstract class BaseSetController<T> {
     /**
      * Get all sets for a specific workout exercise.
      * 
-     * @param workoutExerciseId the workout exercise ID
+      * RESTful approach: GET on the collection itself.
+     * URL: /api/v1/workout-exercises/{workoutExerciseId}/strength-sets
+     * 
+     * @param workoutExerciseId the workout exercise ID from parent path
      * @return ResponseEntity containing list of sets
      */
-    @GetMapping("/workout-exercise/{workoutExerciseId}")
+    @GetMapping
     public ResponseEntity<List<SetResponse>> getSetsByWorkoutExercise(@PathVariable Long workoutExerciseId) {
-        logger.debug("Getting sets for workout exercise: workoutExerciseId={}", workoutExerciseId);
+        logger.debug("Getting all sets for workout exercise. workoutExerciseId={}", workoutExerciseId);
         
         List<SetResponse> setResponses = getService().getSetsByWorkoutExercise(workoutExerciseId);
         
@@ -89,12 +102,17 @@ public abstract class BaseSetController<T> {
     /**
      * Update an existing set.
      * 
-     * @param setId the set ID
+     * Note: Update uses setId in path, not workoutExerciseId, since we're modifying
+     * a specific set that already exists.
+     * 
+     * @param setId the set ID from path parameter
      * @param createSetRequest the updated set data (type-specific)
      * @return ResponseEntity containing the updated set
      */
     @PutMapping("/{setId}")
-    public ResponseEntity<SetResponse> updateSet(@PathVariable Long setId, @Valid @RequestBody T createSetRequest) {
+    public ResponseEntity<SetResponse> updateSet(
+            @PathVariable Long setId, 
+            @Valid @RequestBody T createSetRequest) {
         logger.debug("Updating set. setId={}", setId);
         
         SetResponse setResponse = getService().updateSet(setId, createSetRequest);

@@ -50,18 +50,22 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
 
     /**
      * Create a new flexibility set.
+     * 
+     * Professional approach: workoutExerciseId is passed separately as it comes from URL path,
+     * not from the request body. This follows REST best practices.
      *
-     * @param createFlexibilitySetRequest the flexibility set creation request
+     * @param workoutExerciseId the workout exercise ID from URL path parameter
+     * @param createFlexibilitySetRequest the flexibility set creation request from body
      * @return SetResponse the created flexibility set response
      */
     @Transactional
-    public SetResponse createSet(CreateFlexibilitySetRequest createFlexibilitySetRequest) {
+    public SetResponse createSet(Long workoutExerciseId, CreateFlexibilitySetRequest createFlexibilitySetRequest) {
         logger.debug("SERVICE: Creating flexibility set. workoutExerciseId={}, setNumber={}, duration={}s, intensity={}", 
-                    createFlexibilitySetRequest.getWorkoutExerciseId(), createFlexibilitySetRequest.getSetNumber(),
+                    workoutExerciseId, createFlexibilitySetRequest.getSetNumber(),
                     createFlexibilitySetRequest.getDurationInSeconds(), createFlexibilitySetRequest.getIntensity());
         
-        WorkoutExercise workoutExercise = workoutExerciseRepository.findById(createFlexibilitySetRequest.getWorkoutExerciseId())
-                .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", createFlexibilitySetRequest.getWorkoutExerciseId()));
+        WorkoutExercise workoutExercise = workoutExerciseRepository.findById(workoutExerciseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", workoutExerciseId));
 
         FlexibilitySet flexibilitySet = workoutMapper.toFlexibilitySetEntity(createFlexibilitySetRequest);
         

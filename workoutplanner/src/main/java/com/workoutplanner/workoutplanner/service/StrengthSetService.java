@@ -50,18 +50,22 @@ public class StrengthSetService implements StrengthSetServiceInterface {
 
     /**
      * Create a new strength set.
+     * 
+     * Professional approach: workoutExerciseId is passed separately as it comes from URL path,
+     * not from the request body. This follows REST best practices.
      *
-     * @param createStrengthSetRequest the strength set creation request
+     * @param workoutExerciseId the workout exercise ID from URL path parameter
+     * @param createStrengthSetRequest the strength set creation request from body
      * @return SetResponse the created strength set response
      */
     @Transactional
-    public SetResponse createSet(CreateStrengthSetRequest createStrengthSetRequest) {
+    public SetResponse createSet(Long workoutExerciseId, CreateStrengthSetRequest createStrengthSetRequest) {
         logger.debug("SERVICE: Creating strength set. workoutExerciseId={}, setNumber={}, reps={}, weight={}", 
-                    createStrengthSetRequest.getWorkoutExerciseId(), createStrengthSetRequest.getSetNumber(),
+                    workoutExerciseId, createStrengthSetRequest.getSetNumber(),
                     createStrengthSetRequest.getReps(), createStrengthSetRequest.getWeight());
         
-        WorkoutExercise workoutExercise = workoutExerciseRepository.findById(createStrengthSetRequest.getWorkoutExerciseId())
-                .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", createStrengthSetRequest.getWorkoutExerciseId()));
+        WorkoutExercise workoutExercise = workoutExerciseRepository.findById(workoutExerciseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", workoutExerciseId));
 
         StrengthSet strengthSet = workoutMapper.toStrengthSetEntity(createStrengthSetRequest);
         

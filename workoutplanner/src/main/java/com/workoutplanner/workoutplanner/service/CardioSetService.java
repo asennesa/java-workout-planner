@@ -50,18 +50,22 @@ public class CardioSetService implements CardioSetServiceInterface {
 
     /**
      * Create a new cardio set.
+     * 
+     * Professional approach: workoutExerciseId is passed separately as it comes from URL path,
+     * not from the request body. This follows REST best practices.
      *
-     * @param createCardioSetRequest the cardio set creation request
+     * @param workoutExerciseId the workout exercise ID from URL path parameter
+     * @param createCardioSetRequest the cardio set creation request from body
      * @return SetResponse the created cardio set response
      */
     @Transactional
-    public SetResponse createSet(CreateCardioSetRequest createCardioSetRequest) {
+    public SetResponse createSet(Long workoutExerciseId, CreateCardioSetRequest createCardioSetRequest) {
         logger.debug("SERVICE: Creating cardio set. workoutExerciseId={}, setNumber={}, duration={}s, distance={}", 
-                    createCardioSetRequest.getWorkoutExerciseId(), createCardioSetRequest.getSetNumber(),
+                    workoutExerciseId, createCardioSetRequest.getSetNumber(),
                     createCardioSetRequest.getDurationInSeconds(), createCardioSetRequest.getDistance());
         
-        WorkoutExercise workoutExercise = workoutExerciseRepository.findById(createCardioSetRequest.getWorkoutExerciseId())
-                .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", createCardioSetRequest.getWorkoutExerciseId()));
+        WorkoutExercise workoutExercise = workoutExerciseRepository.findById(workoutExerciseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", workoutExerciseId));
 
         CardioSet cardioSet = workoutMapper.toCardioSetEntity(createCardioSetRequest);
         

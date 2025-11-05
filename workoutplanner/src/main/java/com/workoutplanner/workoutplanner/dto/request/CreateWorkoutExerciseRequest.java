@@ -7,14 +7,16 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.validator.constraints.Length;
 
+/**
+ * Request DTO for adding an exercise to a workout session.
+ * Note: sessionId is NOT included here as it comes from the URL path parameter.
+ * This follows REST best practices where resource identifiers belong in the URL.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreateWorkoutExerciseRequest {
-
-    @NotNull(message = "Session ID is required")
-    private Long sessionId;
 
     @NotNull(message = "Exercise ID is required")
     private Long exerciseId;

@@ -87,13 +87,14 @@ public class ApplicationConfig {
     /**
      * Configures the local validator factory bean for validation.
      * This ensures proper validation message resolution and custom validators.
+     * This bean bridges Spring's dependency injection with Hibernate Validator,
+     * allowing custom validators to use @Autowired dependencies.
      *
      * @return LocalValidatorFactoryBean configured for the application
      */
     @Bean
     public LocalValidatorFactoryBean validator() {
-        LocalValidatorFactoryBean factory = new LocalValidatorFactoryBean();
-        return factory;
+        return new LocalValidatorFactoryBean();
     }
 
     /**

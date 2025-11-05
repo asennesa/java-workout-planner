@@ -1,7 +1,6 @@
 package com.workoutplanner.workoutplanner.entity;
 
 import com.workoutplanner.workoutplanner.enums.WorkoutStatus;
-import com.workoutplanner.workoutplanner.validation.ValidWorkoutDates;
 import com.workoutplanner.workoutplanner.validation.ValidationGroups;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -21,7 +20,6 @@ import java.util.Objects;
 @Setter
 @NoArgsConstructor
 @ToString(exclude = {"user", "workoutExercises"})
-@ValidWorkoutDates
 public class WorkoutSession extends AuditableEntity {
 
     @Id
