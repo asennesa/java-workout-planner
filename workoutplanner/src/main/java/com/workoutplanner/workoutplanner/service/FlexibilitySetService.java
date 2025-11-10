@@ -4,6 +4,8 @@ import com.workoutplanner.workoutplanner.dto.request.CreateFlexibilitySetRequest
 import com.workoutplanner.workoutplanner.dto.response.SetResponse;
 import com.workoutplanner.workoutplanner.entity.FlexibilitySet;
 import com.workoutplanner.workoutplanner.entity.WorkoutExercise;
+import com.workoutplanner.workoutplanner.enums.ExerciseType;
+import com.workoutplanner.workoutplanner.exception.BusinessLogicException;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.mapper.BaseSetMapper;
 import com.workoutplanner.workoutplanner.mapper.WorkoutMapper;
@@ -66,6 +68,18 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
         
         WorkoutExercise workoutExercise = workoutExerciseRepository.findById(workoutExerciseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", workoutExerciseId));
+
+        // Validate exercise type matches set type - business rule enforcement
+        if (workoutExercise.getExercise() != null && 
+            workoutExercise.getExercise().getType() != null && 
+            workoutExercise.getExercise().getType() != ExerciseType.FLEXIBILITY) {
+            throw new BusinessLogicException(
+                String.format("Cannot add flexibility sets to a %s exercise. Exercise '%s' is of type %s.",
+                    workoutExercise.getExercise().getType(),
+                    workoutExercise.getExercise().getName(),
+                    workoutExercise.getExercise().getType())
+            );
+        }
 
         FlexibilitySet flexibilitySet = workoutMapper.toFlexibilitySetEntity(createFlexibilitySetRequest);
         

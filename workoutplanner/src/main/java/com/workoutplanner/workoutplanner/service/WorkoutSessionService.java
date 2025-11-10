@@ -12,7 +12,6 @@ import com.workoutplanner.workoutplanner.entity.WorkoutExercise;
 import com.workoutplanner.workoutplanner.entity.User;
 import com.workoutplanner.workoutplanner.entity.Exercise;
 import com.workoutplanner.workoutplanner.enums.WorkoutStatus;
-import com.workoutplanner.workoutplanner.enums.ExerciseType;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.exception.OptimisticLockConflictException;
 import com.workoutplanner.workoutplanner.mapper.WorkoutMapper;
@@ -375,40 +374,6 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
         return workoutMapper.toWorkoutExerciseResponseList(workoutExercises);
     }
 
-    /**
-     * Validates that exercise type matches the provided set types.
-     * This business logic was moved from ValidExerciseTypeValidator to follow
-     * best practices of keeping complex business logic in the service layer.
-     *
-     * @param workoutExercise the workout exercise to validate
-     * @return true if exercise type matches set types, false otherwise
-     */
-    public boolean validateExerciseTypeConsistency(WorkoutExercise workoutExercise) {
-        if (workoutExercise == null || workoutExercise.getExercise() == null) {
-            return true;
-        }
-        
-        ExerciseType exerciseType = workoutExercise.getExercise().getType();
-        
-        if (exerciseType == null) {
-            return true;
-        }
-        
-        boolean hasStrengthSets = workoutExercise.getStrengthSets() != null && !workoutExercise.getStrengthSets().isEmpty();
-        boolean hasCardioSets = workoutExercise.getCardioSets() != null && !workoutExercise.getCardioSets().isEmpty();
-        boolean hasFlexibilitySets = workoutExercise.getFlexibilitySets() != null && !workoutExercise.getFlexibilitySets().isEmpty();
-        
-        switch (exerciseType) {
-            case STRENGTH:
-                return hasStrengthSets && !hasCardioSets && !hasFlexibilitySets;
-            case CARDIO:
-                return hasCardioSets && !hasStrengthSets && !hasFlexibilitySets;
-            case FLEXIBILITY:
-                return hasFlexibilitySets && !hasStrengthSets && !hasCardioSets;
-            default:
-                return false;
-        }
-    }
 
     /**
      * Validates workout dates according to business rules.

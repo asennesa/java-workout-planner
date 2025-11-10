@@ -1,6 +1,5 @@
 package com.workoutplanner.workoutplanner.entity;
 
-import com.workoutplanner.workoutplanner.validation.ValidExerciseType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
@@ -25,7 +24,6 @@ import java.util.Objects;
 @Setter
 @NoArgsConstructor
 @ToString(exclude = {"workoutSession", "exercise", "strengthSets", "cardioSets", "flexibilitySets"})
-@ValidExerciseType
 public class WorkoutExercise extends AuditableEntity {
 
     @Id
