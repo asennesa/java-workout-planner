@@ -1,7 +1,9 @@
 package com.workoutplanner.workoutplanner.controller;
 
+import com.workoutplanner.workoutplanner.annotation.RateLimited;
 import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
 import com.workoutplanner.workoutplanner.dto.request.CreateUserRequest;
+import com.workoutplanner.workoutplanner.dto.request.PasswordChangeRequest;
 import com.workoutplanner.workoutplanner.dto.request.UserUpdateRequest;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.UserResponse;
@@ -25,6 +27,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * REST Controller for User operations.
@@ -188,6 +191,44 @@ public class UserController {
     }
     
     /**
+     * Change user password.
+     * 
+     * Following industry best practices (Google Identity, Auth0, AWS IAM):
+     * - Dedicated endpoint for password changes (clear separation from profile updates)
+     * - Requires current password verification (prevents session hijacking)
+     * - Password confirmation required (prevents typos)
+     * - Only user themselves can change their password
+     * 
+     * Security Features:
+     * - User authentication required (Spring Security)
+     * - User can only change their own password (@PreAuthorize)
+     * - Current password verification at service layer
+     * - Strong password validation (Jakarta Bean Validation)
+     * - BCrypt hashing (one-way, secure)
+     * - Rate limiting: 3 attempts per 15 minutes (prevents brute force)
+     * 
+     * @param userId the user ID
+     * @param passwordChangeRequest the password change request
+     * @return ResponseEntity with no content (204)
+     */
+    @PostMapping("/{userId}/password")
+    @PreAuthorize("hasRole('USER') and @userService.isCurrentUser(#userId)")
+    @RateLimited(capacity = 3, refillTokens = 3, refillPeriod = 15, timeUnit = TimeUnit.MINUTES, keyType = RateLimited.KeyType.USER)
+    public ResponseEntity<Void> changePassword(@PathVariable Long userId,
+                                              @Valid @RequestBody PasswordChangeRequest passwordChangeRequest) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = authentication.getName();
+        
+        logger.debug("Password change requested: userId={}, currentUser={}", userId, currentUsername);
+        
+        userService.changePassword(userId, passwordChangeRequest);
+        
+        logger.info("Password changed successfully. userId={}, username={}", userId, currentUsername);
+        
+        return ResponseEntity.noContent().build();
+    }
+    
+    /**
      * Delete user by ID.
      * 
      * Security: Only administrators can delete users to prevent unauthorized account removal.
@@ -232,10 +273,14 @@ public class UserController {
     /**
      * Check if username exists.
      * 
+     * Security: Rate limited to prevent username enumeration attacks.
+     * Attackers could use this to discover valid usernames.
+     * 
      * @param username the username to check (validated for format)
      * @return ResponseEntity containing boolean result
      */
     @GetMapping("/check-username")
+    @RateLimited(capacity = 10, refillTokens = 10, refillPeriod = 1, timeUnit = TimeUnit.MINUTES, keyType = RateLimited.KeyType.IP)
     public ResponseEntity<ExistenceCheckResponse> checkUsernameExists(
             @RequestParam 
             @NotBlank(message = "Username cannot be empty")
@@ -248,10 +293,14 @@ public class UserController {
     /**
      * Check if email exists.
      * 
+     * Security: Rate limited to prevent email enumeration attacks.
+     * Attackers could use this to discover registered emails.
+     * 
      * @param email the email to check (validated for format)
      * @return ResponseEntity containing boolean result
      */
     @GetMapping("/check-email")
+    @RateLimited(capacity = 10, refillTokens = 10, refillPeriod = 1, timeUnit = TimeUnit.MINUTES, keyType = RateLimited.KeyType.IP)
     public ResponseEntity<ExistenceCheckResponse> checkEmailExists(
             @RequestParam 
             @NotBlank(message = "Email cannot be empty")

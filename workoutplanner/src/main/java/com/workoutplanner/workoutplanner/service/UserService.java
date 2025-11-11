@@ -1,6 +1,7 @@
 package com.workoutplanner.workoutplanner.service;
 
 import com.workoutplanner.workoutplanner.dto.request.CreateUserRequest;
+import com.workoutplanner.workoutplanner.dto.request.PasswordChangeRequest;
 import com.workoutplanner.workoutplanner.dto.request.UserUpdateRequest;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.UserResponse;
@@ -241,13 +242,13 @@ public class UserService implements UserServiceInterface, UserDetailsService {
     /**
      * Update user profile securely with password verification.
      * 
-     * This method handles sensitive profile updates like email and password changes.
+     * This method handles sensitive profile updates like email changes.
      * Requires current password verification for security.
      * 
-     * Following Spring Framework Best Practices:
-     * - Business logic validation at service layer (not just presentation layer)
-     * - Clear separation of concerns between format validation and business rules
-     * - Proper exception handling with meaningful error messages
+     * Following industry best practices (Google, Auth0, AWS):
+     * - Email changes require password verification
+     * - Password changes use separate endpoint (changePassword method)
+     * - Clear separation of concerns
      * 
      * @param userId the user ID
      * @param userUpdateRequest the user update request
@@ -262,11 +263,10 @@ public class UserService implements UserServiceInterface, UserDetailsService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "ID", userId));
         
-        // Business Logic Validation: Current password is required for secure updates
-        // This follows best practices by validating business rules at service layer
+        // Business Logic Validation: Current password is required for email changes
         if (!userUpdateRequest.hasCurrentPassword()) {
             logger.warn("SERVICE: Secure profile update failed - current password not provided. userId={}", userId);
-            throw new BusinessLogicException("Current password is required for email or password changes");
+            throw new BusinessLogicException("Current password is required for email changes");
         }
         
         // Verify current password
@@ -275,6 +275,7 @@ public class UserService implements UserServiceInterface, UserDetailsService {
             throw new BusinessLogicException("Current password is incorrect");
         }
         
+        // Check for email conflicts
         if (userUpdateRequest.isEmailChangeRequested()) {
             if (!user.getEmail().equals(userUpdateRequest.getEmail()) && 
                 userRepository.existsByEmail(userUpdateRequest.getEmail())) {
@@ -284,11 +285,13 @@ public class UserService implements UserServiceInterface, UserDetailsService {
             }
         }
         
+        // Update email
         if (userUpdateRequest.isEmailChangeRequested()) {
             user.setEmail(userUpdateRequest.getEmail());
             logger.info("SERVICE: User email updated. userId={}, newEmail={}", userId, userUpdateRequest.getEmail());
         }
         
+        // Update names (can be included with email change)
         if (userUpdateRequest.getFirstName() != null && !userUpdateRequest.getFirstName().trim().isEmpty()) {
             user.setFirstName(userUpdateRequest.getFirstName());
             logger.info("SERVICE: User first name updated. userId={}, newFirstName={}", userId, userUpdateRequest.getFirstName());
@@ -299,33 +302,63 @@ public class UserService implements UserServiceInterface, UserDetailsService {
             logger.info("SERVICE: User last name updated. userId={}, newLastName={}", userId, userUpdateRequest.getLastName());
         }
         
-        // Handle password change with proper validation
-        if (userUpdateRequest.isPasswordChangeRequested()) {
-            // Business Logic Validation: Password confirmation is required
-            if (userUpdateRequest.getConfirmPassword() == null || userUpdateRequest.getConfirmPassword().trim().isEmpty()) {
-                logger.warn("SERVICE: Secure profile update failed - password confirmation not provided. userId={}", userId);
-                throw new BusinessLogicException("Password confirmation is required when changing password");
-            }
-            
-            // Business Logic Validation: Passwords must match
-            if (!userUpdateRequest.passwordsMatch()) {
-                logger.warn("SERVICE: Secure profile update failed - password confirmation mismatch. userId={}", userId);
-                throw new BusinessLogicException("New password and confirmation do not match");
-            }
-            
-            String hashedPassword = passwordEncoder.encode(userUpdateRequest.getNewPassword());
-            user.setPasswordHash(hashedPassword);
-            logger.info("SERVICE: User password updated. userId={}", userId);
-        }
-        
         User savedUser = userRepository.save(user);
         
-        logger.info("SERVICE: User profile updated securely. userId={}, emailChanged={}, nameChanged={}, passwordChanged={}", 
+        logger.info("SERVICE: User profile updated securely. userId={}, emailChanged={}, nameChanged={}", 
                    userId, userUpdateRequest.isEmailChangeRequested(), 
-                   userUpdateRequest.isNameChangeRequested(), 
-                   userUpdateRequest.isPasswordChangeRequested());
+                   userUpdateRequest.isNameChangeRequested());
         
         return userMapper.toResponse(savedUser);
+    }
+    
+    /**
+     * Change user password with verification.
+     * 
+     * Following industry best practices (Google Identity, Auth0, AWS IAM):
+     * - Dedicated endpoint for password changes (POST /users/{id}/password)
+     * - Current password verification (prevents session hijacking)
+     * - Password confirmation (prevents typos)
+     * - Separate from profile updates (clear separation of concerns)
+     * 
+     * Security Features:
+     * - Verifies current password before allowing change
+     * - Validates new password strength
+     * - Ensures password and confirmation match
+     * - Uses BCrypt hashing (one-way, secure)
+     * - Full audit trail via logging
+     * 
+     * @param userId the user ID
+     * @param passwordChangeRequest the password change request
+     * @throws ResourceNotFoundException if user not found
+     * @throws BusinessLogicException if current password is incorrect or passwords don't match
+     */
+    @Transactional
+    public void changePassword(Long userId, PasswordChangeRequest passwordChangeRequest) {
+        logger.debug("SERVICE: Password change requested. userId={}", userId);
+        
+        // Find user
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "ID", userId));
+        
+        // Verify current password
+        if (!passwordEncoder.matches(passwordChangeRequest.getCurrentPassword(), user.getPasswordHash())) {
+            logger.warn("SERVICE: Password change failed - incorrect current password. userId={}", userId);
+            throw new BusinessLogicException("Current password is incorrect");
+        }
+        
+        // Validate passwords match
+        if (!passwordChangeRequest.passwordsMatch()) {
+            logger.warn("SERVICE: Password change failed - password confirmation mismatch. userId={}", userId);
+            throw new BusinessLogicException("New password and confirmation do not match");
+        }
+        
+        // Hash and save new password
+        String hashedPassword = passwordEncoder.encode(passwordChangeRequest.getNewPassword());
+        user.setPasswordHash(hashedPassword);
+        
+        userRepository.save(user);
+        
+        logger.info("SERVICE: Password changed successfully. userId={}, username={}", userId, user.getUsername());
     }
     
     /**

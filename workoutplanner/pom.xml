@@ -58,6 +58,34 @@
 		<artifactId>spring-boot-starter-security</artifactId>
 	</dependency>
 
+	<!-- Spring AOP for rate limiting aspect -->
+	<dependency>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-aop</artifactId>
+	</dependency>
+
+	<!-- Bucket4j - Industry standard rate limiting library -->
+	<!-- Used by major companies, recommended by Spring docs -->
+	<dependency>
+		<groupId>com.bucket4j</groupId>
+		<artifactId>bucket4j-core</artifactId>
+		<version>8.7.0</version>
+	</dependency>
+
+	<!-- Bucket4j Caffeine integration (for single-instance deployments) -->
+	<!-- For distributed deployments, switch to bucket4j-redis or bucket4j-hazelcast -->
+	<dependency>
+		<groupId>com.bucket4j</groupId>
+		<artifactId>bucket4j-caffeine</artifactId>
+		<version>8.7.0</version>
+	</dependency>
+
+	<!-- Caffeine cache (high-performance in-memory cache) -->
+	<dependency>
+		<groupId>com.github.ben-manes.caffeine</groupId>
+		<artifactId>caffeine</artifactId>
+	</dependency>
+
 	<dependency>
 		<groupId>org.projectlombok</groupId>
 		<artifactId>lombok</artifactId>

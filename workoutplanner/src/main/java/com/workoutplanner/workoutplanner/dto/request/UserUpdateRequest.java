@@ -5,27 +5,27 @@ import jakarta.validation.constraints.Pattern;
 import org.hibernate.validator.constraints.Length;
 
 /**
- * Unified DTO for user profile updates.
+ * DTO for user profile updates.
  * 
- * Following Jakarta Bean Validation and Spring Framework best practices:
- * - Uses Default validation group for format/structure validation at controller level
- * - Business logic validation (password verification, uniqueness) handled in service layer
- * - Clean separation of concerns between presentation and business logic
+ * Following industry best practices from major APIs:
+ * - Profile updates only (email, firstName, lastName)
+ * - Password changes use separate endpoint (POST /users/{id}/password)
+ * - Clear separation of concerns
  * 
  * Features:
- * - Basic profile updates (firstName, lastName) - no password required
- * - Secure profile updates (email, password) - password verification in service
+ * - Basic updates: firstName, lastName (no password required)
+ * - Secure updates: email (password verification required)
  * - Flexible field updates (only provided fields are updated)
  * 
  * @author WorkoutPlanner Team
- * @version 2.0
+ * @version 3.0
  * @since 1.0
  */
 public class UserUpdateRequest {
 
     /**
-     * Current password for verification (required for secure updates).
-     * Validation of requirement is handled in service layer based on update type.
+     * Current password for verification (required for email changes).
+     * Following industry standard: email is sensitive, requires password verification.
      */
     @Length(min = 8, max = 255, 
             message = "Current password must be between 8 and 255 characters")
@@ -60,24 +60,6 @@ public class UserUpdateRequest {
              message = "Last name can only contain letters, spaces, hyphens, and apostrophes")
     private String lastName;
 
-    /**
-     * New password.
-     * This field is optional - only provided if user wants to change password.
-     */
-    @Length(min = 8, max = 255, 
-            message = "New password must be between 8 and 255 characters")
-    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).*$", 
-             message = "Password must contain at least one lowercase letter, one uppercase letter, and one digit")
-    private String newPassword;
-
-    /**
-     * Confirm new password.
-     * This field is required if newPassword is provided.
-     */
-    @Length(min = 8, max = 255, 
-            message = "Password confirmation must be between 8 and 255 characters")
-    private String confirmPassword;
-
     public UserUpdateRequest() {}
 
     public UserUpdateRequest(String email, String firstName, String lastName) {
@@ -86,14 +68,11 @@ public class UserUpdateRequest {
         this.lastName = lastName;
     }
 
-    public UserUpdateRequest(String currentPassword, String email, String firstName, String lastName, 
-                           String newPassword, String confirmPassword) {
+    public UserUpdateRequest(String currentPassword, String email, String firstName, String lastName) {
         this.currentPassword = currentPassword;
         this.email = email;
         this.firstName = firstName;
         this.lastName = lastName;
-        this.newPassword = newPassword;
-        this.confirmPassword = confirmPassword;
     }
 
     public String getCurrentPassword() {
@@ -128,22 +107,6 @@ public class UserUpdateRequest {
         this.lastName = lastName;
     }
 
-    public String getNewPassword() {
-        return newPassword;
-    }
-
-    public void setNewPassword(String newPassword) {
-        this.newPassword = newPassword;
-    }
-
-    public String getConfirmPassword() {
-        return confirmPassword;
-    }
-
-    public void setConfirmPassword(String confirmPassword) {
-        this.confirmPassword = confirmPassword;
-    }
-
     /**
      * Check if this is a basic update (no password verification required).
      * Basic updates include: firstName, lastName changes only.
@@ -153,18 +116,18 @@ public class UserUpdateRequest {
     public boolean isBasicUpdate() {
         return (firstName != null || lastName != null) && 
                email == null && 
-               newPassword == null && 
                currentPassword == null;
     }
 
     /**
      * Check if this is a secure update (password verification required).
-     * Secure updates include: email changes, password changes.
+     * Secure updates include: email changes only.
+     * Password changes now use separate endpoint (POST /users/{id}/password).
      * 
      * @return true if this is a secure update, false otherwise
      */
     public boolean isSecureUpdate() {
-        return email != null || newPassword != null || currentPassword != null;
+        return email != null || currentPassword != null;
     }
 
     /**
@@ -187,15 +150,6 @@ public class UserUpdateRequest {
     }
 
     /**
-     * Check if password change is requested.
-     * 
-     * @return true if the newPassword field is not null and not blank, false otherwise
-     */
-    public boolean isPasswordChangeRequested() {
-        return newPassword != null && !newPassword.trim().isEmpty();
-    }
-
-    /**
      * Check if current password is provided (required for secure updates).
      * 
      * @return true if currentPassword is not null and not blank, false otherwise
@@ -205,23 +159,12 @@ public class UserUpdateRequest {
     }
 
     /**
-     * Validates that new password and confirmation match.
-     * 
-     * @return true if passwords match, false otherwise
-     */
-    public boolean passwordsMatch() {
-        return newPassword != null && newPassword.equals(confirmPassword);
-    }
-
-    /**
      * Check if any field is being updated.
      * 
      * @return true if at least one field is provided, false otherwise
      */
     public boolean hasUpdates() {
-        return isEmailChangeRequested() || 
-               isNameChangeRequested() || 
-               isPasswordChangeRequested();
+        return isEmailChangeRequested() || isNameChangeRequested();
     }
 
     @Override
@@ -231,8 +174,6 @@ public class UserUpdateRequest {
                 ", email='" + email + '\'' +
                 ", firstName='" + firstName + '\'' +
                 ", lastName='" + lastName + '\'' +
-                ", newPassword='[PROTECTED]'" +
-                ", confirmPassword='[PROTECTED]'" +
                 '}';
     }
 }
