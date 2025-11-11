@@ -152,7 +152,7 @@ public class StrengthSetService implements StrengthSetServiceInterface {
      */
     @Transactional
     public void deleteSet(Long setId) {
-        logger.debug("SERVICE: Deleting strength set. setId={}", setId);
+        logger.debug("SERVICE: Soft deleting strength set. setId={}", setId);
         
         StrengthSet strengthSet = strengthSetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Strength set", "ID", setId));
@@ -160,10 +160,36 @@ public class StrengthSetService implements StrengthSetServiceInterface {
         Integer setNumber = strengthSet.getSetNumber();
         Long workoutExerciseId = strengthSet.getWorkoutExercise().getWorkoutExerciseId();
         
-        strengthSetRepository.delete(strengthSet);
+        strengthSet.softDelete();
+        strengthSetRepository.save(strengthSet);
         
-        logger.info("SERVICE: Strength set deleted successfully. setId={}, workoutExerciseId={}, setNumber={}", 
+        logger.info("SERVICE: Strength set soft deleted successfully. setId={}, workoutExerciseId={}, setNumber={}", 
                    setId, workoutExerciseId, setNumber);
+    }
+    
+    /**
+     * Restore a soft deleted strength set.
+     * 
+     * @param setId the set ID
+     * @throws ResourceNotFoundException if strength set not found
+     */
+    @Transactional
+    public void restoreSet(Long setId) {
+        logger.debug("SERVICE: Restoring soft deleted strength set. setId={}", setId);
+        
+        // Use findByIdIncludingDeleted because we need to access the deleted set to restore it
+        StrengthSet strengthSet = strengthSetRepository.findByIdIncludingDeleted(setId)
+                .orElseThrow(() -> new ResourceNotFoundException("Strength set", "ID", setId));
+        
+        if (strengthSet.isActive()) {
+            logger.warn("SERVICE: Strength set is already active. setId={}", setId);
+            throw new BusinessLogicException("Strength set is not deleted and cannot be restored");
+        }
+        
+        strengthSet.restore();
+        strengthSetRepository.save(strengthSet);
+        
+        logger.info("SERVICE: Strength set restored successfully. setId={}", setId);
     }
 
     /**

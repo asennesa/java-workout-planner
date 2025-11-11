@@ -1,6 +1,5 @@
 databaseChangeLog:
-  # Empty master changelog - ready for future migrations
-  # When you want to add migrations, create them in: db/changelog/changes/
-  # Then include them here like:
-  # - include:
-  #     file: db/changelog/changes/v1.0/001-your-migration.yaml
+  # Soft delete support migration - adds deleted and deleted_at columns to all entities
+  # This enables data recovery, audit trails, and GDPR compliance
+  - include:
+      file: db/changelog/changes/v1.0/001-add-soft-delete-columns.yaml

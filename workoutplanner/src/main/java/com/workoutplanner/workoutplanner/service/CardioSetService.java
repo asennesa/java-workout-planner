@@ -152,7 +152,7 @@ public class CardioSetService implements CardioSetServiceInterface {
      */
     @Transactional
     public void deleteSet(Long setId) {
-        logger.debug("SERVICE: Deleting cardio set. setId={}", setId);
+        logger.debug("SERVICE: Soft deleting cardio set. setId={}", setId);
         
         CardioSet cardioSet = cardioSetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cardio set", "ID", setId));
@@ -160,10 +160,36 @@ public class CardioSetService implements CardioSetServiceInterface {
         Integer setNumber = cardioSet.getSetNumber();
         Long workoutExerciseId = cardioSet.getWorkoutExercise().getWorkoutExerciseId();
         
-        cardioSetRepository.delete(cardioSet);
+        cardioSet.softDelete();
+        cardioSetRepository.save(cardioSet);
         
-        logger.info("SERVICE: Cardio set deleted successfully. setId={}, workoutExerciseId={}, setNumber={}", 
+        logger.info("SERVICE: Cardio set soft deleted successfully. setId={}, workoutExerciseId={}, setNumber={}", 
                    setId, workoutExerciseId, setNumber);
+    }
+    
+    /**
+     * Restore a soft deleted cardio set.
+     * 
+     * @param setId the set ID
+     * @throws ResourceNotFoundException if cardio set not found
+     */
+    @Transactional
+    public void restoreSet(Long setId) {
+        logger.debug("SERVICE: Restoring soft deleted cardio set. setId={}", setId);
+        
+        // Use findByIdIncludingDeleted because we need to access the deleted set to restore it
+        CardioSet cardioSet = cardioSetRepository.findByIdIncludingDeleted(setId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cardio set", "ID", setId));
+        
+        if (cardioSet.isActive()) {
+            logger.warn("SERVICE: Cardio set is already active. setId={}", setId);
+            throw new BusinessLogicException("Cardio set is not deleted and cannot be restored");
+        }
+        
+        cardioSet.restore();
+        cardioSetRepository.save(cardioSet);
+        
+        logger.info("SERVICE: Cardio set restored successfully. setId={}", setId);
     }
 
     /**

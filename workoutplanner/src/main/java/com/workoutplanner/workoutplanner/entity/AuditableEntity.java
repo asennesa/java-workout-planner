@@ -14,7 +14,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 /**
- * Base audit entity providing comprehensive audit trail functionality.
+ * Base audit entity providing comprehensive audit trail and soft delete functionality.
  * 
  * This abstract class provides enterprise-grade audit fields that are automatically
  * managed by JPA lifecycle callbacks and Spring Data JPA auditing.
@@ -22,12 +22,18 @@ import java.time.LocalDateTime;
  * Features:
  * - Automatic timestamp management (created_at, updated_at)
  * - User tracking (created_by, updated_by)
+ * - Soft delete support (deleted flag and timestamp)
  * - JPA lifecycle callbacks for automatic updates
  * - Spring Data JPA auditing integration
  * - Enterprise compliance and debugging support
  * 
+ * Soft Delete Implementation:
+ * - Soft delete filtering is handled at the repository level via query overrides
+ * - Standard repository methods (findById, findAll, etc.) automatically filter deleted records
+ * - Use *IncludingDeleted() methods when you need to access deleted records (e.g., restore)
+ * 
  * Usage:
- * Extend this class in all entities that require audit functionality.
+ * Extend this class in all entities that require audit functionality and soft delete.
  * 
  * @author WorkoutPlanner Team
  * @version 1.0
@@ -35,7 +41,7 @@ import java.time.LocalDateTime;
  */
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)
-public abstract class AuditableEntity {
+public abstract class AuditableEntity implements SoftDeletable {
 
     /**
      * Timestamp when the entity was created.
@@ -76,7 +82,7 @@ public abstract class AuditableEntity {
      * - Compliance requirements
      */
     @CreatedBy
-    @Column(name = "created_by", nullable = false, updatable = false)
+    @Column(name = "created_by", nullable = true, updatable = false)
     private Long createdBy;
 
     /**
@@ -90,8 +96,33 @@ public abstract class AuditableEntity {
      * - Compliance and regulatory requirements
      */
     @LastModifiedBy
-    @Column(name = "updated_by", nullable = false)
+    @Column(name = "updated_by", nullable = true)
     private Long updatedBy;
+
+    /**
+     * Soft delete flag indicating whether the entity is marked as deleted.
+     * When true, the entity is logically deleted but remains in the database.
+     * 
+     * Used for:
+     * - Data recovery capabilities
+     * - Audit trail preservation
+     * - GDPR compliance (scheduled permanent deletion)
+     * - Prevention of accidental data loss
+     */
+    @Column(name = "deleted", nullable = false)
+    private Boolean deleted = false;
+
+    /**
+     * Timestamp when the entity was soft deleted.
+     * This field is set when the entity is marked as deleted.
+     * 
+     * Used for:
+     * - Tracking deletion time for compliance
+     * - Scheduled permanent deletion (e.g., after 30 days)
+     * - Audit trail and recovery operations
+     */
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     /**
      * JPA lifecycle callback for entity creation.
@@ -232,5 +263,65 @@ public abstract class AuditableEntity {
             return null;
         }
         return java.time.Duration.between(updatedAt, LocalDateTime.now()).toHours();
+    }
+
+    // SoftDeletable implementation
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Boolean getDeleted() {
+        return deleted;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setDeleted(Boolean deleted) {
+        this.deleted = deleted;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    /**
+     * Get the time since deletion in days.
+     * 
+     * @return the time since deletion in days, or null if not deleted
+     */
+    public Long getDaysSinceDeletion() {
+        if (deletedAt == null) {
+            return null;
+        }
+        return java.time.Duration.between(deletedAt, LocalDateTime.now()).toDays();
+    }
+
+    /**
+     * Check if this entity is eligible for permanent deletion based on retention policy.
+     * Default policy: 30 days after soft delete.
+     * 
+     * @return true if the entity can be permanently deleted, false otherwise
+     */
+    public boolean isEligibleForPermanentDeletion() {
+        if (deletedAt == null || !Boolean.TRUE.equals(deleted)) {
+            return false;
+        }
+        Long daysSinceDeletion = getDaysSinceDeletion();
+        return daysSinceDeletion != null && daysSinceDeletion >= 30;
     }
 }

@@ -1,7 +1,6 @@
 package com.workoutplanner.workoutplanner.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -25,15 +24,9 @@ import java.util.Objects;
 public class StrengthSet extends BaseSet {
 
     @Column(name = "reps", nullable = false)
-    @NotNull(message = "Reps is required")
-    @Min(value = 1, message = "Reps must be at least 1")
-    @Max(value = 1000, message = "Reps cannot exceed 1000")
     private Integer reps;
 
     @Column(name = "weight", precision = 5, scale = 2)
-    @DecimalMin(value = "0.0", message = "Weight must be non-negative")
-    @DecimalMax(value = "999.99", message = "Weight cannot exceed 999.99")
-    @Digits(integer = 3, fraction = 2, message = "Weight must have at most 3 integer digits and 2 decimal places")
     private BigDecimal weight;
 
     @Override

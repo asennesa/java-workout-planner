@@ -12,6 +12,7 @@ import com.workoutplanner.workoutplanner.entity.WorkoutExercise;
 import com.workoutplanner.workoutplanner.entity.User;
 import com.workoutplanner.workoutplanner.entity.Exercise;
 import com.workoutplanner.workoutplanner.enums.WorkoutStatus;
+import com.workoutplanner.workoutplanner.exception.BusinessLogicException;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.exception.OptimisticLockConflictException;
 import com.workoutplanner.workoutplanner.mapper.WorkoutMapper;
@@ -306,7 +307,7 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
      */
     @Transactional
     public void deleteWorkoutSession(Long sessionId) {
-        logger.debug("SERVICE: Deleting workout session. sessionId={}", sessionId);
+        logger.debug("SERVICE: Soft deleting workout session. sessionId={}", sessionId);
         
         WorkoutSession workoutSession = workoutSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
@@ -315,10 +316,38 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
         WorkoutStatus status = workoutSession.getStatus();
         Long userId = workoutSession.getUser().getUserId();
         
-        workoutSessionRepository.delete(workoutSession);
+        workoutSession.softDelete();
+        workoutSessionRepository.save(workoutSession);
         
-        logger.info("SERVICE: Workout session deleted successfully. sessionId={}, name={}, status={}, userId={}", 
+        logger.info("SERVICE: Workout session soft deleted successfully. sessionId={}, name={}, status={}, userId={}", 
                    sessionId, name, status, userId);
+    }
+    
+    /**
+     * Restore a soft deleted workout session.
+     * 
+     * @param sessionId the workout session ID
+     * @throws ResourceNotFoundException if workout session not found
+     */
+    @Transactional
+    public void restoreWorkoutSession(Long sessionId) {
+        logger.debug("SERVICE: Restoring soft deleted workout session. sessionId={}", sessionId);
+        
+        // Use findByIdIncludingDeleted because we need to access the deleted session to restore it
+        WorkoutSession workoutSession = workoutSessionRepository.findByIdIncludingDeleted(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
+        
+        if (workoutSession.isActive()) {
+            logger.warn("SERVICE: Workout session is already active. sessionId={}", sessionId);
+            throw new BusinessLogicException("Workout session is not deleted and cannot be restored");
+        }
+        
+        String name = workoutSession.getName();
+        workoutSession.restore();
+        workoutSessionRepository.save(workoutSession);
+        
+        logger.info("SERVICE: Workout session restored successfully. sessionId={}, name={}", 
+                   sessionId, name);
     }
 
     /**
