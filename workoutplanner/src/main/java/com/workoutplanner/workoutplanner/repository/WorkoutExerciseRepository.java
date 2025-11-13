@@ -2,66 +2,76 @@ package com.workoutplanner.workoutplanner.repository;
 
 import com.workoutplanner.workoutplanner.entity.WorkoutExercise;
 import org.springframework.data.jpa.repository.EntityGraph;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository interface for WorkoutExercise entity.
+ * Repository interface for WorkoutExercise entity with soft delete support.
  * Provides CRUD operations and custom queries for workout exercise management.
+ * All query methods automatically filter out soft-deleted workout exercises unless explicitly stated.
  */
 @Repository
-public interface WorkoutExerciseRepository extends JpaRepository<WorkoutExercise, Long> {
+public interface WorkoutExerciseRepository extends SoftDeleteRepository<WorkoutExercise, Long> {
     
     /**
-     * Find workout exercise by ID with exercise eagerly fetched.
+     * Find active workout exercise by ID with exercise eagerly fetched.
      * Prevents N+1 query problem when accessing exercise details.
      * 
      * @param workoutExerciseId the workout exercise ID
      * @return optional workout exercise with exercise eagerly loaded
      */
     @EntityGraph(attributePaths = "exercise")
-    Optional<WorkoutExercise> findWithExerciseByWorkoutExerciseId(Long workoutExerciseId);
+    @Query("SELECT we FROM WorkoutExercise we WHERE we.workoutExerciseId = :workoutExerciseId AND we.deleted = false")
+    Optional<WorkoutExercise> findWithExerciseByWorkoutExerciseId(@Param("workoutExerciseId") Long workoutExerciseId);
     
     /**
-     * Find workout exercises by session ID with exercise eagerly fetched.
+     * Find active workout exercises by session ID with exercise eagerly fetched.
      * Prevents N+1 query problem when accessing exercise details.
      * 
      * @param sessionId the workout session ID
-     * @return list of workout exercises with exercise eagerly loaded
+     * @return list of active workout exercises with exercise eagerly loaded
      */
     @EntityGraph(attributePaths = "exercise")
-    List<WorkoutExercise> findByWorkoutSession_SessionIdOrderByOrderInWorkoutAsc(Long sessionId);
+    @Query("SELECT we FROM WorkoutExercise we WHERE we.workoutSession.sessionId = :sessionId AND we.deleted = false ORDER BY we.orderInWorkout ASC")
+    List<WorkoutExercise> findByWorkoutSession_SessionIdOrderByOrderInWorkoutAsc(@Param("sessionId") Long sessionId);
     
     /**
-     * Find strength exercises with their sets for a session.
+     * Find active strength exercises with their sets for a session.
      * Only loads strength sets for strength exercises.
      * 
      * @param sessionId the workout session ID
-     * @return list of strength workout exercises with strength sets loaded
+     * @param type the exercise type
+     * @return list of active strength workout exercises with strength sets loaded
      */
     @EntityGraph(attributePaths = {"exercise", "strengthSets"})
-    List<WorkoutExercise> findStrengthExercisesWithSetsByWorkoutSession_SessionIdAndExercise_TypeOrderByOrderInWorkoutAsc(Long sessionId, String type);
+    @Query("SELECT we FROM WorkoutExercise we WHERE we.workoutSession.sessionId = :sessionId AND we.exercise.type = :type AND we.deleted = false ORDER BY we.orderInWorkout ASC")
+    List<WorkoutExercise> findStrengthExercisesWithSetsByWorkoutSession_SessionIdAndExercise_TypeOrderByOrderInWorkoutAsc(@Param("sessionId") Long sessionId, @Param("type") String type);
     
     /**
-     * Find cardio exercises with their sets for a session.
+     * Find active cardio exercises with their sets for a session.
      * Only loads cardio sets for cardio exercises.
      * 
      * @param sessionId the workout session ID
-     * @return list of cardio workout exercises with cardio sets loaded
+     * @param type the exercise type
+     * @return list of active cardio workout exercises with cardio sets loaded
      */
     @EntityGraph(attributePaths = {"exercise", "cardioSets"})
-    List<WorkoutExercise> findCardioExercisesWithSetsByWorkoutSession_SessionIdAndExercise_TypeOrderByOrderInWorkoutAsc(Long sessionId, String type);
+    @Query("SELECT we FROM WorkoutExercise we WHERE we.workoutSession.sessionId = :sessionId AND we.exercise.type = :type AND we.deleted = false ORDER BY we.orderInWorkout ASC")
+    List<WorkoutExercise> findCardioExercisesWithSetsByWorkoutSession_SessionIdAndExercise_TypeOrderByOrderInWorkoutAsc(@Param("sessionId") Long sessionId, @Param("type") String type);
     
     /**
-     * Find flexibility exercises with their sets for a session.
+     * Find active flexibility exercises with their sets for a session.
      * Only loads flexibility sets for flexibility exercises.
      * 
      * @param sessionId the workout session ID
-     * @return list of flexibility workout exercises with flexibility sets loaded
+     * @param type the exercise type
+     * @return list of active flexibility workout exercises with flexibility sets loaded
      */
     @EntityGraph(attributePaths = {"exercise", "flexibilitySets"})
-    List<WorkoutExercise> findFlexibilityExercisesWithSetsByWorkoutSession_SessionIdAndExercise_TypeOrderByOrderInWorkoutAsc(Long sessionId, String type);
+    @Query("SELECT we FROM WorkoutExercise we WHERE we.workoutSession.sessionId = :sessionId AND we.exercise.type = :type AND we.deleted = false ORDER BY we.orderInWorkout ASC")
+    List<WorkoutExercise> findFlexibilityExercisesWithSetsByWorkoutSession_SessionIdAndExercise_TypeOrderByOrderInWorkoutAsc(@Param("sessionId") Long sessionId, @Param("type") String type);
 }

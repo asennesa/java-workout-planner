@@ -1,20 +1,15 @@
 package com.workoutplanner.workoutplanner.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.validator.constraints.Length;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import com.workoutplanner.workoutplanner.enums.UserRole;
-import com.workoutplanner.workoutplanner.validation.ValidationGroups;
-import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.Objects;
 
 @Entity
@@ -22,7 +17,7 @@ import java.util.Objects;
 @Getter
 @Setter
 @NoArgsConstructor
-public class User implements UserDetails {
+public class User extends AuditableEntity implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,61 +25,19 @@ public class User implements UserDetails {
     private Long userId;
 
     @Column(name = "username", unique = true, nullable = false, length = 50)
-    @NotBlank(groups = {ValidationGroups.Create.class}, 
-              message = "Username is required")
-    @Length(min = 3, max = 50, 
-            groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
-            message = "Username must be between 3 and 50 characters")
-    @Pattern(regexp = "^[a-zA-Z0-9_]+$", 
-             groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
-             message = "Username can only contain letters, numbers, and underscores")
     private String username;
 
     @Column(name = "password_hash", nullable = false)
-    @NotBlank(groups = {ValidationGroups.Create.class}, 
-              message = "Password is required")
-    @Length(min = 8, max = 255, 
-            groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
-            message = "Password must be between 8 and 255 characters")
     private String passwordHash;
 
-    @Column(name = "email", unique = true, nullable = false)
-    @NotBlank(groups = {ValidationGroups.Create.class}, 
-              message = "Email is required")
-    @Email(groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
-           message = "Email must be a valid email address")
-    @Length(max = 255, 
-            groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
-            message = "Email must not exceed 255 characters")
+    @Column(name = "email", unique = true, nullable = false, length = 255)
     private String email;
 
     @Column(name = "first_name", nullable = false, length = 50)
-    @NotBlank(groups = {ValidationGroups.Create.class}, 
-              message = "First name is required")
-    @Length(min = 1, max = 50, 
-            groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
-            message = "First name must be between 1 and 50 characters")
-    @Pattern(regexp = "^[a-zA-Z\\s'-]+$", 
-             groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
-             message = "First name can only contain letters, spaces, hyphens, and apostrophes")
     private String firstName;
 
     @Column(name = "last_name", nullable = false, length = 50)
-    @NotBlank(groups = {ValidationGroups.Create.class}, 
-              message = "Last name is required")
-    @Length(min = 1, max = 50, 
-            groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
-            message = "Last name must be between 1 and 50 characters")
-    @Pattern(regexp = "^[a-zA-Z\\s'-]+$", 
-             groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
-             message = "Last name can only contain letters, spaces, hyphens, and apostrophes")
     private String lastName;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
@@ -105,20 +58,6 @@ public class User implements UserDetails {
     @Version
     @Column(name = "version", nullable = false)
     private Long version = 0L;
-
-    /**
-     * JPA lifecycle callbacks for automatic timestamp management
-     */
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

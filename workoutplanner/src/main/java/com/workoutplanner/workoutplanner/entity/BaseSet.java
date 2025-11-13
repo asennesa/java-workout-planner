@@ -1,13 +1,10 @@
 package com.workoutplanner.workoutplanner.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import org.hibernate.validator.constraints.Length;
-import com.workoutplanner.workoutplanner.validation.ValidationGroups;
 import java.util.Objects;
 
 /**
@@ -30,34 +27,15 @@ public abstract class BaseSet extends AuditableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "workout_exercise_id", nullable = false)
-    @NotNull(groups = {ValidationGroups.Create.class}, 
-             message = "Workout exercise is required for set creation")
     private WorkoutExercise workoutExercise;
 
     @Column(name = "set_number", nullable = false)
-    @NotNull(groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
-             message = "Set number is required")
-    @Min(value = 1, 
-         groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
-         message = "Set number must be at least 1")
-    @Max(value = 50, 
-         groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
-         message = "Set number cannot exceed 50")
     private Integer setNumber;
 
     @Column(name = "rest_time_in_seconds")
-    @Min(value = 0, 
-         groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
-         message = "Rest time must be non-negative")
-    @Max(value = 3600, 
-         groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
-         message = "Rest time cannot exceed 3600 seconds (1 hour)")
     private Integer restTimeInSeconds;
 
     @Column(name = "notes", length = 500)
-    @Length(max = 500, 
-            groups = {ValidationGroups.Create.class, ValidationGroups.Update.class}, 
-            message = "Notes must not exceed 500 characters")
     private String notes;
 
     @Column(name = "completed", nullable = false)

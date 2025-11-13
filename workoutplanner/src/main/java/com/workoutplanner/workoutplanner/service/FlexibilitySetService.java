@@ -4,6 +4,8 @@ import com.workoutplanner.workoutplanner.dto.request.CreateFlexibilitySetRequest
 import com.workoutplanner.workoutplanner.dto.response.SetResponse;
 import com.workoutplanner.workoutplanner.entity.FlexibilitySet;
 import com.workoutplanner.workoutplanner.entity.WorkoutExercise;
+import com.workoutplanner.workoutplanner.enums.ExerciseType;
+import com.workoutplanner.workoutplanner.exception.BusinessLogicException;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.mapper.BaseSetMapper;
 import com.workoutplanner.workoutplanner.mapper.WorkoutMapper;
@@ -66,6 +68,18 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
         
         WorkoutExercise workoutExercise = workoutExerciseRepository.findById(workoutExerciseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", workoutExerciseId));
+
+        // Validate exercise type matches set type - business rule enforcement
+        if (workoutExercise.getExercise() != null && 
+            workoutExercise.getExercise().getType() != null && 
+            workoutExercise.getExercise().getType() != ExerciseType.FLEXIBILITY) {
+            throw new BusinessLogicException(
+                String.format("Cannot add flexibility sets to a %s exercise. Exercise '%s' is of type %s.",
+                    workoutExercise.getExercise().getType(),
+                    workoutExercise.getExercise().getName(),
+                    workoutExercise.getExercise().getType())
+            );
+        }
 
         FlexibilitySet flexibilitySet = workoutMapper.toFlexibilitySetEntity(createFlexibilitySetRequest);
         
@@ -138,7 +152,7 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
      */
     @Transactional
     public void deleteSet(Long setId) {
-        logger.debug("SERVICE: Deleting flexibility set. setId={}", setId);
+        logger.debug("SERVICE: Soft deleting flexibility set. setId={}", setId);
         
         FlexibilitySet flexibilitySet = flexibilitySetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Flexibility set", "ID", setId));
@@ -146,10 +160,36 @@ public class FlexibilitySetService implements FlexibilitySetServiceInterface {
         Integer setNumber = flexibilitySet.getSetNumber();
         Long workoutExerciseId = flexibilitySet.getWorkoutExercise().getWorkoutExerciseId();
         
-        flexibilitySetRepository.delete(flexibilitySet);
+        flexibilitySet.softDelete();
+        flexibilitySetRepository.save(flexibilitySet);
         
-        logger.info("SERVICE: Flexibility set deleted successfully. setId={}, workoutExerciseId={}, setNumber={}", 
+        logger.info("SERVICE: Flexibility set soft deleted successfully. setId={}, workoutExerciseId={}, setNumber={}", 
                    setId, workoutExerciseId, setNumber);
+    }
+    
+    /**
+     * Restore a soft deleted flexibility set.
+     * 
+     * @param setId the set ID
+     * @throws ResourceNotFoundException if flexibility set not found
+     */
+    @Transactional
+    public void restoreSet(Long setId) {
+        logger.debug("SERVICE: Restoring soft deleted flexibility set. setId={}", setId);
+        
+        // Use findByIdIncludingDeleted because we need to access the deleted set to restore it
+        FlexibilitySet flexibilitySet = flexibilitySetRepository.findByIdIncludingDeleted(setId)
+                .orElseThrow(() -> new ResourceNotFoundException("Flexibility set", "ID", setId));
+        
+        if (flexibilitySet.isActive()) {
+            logger.warn("SERVICE: Flexibility set is already active. setId={}", setId);
+            throw new BusinessLogicException("Flexibility set is not deleted and cannot be restored");
+        }
+        
+        flexibilitySet.restore();
+        flexibilitySetRepository.save(flexibilitySet);
+        
+        logger.info("SERVICE: Flexibility set restored successfully. setId={}", setId);
     }
 
     /**

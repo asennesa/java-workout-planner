@@ -4,6 +4,8 @@ import com.workoutplanner.workoutplanner.dto.request.CreateCardioSetRequest;
 import com.workoutplanner.workoutplanner.dto.response.SetResponse;
 import com.workoutplanner.workoutplanner.entity.CardioSet;
 import com.workoutplanner.workoutplanner.entity.WorkoutExercise;
+import com.workoutplanner.workoutplanner.enums.ExerciseType;
+import com.workoutplanner.workoutplanner.exception.BusinessLogicException;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.mapper.BaseSetMapper;
 import com.workoutplanner.workoutplanner.mapper.WorkoutMapper;
@@ -66,6 +68,18 @@ public class CardioSetService implements CardioSetServiceInterface {
         
         WorkoutExercise workoutExercise = workoutExerciseRepository.findById(workoutExerciseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", workoutExerciseId));
+
+        // Validate exercise type matches set type - business rule enforcement
+        if (workoutExercise.getExercise() != null && 
+            workoutExercise.getExercise().getType() != null && 
+            workoutExercise.getExercise().getType() != ExerciseType.CARDIO) {
+            throw new BusinessLogicException(
+                String.format("Cannot add cardio sets to a %s exercise. Exercise '%s' is of type %s.",
+                    workoutExercise.getExercise().getType(),
+                    workoutExercise.getExercise().getName(),
+                    workoutExercise.getExercise().getType())
+            );
+        }
 
         CardioSet cardioSet = workoutMapper.toCardioSetEntity(createCardioSetRequest);
         
@@ -138,7 +152,7 @@ public class CardioSetService implements CardioSetServiceInterface {
      */
     @Transactional
     public void deleteSet(Long setId) {
-        logger.debug("SERVICE: Deleting cardio set. setId={}", setId);
+        logger.debug("SERVICE: Soft deleting cardio set. setId={}", setId);
         
         CardioSet cardioSet = cardioSetRepository.findById(setId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cardio set", "ID", setId));
@@ -146,10 +160,36 @@ public class CardioSetService implements CardioSetServiceInterface {
         Integer setNumber = cardioSet.getSetNumber();
         Long workoutExerciseId = cardioSet.getWorkoutExercise().getWorkoutExerciseId();
         
-        cardioSetRepository.delete(cardioSet);
+        cardioSet.softDelete();
+        cardioSetRepository.save(cardioSet);
         
-        logger.info("SERVICE: Cardio set deleted successfully. setId={}, workoutExerciseId={}, setNumber={}", 
+        logger.info("SERVICE: Cardio set soft deleted successfully. setId={}, workoutExerciseId={}, setNumber={}", 
                    setId, workoutExerciseId, setNumber);
+    }
+    
+    /**
+     * Restore a soft deleted cardio set.
+     * 
+     * @param setId the set ID
+     * @throws ResourceNotFoundException if cardio set not found
+     */
+    @Transactional
+    public void restoreSet(Long setId) {
+        logger.debug("SERVICE: Restoring soft deleted cardio set. setId={}", setId);
+        
+        // Use findByIdIncludingDeleted because we need to access the deleted set to restore it
+        CardioSet cardioSet = cardioSetRepository.findByIdIncludingDeleted(setId)
+                .orElseThrow(() -> new ResourceNotFoundException("Cardio set", "ID", setId));
+        
+        if (cardioSet.isActive()) {
+            logger.warn("SERVICE: Cardio set is already active. setId={}", setId);
+            throw new BusinessLogicException("Cardio set is not deleted and cannot be restored");
+        }
+        
+        cardioSet.restore();
+        cardioSetRepository.save(cardioSet);
+        
+        logger.info("SERVICE: Cardio set restored successfully. setId={}", setId);
     }
 
     /**

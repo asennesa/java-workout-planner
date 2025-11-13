@@ -3,7 +3,6 @@ package com.workoutplanner.workoutplanner.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -84,18 +83,6 @@ public class ApplicationConfig {
         return source;
     }
 
-    /**
-     * Configures the local validator factory bean for validation.
-     * This ensures proper validation message resolution and custom validators.
-     * This bean bridges Spring's dependency injection with Hibernate Validator,
-     * allowing custom validators to use @Autowired dependencies.
-     *
-     * @return LocalValidatorFactoryBean configured for the application
-     */
-    @Bean
-    public LocalValidatorFactoryBean validator() {
-        return new LocalValidatorFactoryBean();
-    }
 
     /**
      * Clock bean for time operations.

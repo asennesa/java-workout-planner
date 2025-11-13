@@ -1,6 +1,7 @@
 package com.workoutplanner.workoutplanner.service;
 
 import com.workoutplanner.workoutplanner.dto.request.CreateUserRequest;
+import com.workoutplanner.workoutplanner.dto.request.PasswordChangeRequest;
 import com.workoutplanner.workoutplanner.dto.request.UserUpdateRequest;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.UserResponse;
@@ -11,6 +12,7 @@ import com.workoutplanner.workoutplanner.exception.ResourceConflictException;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.mapper.UserMapper;
 import com.workoutplanner.workoutplanner.repository.UserRepository;
+import com.workoutplanner.workoutplanner.repository.WorkoutSessionRepository;
 import com.workoutplanner.workoutplanner.util.ValidationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +45,7 @@ public class UserService implements UserServiceInterface, UserDetailsService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final WorkoutSessionRepository workoutSessionRepository;
     
     /**
      * Constructor injection for dependencies.
@@ -50,10 +53,12 @@ public class UserService implements UserServiceInterface, UserDetailsService {
      */
     public UserService(UserRepository userRepository, 
                       UserMapper userMapper, 
-                      PasswordEncoder passwordEncoder) {
+                      PasswordEncoder passwordEncoder,
+                      WorkoutSessionRepository workoutSessionRepository) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
+        this.workoutSessionRepository = workoutSessionRepository;
     }
     
     /**
@@ -87,6 +92,14 @@ public class UserService implements UserServiceInterface, UserDetailsService {
         user.setRole(UserRole.USER);
         
         User savedUser = userRepository.save(user);
+        
+        // Best Practice: Self-reference audit fields for user registration
+        // Since user doesn't exist during creation, we set created_by to their own ID
+        if (savedUser.getCreatedBy() == null) {
+            savedUser.setCreatedBy(savedUser.getUserId());
+            savedUser.setUpdatedBy(savedUser.getUserId());
+            savedUser = userRepository.save(savedUser);
+        }
         
         logger.info("SERVICE: User created successfully. userId={}, username={}, email={}", 
                    savedUser.getUserId(), savedUser.getUsername(), savedUser.getEmail());
@@ -229,8 +242,13 @@ public class UserService implements UserServiceInterface, UserDetailsService {
     /**
      * Update user profile securely with password verification.
      * 
-     * This method handles sensitive profile updates like email and password changes.
+     * This method handles sensitive profile updates like email changes.
      * Requires current password verification for security.
+     * 
+     * Following industry best practices (Google, Auth0, AWS):
+     * - Email changes require password verification
+     * - Password changes use separate endpoint (changePassword method)
+     * - Clear separation of concerns
      * 
      * @param userId the user ID
      * @param userUpdateRequest the user update request
@@ -245,11 +263,19 @@ public class UserService implements UserServiceInterface, UserDetailsService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "ID", userId));
         
+        // Business Logic Validation: Current password is required for email changes
+        if (!userUpdateRequest.hasCurrentPassword()) {
+            logger.warn("SERVICE: Secure profile update failed - current password not provided. userId={}", userId);
+            throw new BusinessLogicException("Current password is required for email changes");
+        }
+        
+        // Verify current password
         if (!passwordEncoder.matches(userUpdateRequest.getCurrentPassword(), user.getPasswordHash())) {
             logger.warn("SERVICE: Secure profile update failed - incorrect current password. userId={}", userId);
             throw new BusinessLogicException("Current password is incorrect");
         }
         
+        // Check for email conflicts
         if (userUpdateRequest.isEmailChangeRequested()) {
             if (!user.getEmail().equals(userUpdateRequest.getEmail()) && 
                 userRepository.existsByEmail(userUpdateRequest.getEmail())) {
@@ -259,11 +285,13 @@ public class UserService implements UserServiceInterface, UserDetailsService {
             }
         }
         
+        // Update email
         if (userUpdateRequest.isEmailChangeRequested()) {
             user.setEmail(userUpdateRequest.getEmail());
             logger.info("SERVICE: User email updated. userId={}, newEmail={}", userId, userUpdateRequest.getEmail());
         }
         
+        // Update names (can be included with email change)
         if (userUpdateRequest.getFirstName() != null && !userUpdateRequest.getFirstName().trim().isEmpty()) {
             user.setFirstName(userUpdateRequest.getFirstName());
             logger.info("SERVICE: User first name updated. userId={}, newFirstName={}", userId, userUpdateRequest.getFirstName());
@@ -274,36 +302,150 @@ public class UserService implements UserServiceInterface, UserDetailsService {
             logger.info("SERVICE: User last name updated. userId={}, newLastName={}", userId, userUpdateRequest.getLastName());
         }
         
-        if (userUpdateRequest.isPasswordChangeRequested()) {
-            if (!userUpdateRequest.passwordsMatch()) {
-                logger.warn("SERVICE: Secure profile update failed - password confirmation mismatch. userId={}", userId);
-                throw new BusinessLogicException("New password and confirmation do not match");
-            }
-            
-            String hashedPassword = passwordEncoder.encode(userUpdateRequest.getNewPassword());
-            user.setPasswordHash(hashedPassword);
-            logger.info("SERVICE: User password updated. userId={}", userId);
-        }
-        
         User savedUser = userRepository.save(user);
         
-        logger.info("SERVICE: User profile updated securely. userId={}, emailChanged={}, nameChanged={}, passwordChanged={}", 
+        logger.info("SERVICE: User profile updated securely. userId={}, emailChanged={}, nameChanged={}", 
                    userId, userUpdateRequest.isEmailChangeRequested(), 
-                   userUpdateRequest.isNameChangeRequested(), 
-                   userUpdateRequest.isPasswordChangeRequested());
+                   userUpdateRequest.isNameChangeRequested());
         
         return userMapper.toResponse(savedUser);
     }
     
     /**
-     * Delete user by ID.
+     * Change user password with verification.
+     * 
+     * Following industry best practices (Google Identity, Auth0, AWS IAM):
+     * - Dedicated endpoint for password changes (POST /users/{id}/password)
+     * - Current password verification (prevents session hijacking)
+     * - Password confirmation (prevents typos)
+     * - Separate from profile updates (clear separation of concerns)
+     * 
+     * Security Features:
+     * - Verifies current password before allowing change
+     * - Validates new password strength
+     * - Ensures password and confirmation match
+     * - Uses BCrypt hashing (one-way, secure)
+     * - Full audit trail via logging
+     * 
+     * @param userId the user ID
+     * @param passwordChangeRequest the password change request
+     * @throws ResourceNotFoundException if user not found
+     * @throws BusinessLogicException if current password is incorrect or passwords don't match
+     */
+    @Transactional
+    public void changePassword(Long userId, PasswordChangeRequest passwordChangeRequest) {
+        logger.debug("SERVICE: Password change requested. userId={}", userId);
+        
+        // Find user
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "ID", userId));
+        
+        // Verify current password
+        if (!passwordEncoder.matches(passwordChangeRequest.getCurrentPassword(), user.getPasswordHash())) {
+            logger.warn("SERVICE: Password change failed - incorrect current password. userId={}", userId);
+            throw new BusinessLogicException("Current password is incorrect");
+        }
+        
+        // Validate passwords match
+        if (!passwordChangeRequest.passwordsMatch()) {
+            logger.warn("SERVICE: Password change failed - password confirmation mismatch. userId={}", userId);
+            throw new BusinessLogicException("New password and confirmation do not match");
+        }
+        
+        // Hash and save new password
+        String hashedPassword = passwordEncoder.encode(passwordChangeRequest.getNewPassword());
+        user.setPasswordHash(hashedPassword);
+        
+        userRepository.save(user);
+        
+        logger.info("SERVICE: Password changed successfully. userId={}, username={}", userId, user.getUsername());
+    }
+    
+    /**
+     * Soft delete user by ID.
+     * Marks the user as deleted without physically removing from database.
+     * This allows for data recovery and maintains audit trail.
+     * 
+     * Business Rule: Users with active workout sessions cannot be deleted.
+     * This prevents data integrity issues and accidental loss of workout history.
+     * 
+     * @param userId the user ID
+     * @throws ResourceNotFoundException if user not found
+     * @throws BusinessLogicException if user has active workout sessions
+     */
+    @Transactional
+    public void deleteUser(Long userId) {
+        logger.debug("SERVICE: Soft deleting user. userId={}", userId);
+        
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "ID", userId));
+        
+        String username = user.getUsername();
+        String email = user.getEmail();
+        
+        // Business Logic: Check for dependent data (workout sessions)
+        // Following best practice: prevent deletion if dependencies exist
+        if (workoutSessionRepository.existsByUserId(userId)) {
+            logger.warn("SERVICE: Cannot delete user with existing workout sessions. userId={}, username={}", 
+                       userId, username);
+            throw new BusinessLogicException(
+                "Cannot delete user account with workout history. " +
+                "User has active workout sessions. " +
+                "Please contact support if you need to delete your account."
+            );
+        }
+        
+        // Perform soft delete
+        user.softDelete();
+        userRepository.save(user);
+        
+        logger.info("SERVICE: User soft deleted successfully. userId={}, username={}, email={}", 
+                   userId, username, email);
+    }
+    
+    /**
+     * Restore a soft deleted user by ID.
+     * Allows recovery of accidentally deleted users.
      * 
      * @param userId the user ID
      * @throws ResourceNotFoundException if user not found
      */
     @Transactional
-    public void deleteUser(Long userId) {
-        logger.debug("SERVICE: Deleting user. userId={}", userId);
+    public void restoreUser(Long userId) {
+        logger.debug("SERVICE: Restoring soft deleted user. userId={}", userId);
+        
+        // Use findByIdIncludingDeleted because we need to access the deleted user to restore it
+        User user = userRepository.findByIdIncludingDeleted(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "ID", userId));
+        
+        if (user.isActive()) {
+            logger.warn("SERVICE: User is already active. userId={}", userId);
+            throw new BusinessLogicException("User is not deleted and cannot be restored");
+        }
+        
+        String username = user.getUsername();
+        String email = user.getEmail();
+        
+        user.restore();
+        userRepository.save(user);
+        
+        logger.info("SERVICE: User restored successfully. userId={}, username={}, email={}", 
+                   userId, username, email);
+    }
+    
+    /**
+     * Permanently delete a user (hard delete).
+     * This physically removes the user from the database.
+     * 
+     * WARNING: This operation is irreversible.
+     * Should only be used by administrators for compliance requirements (GDPR, etc.).
+     * 
+     * @param userId the user ID
+     * @throws ResourceNotFoundException if user not found
+     */
+    @Transactional
+    public void permanentlyDeleteUser(Long userId) {
+        logger.warn("SERVICE: PERMANENTLY deleting user. userId={}", userId);
         
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "ID", userId));
@@ -313,7 +455,7 @@ public class UserService implements UserServiceInterface, UserDetailsService {
         
         userRepository.delete(user);
         
-        logger.info("SERVICE: User deleted successfully. userId={}, username={}, email={}", 
+        logger.warn("SERVICE: User PERMANENTLY deleted. userId={}, username={}, email={}", 
                    userId, username, email);
     }
 
@@ -388,6 +530,7 @@ public class UserService implements UserServiceInterface, UserDetailsService {
      * @param userId the user ID to check
      * @return true if the current user matches the given user ID, false otherwise
      */
+    @Transactional(readOnly = true)
     public boolean isCurrentUser(Long userId) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

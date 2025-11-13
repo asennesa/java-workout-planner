@@ -1,9 +1,10 @@
 package com.workoutplanner.workoutplanner.controller;
 
+import com.workoutplanner.workoutplanner.annotation.RateLimited;
 import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
 import com.workoutplanner.workoutplanner.dto.request.CreateUserRequest;
+import com.workoutplanner.workoutplanner.dto.request.PasswordChangeRequest;
 import com.workoutplanner.workoutplanner.dto.request.UserUpdateRequest;
-import com.workoutplanner.workoutplanner.validation.ValidationGroups;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.UserResponse;
 import com.workoutplanner.workoutplanner.dto.response.ExistenceCheckResponse;
@@ -11,6 +12,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import com.workoutplanner.workoutplanner.service.UserService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.slf4j.Logger;
@@ -24,6 +27,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * REST Controller for User operations.
@@ -51,11 +55,16 @@ public class UserController {
     /**
      * Create a new user.
      * 
+     * Following Jakarta Bean Validation best practices:
+     * - Uses @Valid for automatic validation of Default group constraints
+     * - Business logic validation (uniqueness checks) handled in service layer
+     * - Clean separation of concerns
+     * 
      * @param createUserRequest the user creation request
      * @return ResponseEntity containing the created user response
      */
     @PostMapping
-    public ResponseEntity<UserResponse> createUser(@Validated(ValidationGroups.UserRegistration.class) @RequestBody CreateUserRequest createUserRequest) {
+    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest createUserRequest) {
         logger.debug("Creating user with username: {}", createUserRequest.getUsername());
         
         UserResponse userResponse = userService.createUser(createUserRequest);
@@ -104,7 +113,7 @@ public class UserController {
      * @return ResponseEntity containing the current user's profile
      */
     @GetMapping("/me")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserResponse> getCurrentUserProfile() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
@@ -153,6 +162,11 @@ public class UserController {
      * - Basic updates: firstName, lastName (no password required)
      * - Secure updates: email, password changes (password verification required)
      * 
+     * Following Spring Framework best practices:
+     * - Uses @Valid for format/structure validation at controller level
+     * - Business logic validation (password verification, uniqueness) in service layer
+     * - Clean separation between presentation and business concerns
+     * 
      * @param userId the user ID
      * @param userUpdateRequest the unified user update request
      * @return ResponseEntity containing the updated user response
@@ -160,7 +174,7 @@ public class UserController {
     @PutMapping("/{userId}")
     @PreAuthorize("hasRole('USER') and @userService.isCurrentUser(#userId)")
     public ResponseEntity<UserResponse> updateUser(@PathVariable Long userId, 
-                                                  @Validated(ValidationGroups.UserProfileUpdate.class) @RequestBody UserUpdateRequest userUpdateRequest) {
+                                                  @Valid @RequestBody UserUpdateRequest userUpdateRequest) {
         // Spring Security provides current user context
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUsername = authentication.getName();
@@ -176,15 +190,54 @@ public class UserController {
         return ResponseEntity.ok(userResponse);
     }
     
-    
+    /**
+     * Change user password.
+     * 
+     * Following industry best practices (Google Identity, Auth0, AWS IAM):
+     * - Dedicated endpoint for password changes (clear separation from profile updates)
+     * - Requires current password verification (prevents session hijacking)
+     * - Password confirmation required (prevents typos)
+     * - Only user themselves can change their password
+     * 
+     * Security Features:
+     * - User authentication required (Spring Security)
+     * - User can only change their own password (@PreAuthorize)
+     * - Current password verification at service layer
+     * - Strong password validation (Jakarta Bean Validation)
+     * - BCrypt hashing (one-way, secure)
+     * - Rate limiting: 3 attempts per 15 minutes (prevents brute force)
+     * 
+     * @param userId the user ID
+     * @param passwordChangeRequest the password change request
+     * @return ResponseEntity with no content (204)
+     */
+    @PostMapping("/{userId}/password")
+    @PreAuthorize("hasRole('USER') and @userService.isCurrentUser(#userId)")
+    @RateLimited(capacity = 3, refillTokens = 3, refillPeriod = 15, timeUnit = TimeUnit.MINUTES, keyType = RateLimited.KeyType.USER)
+    public ResponseEntity<Void> changePassword(@PathVariable Long userId,
+                                              @Valid @RequestBody PasswordChangeRequest passwordChangeRequest) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = authentication.getName();
+        
+        logger.debug("Password change requested: userId={}, currentUser={}", userId, currentUsername);
+        
+        userService.changePassword(userId, passwordChangeRequest);
+        
+        logger.info("Password changed successfully. userId={}, username={}", userId, currentUsername);
+        
+        return ResponseEntity.noContent().build();
+    }
     
     /**
      * Delete user by ID.
+     * 
+     * Security: Only administrators can delete users to prevent unauthorized account removal.
      * 
      * @param userId the user ID
      * @return ResponseEntity with no content
      */
     @DeleteMapping("/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
         logger.warn("Deleting user: userId={}", userId);
         
@@ -220,11 +273,19 @@ public class UserController {
     /**
      * Check if username exists.
      * 
-     * @param username the username to check
+     * Security: Rate limited to prevent username enumeration attacks.
+     * Attackers could use this to discover valid usernames.
+     * 
+     * @param username the username to check (validated for format)
      * @return ResponseEntity containing boolean result
      */
     @GetMapping("/check-username")
-    public ResponseEntity<ExistenceCheckResponse> checkUsernameExists(@RequestParam String username) {
+    @RateLimited(capacity = 10, refillTokens = 10, refillPeriod = 1, timeUnit = TimeUnit.MINUTES, keyType = RateLimited.KeyType.IP)
+    public ResponseEntity<ExistenceCheckResponse> checkUsernameExists(
+            @RequestParam 
+            @NotBlank(message = "Username cannot be empty")
+            @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
+            String username) {
         boolean exists = userService.usernameExists(username);
         return ResponseEntity.ok(new ExistenceCheckResponse(exists));
     }
@@ -232,11 +293,20 @@ public class UserController {
     /**
      * Check if email exists.
      * 
-     * @param email the email to check
+     * Security: Rate limited to prevent email enumeration attacks.
+     * Attackers could use this to discover registered emails.
+     * 
+     * @param email the email to check (validated for format)
      * @return ResponseEntity containing boolean result
      */
     @GetMapping("/check-email")
-    public ResponseEntity<ExistenceCheckResponse> checkEmailExists(@RequestParam String email) {
+    @RateLimited(capacity = 10, refillTokens = 10, refillPeriod = 1, timeUnit = TimeUnit.MINUTES, keyType = RateLimited.KeyType.IP)
+    public ResponseEntity<ExistenceCheckResponse> checkEmailExists(
+            @RequestParam 
+            @NotBlank(message = "Email cannot be empty")
+            @Email(message = "Email must be a valid email address")
+            @Size(max = 255, message = "Email must not exceed 255 characters")
+            String email) {
         boolean exists = userService.emailExists(email);
         return ResponseEntity.ok(new ExistenceCheckResponse(exists));
     }

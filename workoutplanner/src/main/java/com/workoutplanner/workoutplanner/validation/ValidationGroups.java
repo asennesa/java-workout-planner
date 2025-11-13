@@ -34,21 +34,29 @@ public final class ValidationGroups {
     
     /**
      * Group sequence for user registration.
-     * Validates basic fields first, then business rules.
+     * According to Jakarta Bean Validation spec, group sequences should include
+     * jakarta.validation.groups.Default if you want default validations to run.
+     * However, for custom validation scenarios, we use only our custom groups.
      */
     @GroupSequence({Create.class})
     public interface UserRegistration {}
     
     /**
-     * Group sequence for user profile updates.
-     * Validates basic fields first, then business rules.
+     * Marker interface for basic profile updates (name changes only).
+     * No password verification required.
      */
-    @GroupSequence({Update.class})
+    public interface BasicUpdate {}
+    
+    /**
+     * Group sequence for basic user profile updates.
+     * Validates basic fields like firstName, lastName without requiring password.
+     */
+    @GroupSequence({BasicUpdate.class})
     public interface UserProfileUpdate {}
     
     /**
      * Group sequence for secure user updates.
-     * Validates basic fields first, then security constraints.
+     * Validates fields that require password verification (email, password changes).
      */
     @GroupSequence({Update.class})
     public interface SecureUserUpdate {}

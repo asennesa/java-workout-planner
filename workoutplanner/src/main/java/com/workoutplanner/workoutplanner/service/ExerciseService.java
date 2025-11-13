@@ -7,6 +7,7 @@ import com.workoutplanner.workoutplanner.entity.Exercise;
 import com.workoutplanner.workoutplanner.enums.DifficultyLevel;
 import com.workoutplanner.workoutplanner.enums.ExerciseType;
 import com.workoutplanner.workoutplanner.enums.TargetMuscleGroup;
+import com.workoutplanner.workoutplanner.exception.BusinessLogicException;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.mapper.ExerciseMapper;
 import com.workoutplanner.workoutplanner.repository.ExerciseRepository;
@@ -241,7 +242,7 @@ public class ExerciseService implements ExerciseServiceInterface {
      */
     @Transactional
     public void deleteExercise(Long exerciseId) {
-        logger.debug("SERVICE: Deleting exercise. exerciseId={}", exerciseId);
+        logger.debug("SERVICE: Soft deleting exercise. exerciseId={}", exerciseId);
         
         Exercise exercise = exerciseRepository.findById(exerciseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exercise", "ID", exerciseId));
@@ -249,9 +250,37 @@ public class ExerciseService implements ExerciseServiceInterface {
         String name = exercise.getName();
         ExerciseType type = exercise.getType();
         
-        exerciseRepository.delete(exercise);
+        exercise.softDelete();
+        exerciseRepository.save(exercise);
         
-        logger.info("SERVICE: Exercise deleted successfully. exerciseId={}, name={}, type={}", 
+        logger.info("SERVICE: Exercise soft deleted successfully. exerciseId={}, name={}, type={}", 
                    exerciseId, name, type);
+    }
+    
+    /**
+     * Restore a soft deleted exercise.
+     * 
+     * @param exerciseId the exercise ID
+     * @throws ResourceNotFoundException if exercise not found
+     */
+    @Transactional
+    public void restoreExercise(Long exerciseId) {
+        logger.debug("SERVICE: Restoring soft deleted exercise. exerciseId={}", exerciseId);
+        
+        // Use findByIdIncludingDeleted because we need to access the deleted exercise to restore it
+        Exercise exercise = exerciseRepository.findByIdIncludingDeleted(exerciseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Exercise", "ID", exerciseId));
+        
+        if (exercise.isActive()) {
+            logger.warn("SERVICE: Exercise is already active. exerciseId={}", exerciseId);
+            throw new BusinessLogicException("Exercise is not deleted and cannot be restored");
+        }
+        
+        String name = exercise.getName();
+        exercise.restore();
+        exerciseRepository.save(exercise);
+        
+        logger.info("SERVICE: Exercise restored successfully. exerciseId={}, name={}", 
+                   exerciseId, name);
     }
 }
