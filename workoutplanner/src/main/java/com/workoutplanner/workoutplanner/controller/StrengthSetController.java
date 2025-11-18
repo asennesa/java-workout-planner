@@ -4,6 +4,7 @@ import com.workoutplanner.workoutplanner.dto.request.CreateStrengthSetRequest;
 import com.workoutplanner.workoutplanner.service.SetServiceInterface;
 import com.workoutplanner.workoutplanner.service.StrengthSetService;
 import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping(ApiVersionConstants.V1_BASE_PATH + "/workout-exercises/{workoutExerciseId}/strength-sets")
+@Tag(name = "Strength Sets", description = "Endpoints for managing strength training sets (weight, repetitions, etc.)")
 public class StrengthSetController extends BaseSetController<CreateStrengthSetRequest> {
 
     private final StrengthSetService strengthSetService;

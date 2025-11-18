@@ -35,7 +35,7 @@ public class CardioSetService implements CardioSetServiceInterface {
     private final WorkoutExerciseRepository workoutExerciseRepository;
     private final WorkoutMapper workoutMapper;
     private final BaseSetMapper baseSetMapper;
-    
+
     /**
      * Constructor injection for dependencies.
      * Makes dependencies explicit, immutable, and easier to test.

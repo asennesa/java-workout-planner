@@ -9,6 +9,14 @@ import com.workoutplanner.workoutplanner.validation.ValidationGroups;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutExerciseResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -35,6 +43,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping(ApiVersionConstants.V1_BASE_PATH + "/workouts")
+@Tag(name = "Workout Sessions", description = "Endpoints for managing workout sessions, exercises, and workout progress tracking")
 public class WorkoutSessionController {
     
     private static final Logger logger = LoggerFactory.getLogger(WorkoutSessionController.class);
@@ -54,8 +63,32 @@ public class WorkoutSessionController {
      * @param createWorkoutRequest the workout creation request
      * @return ResponseEntity containing the created workout response
      */
+    @Operation(
+        summary = "Create a new workout session",
+        description = "Creates a new workout session for a user. Initial status is PLANNED.",
+        security = @SecurityRequirement(name = "basicAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "201",
+            description = "Workout session created successfully",
+            content = @Content(schema = @Schema(implementation = WorkoutResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid input - validation errors",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content
+        )
+    })
     @PostMapping
-    public ResponseEntity<WorkoutResponse> createWorkoutSession(@Validated(ValidationGroups.WorkoutSessionCreation.class) @RequestBody CreateWorkoutRequest createWorkoutRequest) {
+    public ResponseEntity<WorkoutResponse> createWorkoutSession(
+            @Parameter(description = "Workout session details", required = true)
+            @Validated(ValidationGroups.WorkoutSessionCreation.class) @RequestBody CreateWorkoutRequest createWorkoutRequest) {
         logger.debug("Creating workout session for userId={}", 
                     createWorkoutRequest.getUserId());
         
@@ -73,8 +106,32 @@ public class WorkoutSessionController {
      * @param sessionId the session ID
      * @return ResponseEntity containing the workout response
      */
+    @Operation(
+        summary = "Get workout session by ID",
+        description = "Retrieves detailed information about a specific workout session including all exercises and sets.",
+        security = @SecurityRequirement(name = "basicAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Workout session found",
+            content = @Content(schema = @Schema(implementation = WorkoutResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Workout session not found",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content
+        )
+    })
     @GetMapping("/{sessionId}")
-    public ResponseEntity<WorkoutResponse> getWorkoutSessionById(@PathVariable Long sessionId) {
+    public ResponseEntity<WorkoutResponse> getWorkoutSessionById(
+            @Parameter(description = "Workout session ID", required = true, example = "1")
+            @PathVariable Long sessionId) {
         WorkoutResponse workoutResponse = workoutSessionService.getWorkoutSessionById(sessionId);
         return ResponseEntity.ok(workoutResponse);
     }
@@ -86,8 +143,32 @@ public class WorkoutSessionController {
      * @param sessionId the workout session ID
      * @return ResponseEntity containing the workout response with smart-loaded sets
      */
+    @Operation(
+        summary = "Get workout session with optimized loading",
+        description = "Retrieves workout session with smart loading - only loads sets that match each exercise type for better performance.",
+        security = @SecurityRequirement(name = "basicAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Workout session retrieved successfully",
+            content = @Content(schema = @Schema(implementation = WorkoutResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Workout session not found",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content
+        )
+    })
     @GetMapping("/{sessionId}/smart")
-    public ResponseEntity<WorkoutResponse> getWorkoutSessionWithSmartLoading(@PathVariable Long sessionId) {
+    public ResponseEntity<WorkoutResponse> getWorkoutSessionWithSmartLoading(
+            @Parameter(description = "Workout session ID", required = true, example = "1")
+            @PathVariable Long sessionId) {
         logger.debug("Getting workout session with smart loading. sessionId={}", sessionId);
         
         WorkoutResponse workoutResponse = workoutSessionService.getWorkoutSessionWithSmartLoading(sessionId);
@@ -104,8 +185,26 @@ public class WorkoutSessionController {
      * @param pageable pagination parameters (page, size, sort)
      * @return ResponseEntity containing paginated workout responses
      */
+    @Operation(
+        summary = "Get all workout sessions (paginated)",
+        description = "Retrieves a paginated list of all workout sessions ordered by most recent first.",
+        security = @SecurityRequirement(name = "basicAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Workout sessions retrieved successfully",
+            content = @Content(schema = @Schema(implementation = PagedResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content
+        )
+    })
     @GetMapping
     public ResponseEntity<PagedResponse<WorkoutResponse>> getAllWorkoutSessions(
+            @Parameter(description = "Pagination parameters", example = "page=0&size=20&sort=sessionId,desc")
             @PageableDefault(size = 20, sort = "sessionId", direction = Sort.Direction.DESC) Pageable pageable) {
         PagedResponse<WorkoutResponse> pagedResponse = workoutSessionService.getAllWorkoutSessions(pageable);
         return ResponseEntity.ok(pagedResponse);
@@ -117,8 +216,32 @@ public class WorkoutSessionController {
      * @param userId the user ID
      * @return ResponseEntity containing list of workout responses for the user
      */
+    @Operation(
+        summary = "Get workout sessions by user",
+        description = "Retrieves all workout sessions for a specific user.",
+        security = @SecurityRequirement(name = "basicAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "User's workout sessions retrieved successfully",
+            content = @Content(schema = @Schema(implementation = List.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "User not found",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content
+        )
+    })
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<WorkoutResponse>> getWorkoutSessionsByUserId(@PathVariable Long userId) {
+    public ResponseEntity<List<WorkoutResponse>> getWorkoutSessionsByUserId(
+            @Parameter(description = "User ID", required = true, example = "1")
+            @PathVariable Long userId) {
         List<WorkoutResponse> workoutResponses = workoutSessionService.getWorkoutSessionsByUserId(userId);
         return ResponseEntity.ok(workoutResponses);
     }
@@ -159,9 +282,43 @@ public class WorkoutSessionController {
      * @param actionRequest the action to perform (converted to status)
      * @return ResponseEntity containing the updated workout response
      */
+    @Operation(
+        summary = "Update workout status",
+        description = "Updates the workout status by performing an action (START, PAUSE, RESUME, COMPLETE, CANCEL). Validates state transitions.",
+        security = @SecurityRequirement(name = "basicAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Workout status updated successfully",
+            content = @Content(schema = @Schema(implementation = WorkoutResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid state transition",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Workout session not found",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "409",
+            description = "Optimistic lock conflict - workout was modified by another request",
+            content = @Content
+        )
+    })
     @PatchMapping("/{sessionId}/status")
     public ResponseEntity<WorkoutResponse> updateWorkoutStatus(
+            @Parameter(description = "Workout session ID", required = true, example = "1")
             @PathVariable Long sessionId, 
+            @Parameter(description = "Action to perform on workout", required = true)
             @Valid @RequestBody WorkoutActionRequest actionRequest) {
         logger.debug("Updating workout status. sessionId={}, action={}", 
                     sessionId, actionRequest.getAction());
@@ -184,9 +341,38 @@ public class WorkoutSessionController {
      * @param createWorkoutExerciseRequest the workout exercise creation request from body
      * @return ResponseEntity containing the created workout exercise response
      */
+    @Operation(
+        summary = "Add exercise to workout session",
+        description = "Adds an exercise from the library to a workout session. The exercise can then have sets added to it.",
+        security = @SecurityRequirement(name = "basicAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "201",
+            description = "Exercise added to workout successfully",
+            content = @Content(schema = @Schema(implementation = WorkoutExerciseResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid input - validation errors",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Workout session or exercise not found",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content
+        )
+    })
     @PostMapping("/{sessionId}/exercises")
     public ResponseEntity<WorkoutExerciseResponse> addExerciseToWorkout(
+            @Parameter(description = "Workout session ID", required = true, example = "1")
             @PathVariable Long sessionId,
+            @Parameter(description = "Exercise to add to workout", required = true)
             @Valid @RequestBody CreateWorkoutExerciseRequest createWorkoutExerciseRequest) {
         logger.debug("Adding exercise to workout session. sessionId={}, exerciseId={}", 
                     sessionId, createWorkoutExerciseRequest.getExerciseId());
@@ -206,8 +392,32 @@ public class WorkoutSessionController {
      * @param sessionId the session ID
      * @return ResponseEntity containing list of workout exercise responses
      */
+    @Operation(
+        summary = "Get exercises in workout session",
+        description = "Retrieves all exercises included in a workout session.",
+        security = @SecurityRequirement(name = "basicAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Workout exercises retrieved successfully",
+            content = @Content(schema = @Schema(implementation = List.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Workout session not found",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content
+        )
+    })
     @GetMapping("/{sessionId}/exercises")
-    public ResponseEntity<List<WorkoutExerciseResponse>> getWorkoutExercises(@PathVariable Long sessionId) {
+    public ResponseEntity<List<WorkoutExerciseResponse>> getWorkoutExercises(
+            @Parameter(description = "Workout session ID", required = true, example = "1")
+            @PathVariable Long sessionId) {
         List<WorkoutExerciseResponse> workoutExerciseResponses = workoutSessionService.getWorkoutExercises(sessionId);
         return ResponseEntity.ok(workoutExerciseResponses);
     }

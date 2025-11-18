@@ -4,6 +4,7 @@ import com.workoutplanner.workoutplanner.dto.request.CreateCardioSetRequest;
 import com.workoutplanner.workoutplanner.service.CardioSetService;
 import com.workoutplanner.workoutplanner.service.SetServiceInterface;
 import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping(ApiVersionConstants.V1_BASE_PATH + "/workout-exercises/{workoutExerciseId}/cardio-sets")
+@Tag(name = "Cardio Sets", description = "Endpoints for managing cardio sets (duration, distance, calories, heart rate)")
 public class CardioSetController extends BaseSetController<CreateCardioSetRequest> {
 
     private final CardioSetService cardioSetService;

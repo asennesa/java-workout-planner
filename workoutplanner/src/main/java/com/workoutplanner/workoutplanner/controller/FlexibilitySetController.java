@@ -4,6 +4,7 @@ import com.workoutplanner.workoutplanner.dto.request.CreateFlexibilitySetRequest
 import com.workoutplanner.workoutplanner.service.FlexibilitySetService;
 import com.workoutplanner.workoutplanner.service.SetServiceInterface;
 import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping(ApiVersionConstants.V1_BASE_PATH + "/workout-exercises/{workoutExerciseId}/flexibility-sets")
+@Tag(name = "Flexibility Sets", description = "Endpoints for managing flexibility/stretching sets (hold duration, intensity)")
 public class FlexibilitySetController extends BaseSetController<CreateFlexibilitySetRequest> {
 
     private final FlexibilitySetService flexibilitySetService;
