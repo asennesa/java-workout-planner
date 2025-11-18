@@ -8,6 +8,14 @@ import com.workoutplanner.workoutplanner.dto.request.UserUpdateRequest;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.UserResponse;
 import com.workoutplanner.workoutplanner.dto.response.ExistenceCheckResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -39,6 +47,7 @@ import java.util.concurrent.TimeUnit;
 @RestController
 @RequestMapping(ApiVersionConstants.V1_BASE_PATH + "/users")
 @Validated
+@Tag(name = "User Management", description = "Endpoints for user registration, profile management, and authentication")
 public class UserController {
     
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
@@ -63,8 +72,31 @@ public class UserController {
      * @param createUserRequest the user creation request
      * @return ResponseEntity containing the created user response
      */
+    @Operation(
+        summary = "Register a new user",
+        description = "Creates a new user account with the provided information. No authentication required."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "201",
+            description = "User successfully created",
+            content = @Content(schema = @Schema(implementation = UserResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid input - validation errors or username/email already exists",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "429",
+            description = "Rate limit exceeded",
+            content = @Content
+        )
+    })
     @PostMapping
-    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody CreateUserRequest createUserRequest) {
+    public ResponseEntity<UserResponse> createUser(
+            @Parameter(description = "User registration details", required = true)
+            @Valid @RequestBody CreateUserRequest createUserRequest) {
         logger.debug("Creating user with username: {}", createUserRequest.getUsername());
         
         UserResponse userResponse = userService.createUser(createUserRequest);
@@ -85,9 +117,38 @@ public class UserController {
      * @param userId the user ID
      * @return ResponseEntity containing the user response
      */
+    @Operation(
+        summary = "Get user by ID",
+        description = "Retrieves user details by user ID. Users can only view their own profile unless they are an admin.",
+        security = @SecurityRequirement(name = "basicAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "User found",
+            content = @Content(schema = @Schema(implementation = UserResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Forbidden - insufficient permissions",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "User not found",
+            content = @Content
+        )
+    })
     @GetMapping("/{userId}")
     @PreAuthorize("hasRole('ADMIN') or @userService.isCurrentUser(#userId)")
-    public ResponseEntity<UserResponse> getUserById(@PathVariable Long userId) {
+    public ResponseEntity<UserResponse> getUserById(
+            @Parameter(description = "User ID", required = true, example = "1")
+            @PathVariable Long userId) {
         // Spring Security provides current user context
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String currentUsername = authentication.getName();
@@ -112,6 +173,23 @@ public class UserController {
      * 
      * @return ResponseEntity containing the current user's profile
      */
+    @Operation(
+        summary = "Get current user profile",
+        description = "Retrieves the profile of the currently authenticated user.",
+        security = @SecurityRequirement(name = "basicAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Current user profile retrieved successfully",
+            content = @Content(schema = @Schema(implementation = UserResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content
+        )
+    })
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserResponse> getCurrentUserProfile() {
@@ -139,8 +217,26 @@ public class UserController {
      * - GET /api/v1/users?page=1&size=10&sort=username,asc
      * - GET /api/v1/users?page=0&size=50&sort=createdAt,desc
      */
+    @Operation(
+        summary = "Get all users (paginated)",
+        description = "Retrieves a paginated list of all users. Supports sorting and pagination parameters.",
+        security = @SecurityRequirement(name = "basicAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Users retrieved successfully",
+            content = @Content(schema = @Schema(implementation = PagedResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content
+        )
+    })
     @GetMapping
     public ResponseEntity<PagedResponse<UserResponse>> getAllUsers(
+            @Parameter(description = "Pagination parameters (page, size, sort)", example = "page=0&size=20&sort=username,asc")
             @PageableDefault(size = 20, sort = "userId", direction = Sort.Direction.ASC) Pageable pageable) {
         logger.debug("Fetching users with pagination. page={}, size={}", 
                     pageable.getPageNumber(), pageable.getPageSize());
@@ -236,9 +332,38 @@ public class UserController {
      * @param userId the user ID
      * @return ResponseEntity with no content
      */
+    @Operation(
+        summary = "Delete user (Admin only)",
+        description = "Permanently deletes a user account. Only administrators can perform this operation.",
+        security = @SecurityRequirement(name = "basicAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "204",
+            description = "User successfully deleted",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Forbidden - admin role required",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "User not found",
+            content = @Content
+        )
+    })
     @DeleteMapping("/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
+    public ResponseEntity<Void> deleteUser(
+            @Parameter(description = "User ID to delete", required = true, example = "1")
+            @PathVariable Long userId) {
         logger.warn("Deleting user: userId={}", userId);
         
         userService.deleteUser(userId);

@@ -43,6 +43,8 @@ public abstract class WorkoutMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "deletedAt", ignore = true)
     public abstract WorkoutSession toEntity(CreateWorkoutRequest createWorkoutRequest);
 
     /**
@@ -74,6 +76,8 @@ public abstract class WorkoutMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "deletedAt", ignore = true)
     public abstract WorkoutExercise toWorkoutExerciseEntity(CreateWorkoutExerciseRequest createWorkoutExerciseRequest);
 
     /**
@@ -100,6 +104,8 @@ public abstract class WorkoutMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "deletedAt", ignore = true)
     public abstract void updateEntity(CreateWorkoutRequest createWorkoutRequest, @MappingTarget WorkoutSession workoutSession);
 
     // ========== STRENGTH SET MAPPINGS ==========
@@ -115,6 +121,8 @@ public abstract class WorkoutMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "deletedAt", ignore = true)
     public abstract StrengthSet toStrengthSetEntity(CreateStrengthSetRequest createStrengthSetRequest);
 
     /**
@@ -127,6 +135,8 @@ public abstract class WorkoutMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "deletedAt", ignore = true)
     public abstract void updateStrengthSetEntity(CreateStrengthSetRequest createStrengthSetRequest, @MappingTarget StrengthSet strengthSet);
 
     /**
@@ -140,6 +150,8 @@ public abstract class WorkoutMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "deletedAt", ignore = true)
     public abstract CardioSet toCardioSetEntity(CreateCardioSetRequest createCardioSetRequest);
 
     /**
@@ -152,6 +164,8 @@ public abstract class WorkoutMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "deletedAt", ignore = true)
     public abstract void updateCardioSetEntity(CreateCardioSetRequest createCardioSetRequest, @MappingTarget CardioSet cardioSet);
 
     /**
@@ -165,6 +179,8 @@ public abstract class WorkoutMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "deletedAt", ignore = true)
     public abstract FlexibilitySet toFlexibilitySetEntity(CreateFlexibilitySetRequest createFlexibilitySetRequest);
 
     /**
@@ -177,5 +193,7 @@ public abstract class WorkoutMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "deletedAt", ignore = true)
     public abstract void updateFlexibilitySetEntity(CreateFlexibilitySetRequest createFlexibilitySetRequest, @MappingTarget FlexibilitySet flexibilitySet);
 }

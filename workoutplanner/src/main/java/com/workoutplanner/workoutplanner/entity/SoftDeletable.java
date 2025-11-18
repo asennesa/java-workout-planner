@@ -86,4 +86,3 @@ public interface SoftDeletable {
         return !Boolean.TRUE.equals(getDeleted());
     }
 }
-

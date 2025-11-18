@@ -3,6 +3,15 @@ package com.workoutplanner.workoutplanner.controller;
 import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
 import com.workoutplanner.workoutplanner.dto.request.LoginRequest;
 import com.workoutplanner.workoutplanner.entity.User;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +33,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping(ApiVersionConstants.V1_BASE_PATH + "/auth")
+@Tag(name = "Authentication", description = "Endpoints for user authentication and session management")
 public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
@@ -41,9 +51,41 @@ public class AuthController {
      * @param request HTTP request for IP tracking
      * @return ResponseEntity containing user details
      */
+    @Operation(
+        summary = "User login",
+        description = "Authenticates a user with username/email and password, establishing a session. Returns user details upon successful authentication."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Login successful - user authenticated",
+            content = @Content(
+                schema = @Schema(implementation = Map.class),
+                examples = @ExampleObject(
+                    value = "{\"success\": true, \"message\": \"Login successful\", \"userId\": 1, \"username\": \"johndoe\", \"email\": \"john@example.com\", \"firstName\": \"John\", \"lastName\": \"Doe\", \"role\": \"USER\"}"
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Authentication failed - invalid credentials",
+            content = @Content(
+                examples = @ExampleObject(
+                    value = "{\"success\": false, \"message\": \"Invalid username or password\"}"
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Bad request - validation errors",
+            content = @Content
+        )
+    })
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequest loginRequest, 
-                                                      HttpServletRequest request) {
+    public ResponseEntity<Map<String, Object>> login(
+            @Parameter(description = "Login credentials (username/email and password)", required = true)
+            @Valid @RequestBody LoginRequest loginRequest, 
+            HttpServletRequest request) {
         logger.debug("Login attempt for username: {}", loginRequest.getUsername());
 
         try {
@@ -91,6 +133,27 @@ public class AuthController {
      * 
      * @return ResponseEntity with logout result
      */
+    @Operation(
+        summary = "User logout",
+        description = "Logs out the currently authenticated user and clears the security context.",
+        security = @SecurityRequirement(name = "basicAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Logout successful",
+            content = @Content(
+                examples = @ExampleObject(
+                    value = "{\"success\": true, \"message\": \"Logout successful\"}"
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - user not authenticated",
+            content = @Content
+        )
+    })
     @PostMapping("/logout")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, Object>> logout() {

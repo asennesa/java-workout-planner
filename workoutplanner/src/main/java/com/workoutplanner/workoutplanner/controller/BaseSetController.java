@@ -2,6 +2,13 @@ package com.workoutplanner.workoutplanner.controller;
 
 import com.workoutplanner.workoutplanner.dto.response.SetResponse;
 import com.workoutplanner.workoutplanner.service.SetServiceInterface;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,9 +53,38 @@ public abstract class BaseSetController<T> {
      * @param createSetRequest the set data (type-specific) from request body
      * @return ResponseEntity containing the created set
      */
+    @Operation(
+        summary = "Create a new set",
+        description = "Creates a new set (strength/cardio/flexibility) for a workout exercise.",
+        security = @SecurityRequirement(name = "basicAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "201",
+            description = "Set created successfully",
+            content = @Content(schema = @Schema(implementation = SetResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid input - validation errors",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Workout exercise not found",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content
+        )
+    })
     @PostMapping
     public ResponseEntity<SetResponse> createSet(
+            @Parameter(description = "Workout exercise ID", required = true, example = "1")
             @PathVariable Long workoutExerciseId,
+            @Parameter(description = "Set details (weight, reps, duration, etc.)", required = true)
             @Valid @RequestBody T createSetRequest) {
         logger.debug("Creating set for workout exercise. workoutExerciseId={}", workoutExerciseId);
         
@@ -70,8 +106,32 @@ public abstract class BaseSetController<T> {
      * @param workoutExerciseId the workout exercise ID from parent path
      * @return ResponseEntity containing list of sets
      */
+    @Operation(
+        summary = "Get all sets for a workout exercise",
+        description = "Retrieves all sets (of the specific type) associated with a workout exercise.",
+        security = @SecurityRequirement(name = "basicAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Sets retrieved successfully",
+            content = @Content(schema = @Schema(implementation = List.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Workout exercise not found",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content
+        )
+    })
     @GetMapping
-    public ResponseEntity<List<SetResponse>> getSetsByWorkoutExercise(@PathVariable Long workoutExerciseId) {
+    public ResponseEntity<List<SetResponse>> getSetsByWorkoutExercise(
+            @Parameter(description = "Workout exercise ID", required = true, example = "1")
+            @PathVariable Long workoutExerciseId) {
         logger.debug("Getting all sets for workout exercise. workoutExerciseId={}", workoutExerciseId);
         
         List<SetResponse> setResponses = getService().getSetsByWorkoutExercise(workoutExerciseId);
@@ -87,8 +147,32 @@ public abstract class BaseSetController<T> {
      * @param setId the set ID
      * @return ResponseEntity containing the set
      */
+    @Operation(
+        summary = "Get set by ID",
+        description = "Retrieves details of a specific set.",
+        security = @SecurityRequirement(name = "basicAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Set found",
+            content = @Content(schema = @Schema(implementation = SetResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Set not found",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content
+        )
+    })
     @GetMapping("/{setId}")
-    public ResponseEntity<SetResponse> getSetById(@PathVariable Long setId) {
+    public ResponseEntity<SetResponse> getSetById(
+            @Parameter(description = "Set ID", required = true, example = "1")
+            @PathVariable Long setId) {
         logger.debug("Getting set by ID: setId={}", setId);
         
         SetResponse setResponse = getService().getSetById(setId);
@@ -109,9 +193,38 @@ public abstract class BaseSetController<T> {
      * @param createSetRequest the updated set data (type-specific)
      * @return ResponseEntity containing the updated set
      */
+    @Operation(
+        summary = "Update a set",
+        description = "Updates an existing set with new values.",
+        security = @SecurityRequirement(name = "basicAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Set updated successfully",
+            content = @Content(schema = @Schema(implementation = SetResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid input - validation errors",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Set not found",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content
+        )
+    })
     @PutMapping("/{setId}")
     public ResponseEntity<SetResponse> updateSet(
+            @Parameter(description = "Set ID", required = true, example = "1")
             @PathVariable Long setId, 
+            @Parameter(description = "Updated set details", required = true)
             @Valid @RequestBody T createSetRequest) {
         logger.debug("Updating set. setId={}", setId);
         
@@ -129,8 +242,32 @@ public abstract class BaseSetController<T> {
      * @param setId the set ID
      * @return ResponseEntity with no content
      */
+    @Operation(
+        summary = "Delete a set",
+        description = "Permanently deletes a set from a workout exercise.",
+        security = @SecurityRequirement(name = "basicAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "204",
+            description = "Set deleted successfully",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Set not found",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content
+        )
+    })
     @DeleteMapping("/{setId}")
-    public ResponseEntity<Void> deleteSet(@PathVariable Long setId) {
+    public ResponseEntity<Void> deleteSet(
+            @Parameter(description = "Set ID to delete", required = true, example = "1")
+            @PathVariable Long setId) {
         logger.warn("Deleting set: setId={}", setId);
         
         getService().deleteSet(setId);

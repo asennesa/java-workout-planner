@@ -21,7 +21,6 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.time.Clock;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -34,6 +33,7 @@ import java.util.UUID;
  * - Application metrics and monitoring
  * - Web layer configuration (CORS, validation, logging)
  * - Infrastructure concerns
+ * - JPA Auditing for automatic timestamp management
  * 
  * Benefits:
  * - Single place for application configuration
@@ -81,17 +81,6 @@ public class ApplicationConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
-    }
-
-
-    /**
-     * Clock bean for time operations.
-     * Provides a consistent time source for validators and services,
-     * making testing easier and ensuring time zone consistency.
-     */
-    @Bean
-    public Clock clock() {
-        return Clock.systemDefaultZone();
     }
 
     // ==================== LOGGING FILTER ====================

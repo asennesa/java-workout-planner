@@ -27,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import jakarta.validation.ValidationException;
 
-import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -52,7 +51,6 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
     private final UserRepository userRepository;
     private final ExerciseRepository exerciseRepository;
     private final WorkoutMapper workoutMapper;
-    private final Clock clock;
     
     /**
      * Constructor injection for dependencies.
@@ -62,14 +60,12 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
                                 WorkoutExerciseRepository workoutExerciseRepository,
                                 UserRepository userRepository,
                                 ExerciseRepository exerciseRepository,
-                                WorkoutMapper workoutMapper,
-                                Clock clock) {
+                                WorkoutMapper workoutMapper) {
         this.workoutSessionRepository = workoutSessionRepository;
         this.workoutExerciseRepository = workoutExerciseRepository;
         this.userRepository = userRepository;
         this.exerciseRepository = exerciseRepository;
         this.workoutMapper = workoutMapper;
-        this.clock = clock;
     }
 
     /**
@@ -93,7 +89,7 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
         
         workoutSession.setUser(user);
 
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now();
         if (workoutSession.getStartedAt() == null && createWorkoutRequest.getStatus() == WorkoutStatus.IN_PROGRESS) {
             workoutSession.setStartedAt(now);
         }
@@ -422,7 +418,7 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
             return; // Both null is valid
         }
         
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now();
         
         if (startedAt != null && startedAt.isAfter(now)) {
             throw new ValidationException("Workout session cannot start in the future");
@@ -444,7 +440,7 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
      * @param newStatus the new status
      */
     private void handleStatusTransition(WorkoutSession workoutSession, WorkoutStatus newStatus) {
-        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime now = LocalDateTime.now();
 
         switch (newStatus) {
             case IN_PROGRESS:

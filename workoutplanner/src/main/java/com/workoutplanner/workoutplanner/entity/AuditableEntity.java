@@ -3,8 +3,6 @@ package com.workoutplanner.workoutplanner.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
@@ -20,10 +18,9 @@ import java.time.LocalDateTime;
  * managed by JPA lifecycle callbacks and Spring Data JPA auditing.
  * 
  * Features:
- * - Automatic timestamp management (created_at, updated_at)
+ * - Automatic timestamp management (created_at, updated_at) via Spring Data JPA Auditing
  * - User tracking (created_by, updated_by)
  * - Soft delete support (deleted flag and timestamp)
- * - JPA lifecycle callbacks for automatic updates
  * - Spring Data JPA auditing integration
  * - Enterprise compliance and debugging support
  * 
@@ -123,36 +120,6 @@ public abstract class AuditableEntity implements SoftDeletable {
      */
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
-
-    /**
-     * JPA lifecycle callback for entity creation.
-     * Automatically sets creation timestamp and user.
-     * 
-     * This method is called by JPA before persisting a new entity.
-     * It ensures audit fields are properly initialized.
-     */
-    @PrePersist
-    protected void onCreate() {
-        LocalDateTime now = LocalDateTime.now();
-        if (createdAt == null) {
-            createdAt = now;
-        }
-        if (updatedAt == null) {
-            updatedAt = now;
-        }
-    }
-
-    /**
-     * JPA lifecycle callback for entity updates.
-     * Automatically updates modification timestamp.
-     * 
-     * This method is called by JPA before updating an existing entity.
-     * It ensures the updated_at field is always current.
-     */
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 
     // Getters and Setters
 

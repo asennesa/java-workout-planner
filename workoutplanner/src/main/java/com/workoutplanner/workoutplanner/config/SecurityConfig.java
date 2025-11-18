@@ -71,6 +71,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/users/check-username", "/api/v1/users/check-email").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()  // User registration
                 
+                // Public endpoints - API Documentation (Swagger/OpenAPI)
+                // Note: Swagger is disabled in production via springdoc.swagger-ui.enabled=false
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                
                 // Public endpoints - Health checks
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                 
