@@ -3,9 +3,9 @@ package com.workoutplanner.workoutplanner.controller;
 import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutExerciseRequest;
+import com.workoutplanner.workoutplanner.dto.request.UpdateWorkoutRequest;
 import com.workoutplanner.workoutplanner.dto.request.WorkoutActionRequest;
 import com.workoutplanner.workoutplanner.exception.OptimisticLockConflictException;
-import com.workoutplanner.workoutplanner.validation.ValidationGroups;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutExerciseResponse;
@@ -88,7 +88,7 @@ public class WorkoutSessionController {
     @PostMapping
     public ResponseEntity<WorkoutResponse> createWorkoutSession(
             @Parameter(description = "Workout session details", required = true)
-            @Validated(ValidationGroups.WorkoutSessionCreation.class) @RequestBody CreateWorkoutRequest createWorkoutRequest) {
+            @Valid @RequestBody CreateWorkoutRequest createWorkoutRequest) {
         logger.debug("Creating workout session for userId={}", 
                     createWorkoutRequest.getUserId());
         
@@ -250,13 +250,14 @@ public class WorkoutSessionController {
      * Update workout session.
      * 
      * @param sessionId the session ID
-     * @param createWorkoutRequest the updated workout information
+     * @param updateWorkoutRequest the updated workout information
      * @return ResponseEntity containing the updated workout response
      */
     @PutMapping("/{sessionId}")
-    public ResponseEntity<WorkoutResponse> updateWorkoutSession(@PathVariable Long sessionId, 
-                                                               @Validated(ValidationGroups.WorkoutSessionUpdate.class) @RequestBody CreateWorkoutRequest createWorkoutRequest) {
-        WorkoutResponse workoutResponse = workoutSessionService.updateWorkoutSession(sessionId, createWorkoutRequest);
+    public ResponseEntity<WorkoutResponse> updateWorkoutSession(
+            @PathVariable Long sessionId, 
+            @Valid @RequestBody UpdateWorkoutRequest updateWorkoutRequest) {
+        WorkoutResponse workoutResponse = workoutSessionService.updateWorkoutSession(sessionId, updateWorkoutRequest);
         return ResponseEntity.ok(workoutResponse);
     }
     

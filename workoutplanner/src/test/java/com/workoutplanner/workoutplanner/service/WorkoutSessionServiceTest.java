@@ -296,7 +296,7 @@ class WorkoutSessionServiceTest {
     @DisplayName("Should update workout session successfully")
     void shouldUpdateWorkoutSessionSuccessfully() {
         // Arrange
-        CreateWorkoutRequest updateRequest = new CreateWorkoutRequest();
+        UpdateWorkoutRequest updateRequest = new UpdateWorkoutRequest();
         updateRequest.setName("Updated Workout");
         updateRequest.setStatus(WorkoutStatus.IN_PROGRESS);
         
@@ -322,7 +322,7 @@ class WorkoutSessionServiceTest {
     @DisplayName("Should throw OptimisticLockConflictException on concurrent update")
     void shouldThrowOptimisticLockConflictExceptionOnConcurrentUpdate() {
         // Arrange
-        CreateWorkoutRequest updateRequest = new CreateWorkoutRequest();
+        UpdateWorkoutRequest updateRequest = new UpdateWorkoutRequest();
         updateRequest.setName("Updated Workout");
         updateRequest.setStatus(WorkoutStatus.COMPLETED);
         

@@ -2,6 +2,7 @@ package com.workoutplanner.workoutplanner.service;
 
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutExerciseRequest;
+import com.workoutplanner.workoutplanner.dto.request.UpdateWorkoutRequest;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutExerciseResponse;
@@ -52,13 +53,13 @@ public interface WorkoutSessionServiceInterface {
     PagedResponse<WorkoutResponse> getAllWorkoutSessions(Pageable pageable);
     
     /**
-     * Update workout session.
+     * Update workout session with partial update.
      *
      * @param sessionId the session ID
-     * @param createWorkoutRequest the updated workout request
+     * @param updateWorkoutRequest the partial update request
      * @return WorkoutResponse the updated workout response
      */
-    WorkoutResponse updateWorkoutSession(Long sessionId, CreateWorkoutRequest createWorkoutRequest);
+    WorkoutResponse updateWorkoutSession(Long sessionId, UpdateWorkoutRequest updateWorkoutRequest);
     
     /**
      * Update workout session status.

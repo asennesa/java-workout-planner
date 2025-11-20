@@ -104,6 +104,9 @@ class ExerciseControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors").exists());
+            
+            // BEST PRACTICE: Ensure service was never called when validation fails
+            verifyNoInteractions(exerciseService);
         }
     }
     
@@ -188,17 +191,17 @@ class ExerciseControllerTest {
             response.setExerciseId(1L);
             response.setType(ExerciseType.STRENGTH);
             
-            when(exerciseService.getExercisesByType(ExerciseType.STRENGTH))
+            when(exerciseService.getExercisesByCriteria(eq(ExerciseType.STRENGTH), isNull(), isNull()))
                 .thenReturn(List.of(response));
             
             // Act & Assert
-            mockMvc.perform(get("/api/v1/exercises/by-type")
+            mockMvc.perform(get("/api/v1/exercises/filter")
                     .param("type", "STRENGTH"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].type").value("STRENGTH"));
             
-            verify(exerciseService).getExercisesByType(ExerciseType.STRENGTH);
+            verify(exerciseService).getExercisesByCriteria(eq(ExerciseType.STRENGTH), isNull(), isNull());
         }
         
         @Test
@@ -271,6 +274,25 @@ class ExerciseControllerTest {
                     .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound());
         }
+        
+        @Test
+        @WithMockUser
+        @DisplayName("Should return 400 when updating with invalid data")
+        void shouldReturn400WhenUpdatingWithInvalidData() throws Exception {
+            // Arrange - Invalid request (missing required fields)
+            CreateExerciseRequest request = new CreateExerciseRequest();
+            
+            // Act & Assert
+            mockMvc.perform(put("/api/v1/exercises/1")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.errors").exists());
+            
+            // BEST PRACTICE: Ensure service was never called when validation fails
+            verifyNoInteractions(exerciseService);
+        }
     }
     
     // ==================== DELETE EXERCISE TESTS ====================
@@ -319,17 +341,17 @@ class ExerciseControllerTest {
             response.setExerciseId(1L);
             response.setDifficultyLevel(DifficultyLevel.BEGINNER);
             
-            when(exerciseService.getExercisesByDifficultyLevel(DifficultyLevel.BEGINNER))
+            when(exerciseService.getExercisesByCriteria(isNull(), isNull(), eq(DifficultyLevel.BEGINNER)))
                 .thenReturn(List.of(response));
             
             // Act & Assert
-            mockMvc.perform(get("/api/v1/exercises/by-difficulty")
-                    .param("difficulty", "BEGINNER"))
+            mockMvc.perform(get("/api/v1/exercises/filter")
+                    .param("difficultyLevel", "BEGINNER"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].difficultyLevel").value("BEGINNER"));
             
-            verify(exerciseService).getExercisesByDifficultyLevel(DifficultyLevel.BEGINNER);
+            verify(exerciseService).getExercisesByCriteria(isNull(), isNull(), eq(DifficultyLevel.BEGINNER));
         }
         
         @Test
@@ -341,17 +363,17 @@ class ExerciseControllerTest {
             response.setExerciseId(1L);
             response.setTargetMuscleGroup(TargetMuscleGroup.CHEST);
             
-            when(exerciseService.getExercisesByTargetMuscleGroup(TargetMuscleGroup.CHEST))
+            when(exerciseService.getExercisesByCriteria(isNull(), eq(TargetMuscleGroup.CHEST), isNull()))
                 .thenReturn(List.of(response));
             
             // Act & Assert
-            mockMvc.perform(get("/api/v1/exercises/by-muscle-group")
-                    .param("muscleGroup", "CHEST"))
+            mockMvc.perform(get("/api/v1/exercises/filter")
+                    .param("targetMuscleGroup", "CHEST"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].targetMuscleGroup").value("CHEST"));
             
-            verify(exerciseService).getExercisesByTargetMuscleGroup(TargetMuscleGroup.CHEST);
+            verify(exerciseService).getExercisesByCriteria(isNull(), eq(TargetMuscleGroup.CHEST), isNull());
         }
     }
 }

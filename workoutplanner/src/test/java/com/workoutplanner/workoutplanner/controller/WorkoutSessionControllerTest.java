@@ -3,6 +3,7 @@ package com.workoutplanner.workoutplanner.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutExerciseRequest;
+import com.workoutplanner.workoutplanner.dto.request.UpdateWorkoutRequest;
 import com.workoutplanner.workoutplanner.dto.request.WorkoutActionRequest;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutExerciseResponse;
@@ -118,6 +119,9 @@ class WorkoutSessionControllerTest {
                     .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors").exists());
+            
+            // BEST PRACTICE: Ensure service was never called when validation fails
+            verifyNoInteractions(workoutSessionService);
         }
     }
     
@@ -224,6 +228,7 @@ class WorkoutSessionControllerTest {
             WorkoutResponse response = new WorkoutResponse();
             response.setSessionId(VALID_WORKOUT_ID);
             response.setName("Smart Loaded Workout");
+            response.setWorkoutExercises(List.of()); // Initialize to prevent NPE in controller logging
             
             when(workoutSessionService.getWorkoutSessionWithSmartLoading(VALID_WORKOUT_ID))
                 .thenReturn(response);
@@ -249,14 +254,14 @@ class WorkoutSessionControllerTest {
         @DisplayName("Should update workout")
         void shouldUpdateWorkout() throws Exception {
             // Arrange
-            CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(VALID_USER_ID);
+            UpdateWorkoutRequest request = new UpdateWorkoutRequest();
             request.setName(UPDATED_WORKOUT_NAME);
             
             WorkoutResponse response = new WorkoutResponse();
             response.setSessionId(VALID_WORKOUT_ID);
             response.setName(UPDATED_WORKOUT_NAME);
             
-            when(workoutSessionService.updateWorkoutSession(eq(VALID_WORKOUT_ID), any(CreateWorkoutRequest.class)))
+            when(workoutSessionService.updateWorkoutSession(eq(VALID_WORKOUT_ID), any(UpdateWorkoutRequest.class)))
                 .thenReturn(response);
             
             // Act & Assert
@@ -266,7 +271,7 @@ class WorkoutSessionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value(UPDATED_WORKOUT_NAME));
             
-            verify(workoutSessionService).updateWorkoutSession(eq(VALID_WORKOUT_ID), any(CreateWorkoutRequest.class));
+            verify(workoutSessionService).updateWorkoutSession(eq(VALID_WORKOUT_ID), any(UpdateWorkoutRequest.class));
         }
     }
     

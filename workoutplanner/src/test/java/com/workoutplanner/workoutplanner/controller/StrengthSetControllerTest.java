@@ -82,6 +82,25 @@ class StrengthSetControllerTest {
             
             verify(strengthSetService).createSet(eq(VALID_WORKOUT_EXERCISE_ID), any(CreateStrengthSetRequest.class));
         }
+        
+        @Test
+        @WithMockUser
+        @DisplayName("Should return 400 for invalid request with validation errors")
+        void shouldReturn400ForInvalidRequest() throws Exception {
+            // Arrange - Invalid request (missing required fields)
+            CreateStrengthSetRequest request = new CreateStrengthSetRequest();
+            
+            // Act & Assert
+            mockMvc.perform(post("/api/v1/workout-exercises/" + VALID_WORKOUT_EXERCISE_ID + "/strength-sets")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.errors").exists());
+            
+            // BEST PRACTICE: Ensure service was never called when validation fails
+            verifyNoInteractions(strengthSetService);
+        }
     }
     
     @Nested
@@ -172,8 +191,8 @@ class StrengthSetControllerTest {
         
         @Test
         @WithMockUser
-        @DisplayName("Should return 400 for invalid request")
-        void shouldReturn400ForInvalidRequest() throws Exception {
+        @DisplayName("Should return 400 when updating with invalid data")
+        void shouldReturn400WhenUpdatingWithInvalidData() throws Exception {
             // Arrange - Invalid request (missing required fields)
             CreateStrengthSetRequest request = new CreateStrengthSetRequest();
             
@@ -182,7 +201,11 @@ class StrengthSetControllerTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors").exists());
+            
+            // BEST PRACTICE: Ensure service was never called when validation fails
+            verifyNoInteractions(strengthSetService);
         }
         
         @Test

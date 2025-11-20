@@ -93,6 +93,9 @@ class CardioSetControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors").exists());
+            
+            // BEST PRACTICE: Ensure service was never called when validation fails
+            verifyNoInteractions(cardioSetService);
         }
     }
     
@@ -206,6 +209,24 @@ class CardioSetControllerTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound());
+        }
+        
+        @Test
+        @WithMockUser
+        @DisplayName("Should return 400 when updating with invalid data")
+        void shouldReturn400WhenUpdatingWithInvalidData() throws Exception {
+            // Arrange - Invalid request (missing required fields)
+            CreateCardioSetRequest request = new CreateCardioSetRequest();
+            
+            // Act & Assert
+            mockMvc.perform(put("/api/v1/workout-exercises/1/cardio-sets/1")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Validation failed"));
+            
+            // BEST PRACTICE: Ensure service was never called when validation fails
+            verifyNoInteractions(cardioSetService);
         }
     }
     

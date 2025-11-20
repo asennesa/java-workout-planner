@@ -2,6 +2,7 @@ package com.workoutplanner.workoutplanner.service;
 
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutExerciseRequest;
+import com.workoutplanner.workoutplanner.dto.request.UpdateWorkoutRequest;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutExerciseResponse;
@@ -221,24 +222,27 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
     }
 
     /**
-     * Update workout session.
-     *
+     * Update workout session with partial update.
+     * 
      * @param sessionId the session ID
-     * @param createWorkoutRequest the updated workout request
+     * @param updateWorkoutRequest the partial update request
      * @return WorkoutResponse the updated workout response
      */
     @Transactional
-    public WorkoutResponse updateWorkoutSession(Long sessionId, CreateWorkoutRequest createWorkoutRequest) {
+    public WorkoutResponse updateWorkoutSession(Long sessionId, UpdateWorkoutRequest updateWorkoutRequest) {
         try {
-            // Validate workout dates
-            validateWorkoutDates(createWorkoutRequest.getStartedAt(), createWorkoutRequest.getCompletedAt());
+            // Validate workout dates if provided
+            validateWorkoutDates(updateWorkoutRequest.getStartedAt(), updateWorkoutRequest.getCompletedAt());
             
             WorkoutSession workoutSession = workoutSessionRepository.findById(sessionId)
                     .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
 
-            workoutMapper.updateEntity(createWorkoutRequest, workoutSession);
+            workoutMapper.updateEntity(updateWorkoutRequest, workoutSession);
 
-            handleStatusTransition(workoutSession, createWorkoutRequest.getStatus());
+            // Handle status transition only if status is provided
+            if (updateWorkoutRequest.getStatus() != null) {
+                handleStatusTransition(workoutSession, updateWorkoutRequest.getStatus());
+            }
 
             WorkoutSession savedWorkoutSession = workoutSessionRepository.save(workoutSession);
             return workoutMapper.toWorkoutResponse(savedWorkoutSession);

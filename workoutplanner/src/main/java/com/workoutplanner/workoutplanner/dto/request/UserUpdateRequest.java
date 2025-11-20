@@ -1,5 +1,6 @@
 package com.workoutplanner.workoutplanner.dto.request;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import org.hibernate.validator.constraints.Length;
@@ -16,9 +17,10 @@ import org.hibernate.validator.constraints.Length;
  * - Basic updates: firstName, lastName (no password required)
  * - Secure updates: email (password verification required)
  * - Flexible field updates (only provided fields are updated)
+ * - At least one field required (enforced by @AssertTrue)
  * 
  * @author WorkoutPlanner Team
- * @version 3.0
+ * @version 4.0
  * @since 1.0
  */
 public class UserUpdateRequest {
@@ -159,12 +161,14 @@ public class UserUpdateRequest {
     }
 
     /**
-     * Check if any field is being updated.
+     * Validation method using built-in @AssertTrue annotation.
+     * Ensures at least one field is provided for the update request.
      * 
-     * @return true if at least one field is provided, false otherwise
+     * @return true if at least one field is non-null, false otherwise
      */
-    public boolean hasUpdates() {
-        return isEmailChangeRequested() || isNameChangeRequested();
+    @AssertTrue(message = "At least one field (email, firstName, or lastName) must be provided for update")
+    private boolean isAtLeastOneFieldProvided() {
+        return email != null || firstName != null || lastName != null;
     }
 
     @Override

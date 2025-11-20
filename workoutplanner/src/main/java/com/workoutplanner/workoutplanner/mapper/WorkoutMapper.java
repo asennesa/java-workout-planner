@@ -5,6 +5,7 @@ import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutExerciseReques
 import com.workoutplanner.workoutplanner.dto.request.CreateStrengthSetRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateCardioSetRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateFlexibilitySetRequest;
+import com.workoutplanner.workoutplanner.dto.request.UpdateWorkoutRequest;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutExerciseResponse;
 import com.workoutplanner.workoutplanner.entity.WorkoutSession;
@@ -16,6 +17,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.BeanMapping;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 
 import java.util.List;
 
@@ -93,8 +96,8 @@ public abstract class WorkoutMapper {
     public abstract List<WorkoutExerciseResponse> toWorkoutExerciseResponseList(List<WorkoutExercise> workoutExercises);
 
     /**
-     * Updates existing WorkoutSession entity with data from CreateWorkoutRequest.
-     * Useful for update operations
+     * Updates existing WorkoutSession entity from UpdateWorkoutRequest.
+     * Uses NullValuePropertyMappingStrategy.IGNORE to only update provided fields (partial update).
      */
     @Mapping(target = "sessionId", ignore = true)
     @Mapping(target = "user", ignore = true)
@@ -106,7 +109,8 @@ public abstract class WorkoutMapper {
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "deletedAt", ignore = true)
-    public abstract void updateEntity(CreateWorkoutRequest createWorkoutRequest, @MappingTarget WorkoutSession workoutSession);
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    public abstract void updateEntity(UpdateWorkoutRequest updateWorkoutRequest, @MappingTarget WorkoutSession workoutSession);
 
     // ========== STRENGTH SET MAPPINGS ==========
 

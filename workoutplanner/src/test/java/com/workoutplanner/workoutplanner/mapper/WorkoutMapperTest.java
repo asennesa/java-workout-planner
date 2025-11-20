@@ -179,7 +179,7 @@ class WorkoutMapperTest {
         WorkoutSession existingEntity = TestDataBuilder.createDefaultWorkoutSession(user);
         existingEntity.setVersion(1L);
         
-        CreateWorkoutRequest updateRequest = new CreateWorkoutRequest();
+        UpdateWorkoutRequest updateRequest = new UpdateWorkoutRequest();
         updateRequest.setName("Updated Workout");
         updateRequest.setDescription("Updated description");
         updateRequest.setStatus(WorkoutStatus.IN_PROGRESS);

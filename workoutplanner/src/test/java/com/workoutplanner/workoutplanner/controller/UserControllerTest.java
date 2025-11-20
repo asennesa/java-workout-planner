@@ -103,6 +103,9 @@ class UserControllerTest {
                     .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors").exists());
+            
+            // BEST PRACTICE: Ensure service was never called when validation fails
+            verifyNoInteractions(userService);
         }
         
         @Test
@@ -230,6 +233,44 @@ class UserControllerTest {
             
             verify(userService).updateUser(eq(1L), any(UserUpdateRequest.class));
         }
+        
+        @Test
+        @WithMockUser
+        @DisplayName("Should return 404 when updating non-existent user")
+        void shouldReturn404WhenUpdatingNonExistentUser() throws Exception {
+            // Arrange
+            UserUpdateRequest request = new UserUpdateRequest();
+            request.setFirstName("Updated");
+            request.setLastName("Name");
+            
+            when(userService.updateUser(eq(999L), any(UserUpdateRequest.class)))
+                .thenThrow(new ResourceNotFoundException("User", "ID", 999L));
+            
+            // Act & Assert
+            mockMvc.perform(put("/api/v1/users/999")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound());
+        }
+        
+        @Test
+        @WithMockUser
+        @DisplayName("Should return 400 when updating with invalid data")
+        void shouldReturn400WhenUpdatingWithInvalidData() throws Exception {
+            // Arrange - Invalid request
+            UserUpdateRequest request = new UserUpdateRequest();
+            // Note: Depending on your validation rules, you might need to set invalid data
+            
+            // Act & Assert
+            mockMvc.perform(put("/api/v1/users/1")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").exists());
+            
+            // BEST PRACTICE: Ensure service was never called when validation fails
+            verifyNoInteractions(userService);
+        }
     }
     
     // ==================== PASSWORD CHANGE TESTS ====================
@@ -270,6 +311,9 @@ class UserControllerTest {
                     .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors").exists());
+            
+            // BEST PRACTICE: Ensure service was never called when validation fails
+            verifyNoInteractions(userService);
         }
     }
     
@@ -288,6 +332,19 @@ class UserControllerTest {
                 .andExpect(status().isNoContent());
             
             verify(userService).deleteUser(1L);
+        }
+        
+        @Test
+        @WithMockUser
+        @DisplayName("Should return 404 when deleting non-existent user")
+        void shouldReturn404WhenDeletingNonExistentUser() throws Exception {
+            // Arrange
+            doThrow(new ResourceNotFoundException("User", "ID", 999L))
+                .when(userService).deleteUser(999L);
+            
+            // Act & Assert
+            mockMvc.perform(delete("/api/v1/users/999"))
+                .andExpect(status().isNotFound());
         }
     }
     
