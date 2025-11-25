@@ -23,17 +23,17 @@
 hs_err_pid*
 replay_pid*
 
-# Maven
-target/
-pom.xml.tag
-pom.xml.releaseBackup
-pom.xml.versionsBackup
-pom.xml.next
-release.properties
-dependency-reduced-pom.xml
-buildNumber.properties
-.mvn/timing.properties
-.mvn/wrapper/maven-wrapper.jar
+# Backend - Maven
+backend/target/
+backend/pom.xml.tag
+backend/pom.xml.releaseBackup
+backend/pom.xml.versionsBackup
+backend/pom.xml.next
+backend/release.properties
+backend/dependency-reduced-pom.xml
+backend/buildNumber.properties
+backend/.mvn/timing.properties
+backend/.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
@@ -85,6 +85,9 @@ build/
 # IDE - Cursor
 .cursor/
 
+# Claude Code
+.claude/
+
 # OS
 .DS_Store
 .DS_Store?
@@ -120,7 +123,19 @@ log/
 *.swo
 *~
 
-# Package managers
+# Frontend - Node/React
+frontend/node_modules/
+frontend/build/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/coverage/
+
+# Package managers (general)
 node_modules/
 npm-debug.log*
 yarn-debug.log*
