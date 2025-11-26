@@ -1,24 +1,55 @@
-import logo from './logo.svg';
+import { Routes, Route } from 'react-router-dom';
+import { Auth0ProviderWithNavigate, ProtectedRoute } from './auth';
+import { AuthNav } from './components';
+import { useApiInitializer } from './hooks';
+import { HomePage } from './pages/HomePage';
+import { Dashboard } from './pages/Dashboard';
+import { Profile } from './pages/Profile';
 import './App.css';
 
-function App() {
+/**
+ * Inner app component that has access to Auth0 context.
+ * Initializes the API service with Auth0 token getter.
+ */
+function AppContent() {
+  useApiInitializer();
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+        <header className="App-header">
+          <nav className="navbar">
+            <div className="nav-brand">
+              <a href="/">Workout Planner</a>
+            </div>
+            <AuthNav />
+          </nav>
+        </header>
+
+        <main className="App-main">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route
+              path="/dashboard"
+              element={<ProtectedRoute component={Dashboard} />}
+            />
+            <Route
+              path="/profile"
+              element={<ProtectedRoute component={Profile} />}
+            />
+          </Routes>
+        </main>
     </div>
+  );
+}
+
+/**
+ * Main App component - wraps everything with Auth0 provider.
+ */
+function App() {
+  return (
+    <Auth0ProviderWithNavigate>
+      <AppContent />
+    </Auth0ProviderWithNavigate>
   );
 }
 

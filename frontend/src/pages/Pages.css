@@ -1,0 +1,116 @@
+.page {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.page h1 {
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.page h2 {
+  color: #555;
+  margin-top: 30px;
+  margin-bottom: 15px;
+  font-size: 1.3rem;
+}
+
+/* Home Page */
+.home-page {
+  text-align: center;
+  padding-top: 50px;
+}
+
+.home-actions {
+  margin-top: 30px;
+}
+
+.cta-button {
+  display: inline-block;
+  padding: 12px 24px;
+  background-color: #0066cc;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: background-color 0.2s;
+}
+
+.cta-button:hover {
+  background-color: #0052a3;
+}
+
+/* Dashboard Page */
+.workouts-section {
+  margin-top: 20px;
+}
+
+.workouts-list {
+  list-style: none;
+  padding: 0;
+}
+
+.workout-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  margin-bottom: 10px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.workout-status {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: #e9ecef;
+  color: #666;
+}
+
+/* Profile Page */
+.profile-section {
+  margin-bottom: 30px;
+}
+
+.profile-card {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.profile-picture {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profile-details p {
+  margin: 8px 0;
+  color: #333;
+}
+
+.profile-details strong {
+  color: #555;
+}
+
+/* Error Messages */
+.error-message {
+  padding: 15px;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 6px;
+  color: #721c24;
+}
+
+.error-hint {
+  font-size: 13px;
+  color: #856404;
+  margin-top: 10px;
+}
