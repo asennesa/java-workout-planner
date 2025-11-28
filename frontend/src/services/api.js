@@ -100,11 +100,10 @@ export const apiService = {
 
   /**
    * Get all workouts for the current user.
+   * Uses the /workouts/my endpoint which identifies user from JWT token.
    */
-  getWorkouts: async (page = 0, size = 10) => {
-    const response = await api.get('/workouts', {
-      params: { page, size },
-    });
+  getWorkouts: async () => {
+    const response = await api.get('/workouts/my');
     return response.data;
   },
 
