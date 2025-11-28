@@ -23,6 +23,7 @@ import com.workoutplanner.workoutplanner.repository.UserRepository;
 import com.workoutplanner.workoutplanner.repository.ExerciseRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.workoutplanner.workoutplanner.security.SecurityContextHelper;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,7 +54,7 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
     private final UserRepository userRepository;
     private final ExerciseRepository exerciseRepository;
     private final WorkoutMapper workoutMapper;
-    
+
     /**
      * Constructor injection for dependencies.
      * Makes dependencies explicit, immutable, and easier to test.
@@ -135,6 +136,24 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
     @Transactional(readOnly = true)
     @PreAuthorize("@userService.isCurrentUser(#userId) or hasAuthority('read:users')")
     public List<WorkoutResponse> getWorkoutSessionsByUserId(Long userId) {
+        List<WorkoutSession> workoutSessions = workoutSessionRepository.findByUser_UserIdOrderByStartedAtDesc(userId);
+        return workoutMapper.toWorkoutResponseList(workoutSessions);
+    }
+
+    /**
+     * Get all workout sessions for the currently authenticated user.
+     * User is already synchronized during authentication via Auth0UserSyncFilter.
+     *
+     * @return List of WorkoutResponse for the current user
+     */
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAuthority('read:workouts')")
+    public List<WorkoutResponse> getMyWorkouts() {
+        // Get user ID from SecurityContext (Auth0Principal)
+        Long userId = SecurityContextHelper.getCurrentUserId();
+
+        logger.debug("Getting workouts for current user. userId={}", userId);
+
         List<WorkoutSession> workoutSessions = workoutSessionRepository.findByUser_UserIdOrderByStartedAtDesc(userId);
         return workoutMapper.toWorkoutResponseList(workoutSessions);
     }

@@ -7,9 +7,7 @@ import com.workoutplanner.workoutplanner.dto.request.UserUpdateRequest;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.UserResponse;
 import com.workoutplanner.workoutplanner.dto.response.ExistenceCheckResponse;
-import com.workoutplanner.workoutplanner.entity.User;
-import com.workoutplanner.workoutplanner.mapper.UserMapper;
-import com.workoutplanner.workoutplanner.service.Auth0CurrentUserService;
+import com.workoutplanner.workoutplanner.security.SecurityContextHelper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -53,20 +51,14 @@ import java.util.concurrent.TimeUnit;
 public class UserController {
     
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
-    
+
     private final UserService userService;
-    private final Auth0CurrentUserService auth0CurrentUserService;
-    private final UserMapper userMapper;
-    
+
     /**
      * Constructor injection for dependencies.
      */
-    public UserController(UserService userService, 
-                         Auth0CurrentUserService auth0CurrentUserService,
-                         UserMapper userMapper) {
+    public UserController(UserService userService) {
         this.userService = userService;
-        this.auth0CurrentUserService = auth0CurrentUserService;
-        this.userMapper = userMapper;
     }
     
     /**
@@ -231,17 +223,17 @@ public class UserController {
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserResponse> getCurrentUserProfile() {
-        // Use Auth0CurrentUserService to get current user from JWT
-        User currentUser = auth0CurrentUserService.getCurrentUser();
-        
-        logger.debug("Getting profile for current user: auth0UserId={}, userId={}", 
-                    currentUser.getAuth0UserId(), currentUser.getUserId());
-        
-        UserResponse userResponse = userMapper.toResponse(currentUser);
-        
-        logger.info("Current user profile retrieved. userId={}, email={}", 
-                   currentUser.getUserId(), currentUser.getEmail());
-        
+        // Get user ID from SecurityContext (Auth0Principal)
+        Long userId = SecurityContextHelper.getCurrentUserId();
+
+        logger.debug("Getting profile for current user: userId={}", userId);
+
+        // Fetch fresh user data from database
+        UserResponse userResponse = userService.getUserById(userId);
+
+        logger.info("Current user profile retrieved. userId={}, email={}",
+                   userResponse.getUserId(), userResponse.getEmail());
+
         return ResponseEntity.ok(userResponse);
     }
 

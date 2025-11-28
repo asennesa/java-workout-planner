@@ -86,6 +86,12 @@
 		<version>8.7.0</version>
 	</dependency>
 
+	<!-- Spring Boot Cache Starter -->
+	<dependency>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-cache</artifactId>
+	</dependency>
+
 	<!-- Caffeine cache (high-performance in-memory cache) -->
 	<dependency>
 		<groupId>com.github.ben-manes.caffeine</groupId>

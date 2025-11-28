@@ -2,6 +2,7 @@ package com.workoutplanner.workoutplanner.service;
 
 import com.workoutplanner.workoutplanner.entity.*;
 import com.workoutplanner.workoutplanner.repository.*;
+import com.workoutplanner.workoutplanner.security.SecurityContextHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -43,7 +44,6 @@ public class ResourceSecurityService {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceSecurityService.class);
 
-    private final Auth0CurrentUserService currentUserService;
     private final WorkoutSessionRepository workoutSessionRepository;
     private final WorkoutExerciseRepository workoutExerciseRepository;
     private final StrengthSetRepository strengthSetRepository;
@@ -51,13 +51,11 @@ public class ResourceSecurityService {
     private final FlexibilitySetRepository flexibilitySetRepository;
 
     public ResourceSecurityService(
-            Auth0CurrentUserService currentUserService,
             WorkoutSessionRepository workoutSessionRepository,
             WorkoutExerciseRepository workoutExerciseRepository,
             StrengthSetRepository strengthSetRepository,
             CardioSetRepository cardioSetRepository,
             FlexibilitySetRepository flexibilitySetRepository) {
-        this.currentUserService = currentUserService;
         this.workoutSessionRepository = workoutSessionRepository;
         this.workoutExerciseRepository = workoutExerciseRepository;
         this.strengthSetRepository = strengthSetRepository;
@@ -79,34 +77,34 @@ public class ResourceSecurityService {
      */
     public boolean canAccessWorkout(Long sessionId) {
         try {
-            Long currentUserId = currentUserService.getCurrentUserId();
-            
+            Long currentUserId = SecurityContextHelper.getCurrentUserId();
+
             // Admin bypass - can access all workouts
             if (isAdmin()) {
                 logger.debug("Admin access granted to workout sessionId={}", sessionId);
                 return true;
             }
-            
+
             // Check ownership
             WorkoutSession workout = workoutSessionRepository.findById(sessionId)
                 .orElse(null);
-            
+
             if (workout == null) {
                 logger.debug("Workout not found: sessionId={}", sessionId);
                 return false; // Will result in 404
             }
-            
+
             boolean isOwner = workout.getUser().getUserId().equals(currentUserId);
-            
+
             if (!isOwner) {
-                logger.warn("SECURITY: User {} attempted to access workout {} owned by user {}", 
+                logger.warn("SECURITY: User {} attempted to access workout {} owned by user {}",
                            currentUserId, sessionId, workout.getUser().getUserId());
             }
-            
+
             return isOwner;
-            
+
         } catch (Exception e) {
-            logger.error("Error checking workout access for sessionId={}: {}", 
+            logger.error("Error checking workout access for sessionId={}: {}",
                         sessionId, e.getMessage());
             return false; // Deny by default on error
         }

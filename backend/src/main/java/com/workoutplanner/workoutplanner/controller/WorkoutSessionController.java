@@ -188,15 +188,51 @@ public class WorkoutSessionController {
     }
     
     /**
-     * Get all workout sessions with pagination.
-     * 
+     * Get the current user's workout sessions.
+     * Uses JWT token to identify the user - no user ID needed in request.
+     *
+     * @return ResponseEntity containing list of workout responses for the current user
+     */
+    @Operation(
+        summary = "Get my workout sessions",
+        description = "Retrieves all workout sessions for the currently authenticated user. Uses JWT token to identify the user.",
+        security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "User's workout sessions retrieved successfully",
+            content = @Content(schema = @Schema(implementation = List.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content
+        )
+    })
+    @GetMapping("/my")
+    @PreAuthorize("hasAuthority('read:workouts')")
+    public ResponseEntity<List<WorkoutResponse>> getMyWorkouts() {
+        logger.debug("Getting workouts for current authenticated user");
+
+        List<WorkoutResponse> workoutResponses = workoutSessionService.getMyWorkouts();
+
+        logger.info("Retrieved {} workouts for current user", workoutResponses.size());
+
+        return ResponseEntity.ok(workoutResponses);
+    }
+
+    /**
+     * Get all workout sessions with pagination (ADMIN ONLY).
+     * Returns ALL workouts across ALL users - restricted to administrators.
+     *
      * @param pageable pagination parameters (page, size, sort)
      * @return ResponseEntity containing paginated workout responses
      */
     @Operation(
-        summary = "Get all workout sessions (paginated)",
-        description = "Retrieves a paginated list of all workout sessions ordered by most recent first.",
-        security = @SecurityRequirement(name = "basicAuth")
+        summary = "Get all workout sessions - Admin only (paginated)",
+        description = "Admin endpoint: Retrieves a paginated list of ALL workout sessions from ALL users. Requires admin permissions.",
+        security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
         @ApiResponse(
@@ -208,10 +244,15 @@ public class WorkoutSessionController {
             responseCode = "401",
             description = "Unauthorized - authentication required",
             content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "Forbidden - admin permissions required",
+            content = @Content
         )
     })
     @GetMapping
-    @PreAuthorize("hasAuthority('read:workouts')")
+    @PreAuthorize("hasAuthority('read:users')")
     public ResponseEntity<PagedResponse<WorkoutResponse>> getAllWorkoutSessions(
             @Parameter(description = "Pagination parameters", example = "page=0&size=20&sort=sessionId,desc")
             @PageableDefault(size = 20, sort = "sessionId", direction = Sort.Direction.DESC) Pageable pageable) {
