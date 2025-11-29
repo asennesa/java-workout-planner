@@ -102,15 +102,23 @@ class WorkoutSessionServiceTest {
         testUser = TestDataBuilder.createPersistedUser();
         testWorkoutSession = TestDataBuilder.createDefaultWorkoutSession(testUser);
         testExercise = TestDataBuilder.createStrengthExercise(); // Has ID
+
+        // Setup default security context with user ID 1
+        TestDataBuilder.setupSecurityContext(1L);
     }
-    
+
+    @org.junit.jupiter.api.AfterEach
+    void tearDown() {
+        TestDataBuilder.clearSecurityContext();
+    }
+
     // ==================== CREATE WORKOUT TESTS ====================
     
     @Test
     @DisplayName("Should create workout session successfully")
     void shouldCreateWorkoutSessionSuccessfully() {
         // Arrange
-        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(1L);
+        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
         WorkoutResponse expectedResponse = new WorkoutResponse();
         expectedResponse.setSessionId(1L);
         expectedResponse.setName("Test Workout");
@@ -139,7 +147,8 @@ class WorkoutSessionServiceTest {
     @DisplayName("Should throw ResourceNotFoundException when user not found during workout creation")
     void shouldThrowExceptionWhenUserNotFoundDuringCreation() {
         // Arrange
-        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(999L);
+        TestDataBuilder.setupSecurityContext(999L);
+        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
         
         // Act & Assert
@@ -157,7 +166,7 @@ class WorkoutSessionServiceTest {
     @DisplayName("Should set startedAt when creating IN_PROGRESS workout without startedAt")
     void shouldSetStartedAtWhenCreatingInProgressWorkout() {
         // Arrange
-        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(1L);
+        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
         request.setStatus(WorkoutStatus.IN_PROGRESS);
         request.setStartedAt(null); // No start time provided
         
@@ -183,7 +192,7 @@ class WorkoutSessionServiceTest {
     @DisplayName("Should throw ValidationException when startedAt is in the future")
     void shouldThrowValidationExceptionWhenStartedAtInFuture() {
         // Arrange
-        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(1L);
+        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
         request.setStartedAt(fixedNow.plusDays(1)); // Future date
         
         // No need to stub repository - validation happens before repository call
@@ -198,7 +207,7 @@ class WorkoutSessionServiceTest {
     @DisplayName("Should throw ValidationException when completedAt is before startedAt")
     void shouldThrowValidationExceptionWhenCompletedAtBeforeStartedAt() {
         // Arrange
-        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(1L);
+        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
         request.setStartedAt(fixedNow);
         request.setCompletedAt(fixedNow.minusHours(1)); // Before start
         

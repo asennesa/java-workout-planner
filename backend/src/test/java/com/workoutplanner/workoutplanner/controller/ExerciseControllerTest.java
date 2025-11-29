@@ -18,6 +18,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -43,6 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @WebMvcTest(ExerciseController.class)
 @ActiveProfiles("test")
+@Import(com.workoutplanner.workoutplanner.config.TestSecurityConfig.class)
 @DisplayName("ExerciseController Unit Tests")
 class ExerciseControllerTest {
     
@@ -56,13 +58,13 @@ class ExerciseControllerTest {
     private ExerciseService exerciseService;
     
     // ==================== CREATE EXERCISE TESTS ====================
-    
+
     @Nested
     @DisplayName("POST /api/v1/exercises - Create Exercise")
     class CreateExerciseTests {
-        
+
         @Test
-        @WithMockUser
+        @WithMockUser(authorities = {"write:exercises"})
         @DisplayName("Should create exercise and return 201")
         void shouldCreateExerciseAndReturn201() throws Exception {
             // Arrange
@@ -91,12 +93,12 @@ class ExerciseControllerTest {
         }
         
         @Test
-        @WithMockUser
+        @WithMockUser(authorities = {"write:exercises"})
         @DisplayName("Should return 400 for invalid request with validation errors")
         void shouldReturn400ForInvalidRequest() throws Exception {
             // Arrange - Missing required fields
             CreateExerciseRequest request = new CreateExerciseRequest();
-            
+
             // Act & Assert
             mockMvc.perform(post("/api/v1/exercises")
                     .contentType(MediaType.APPLICATION_JSON)
@@ -104,20 +106,20 @@ class ExerciseControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.errors").exists());
-            
+
             // BEST PRACTICE: Ensure service was never called when validation fails
             verifyNoInteractions(exerciseService);
         }
     }
     
     // ==================== GET EXERCISE TESTS ====================
-    
+
     @Nested
     @DisplayName("GET /api/v1/exercises - Get Exercises")
     class GetExerciseTests {
-        
+
         @Test
-        @WithMockUser
+        @WithMockUser(authorities = {"read:exercises"})
         @DisplayName("Should get exercise by ID")
         void shouldGetExerciseById() throws Exception {
             // Arrange
@@ -138,7 +140,7 @@ class ExerciseControllerTest {
         }
         
         @Test
-        @WithMockUser
+        @WithMockUser(authorities = {"read:exercises"})
         @DisplayName("Should return 404 when exercise not found")
         void shouldReturn404WhenExerciseNotFound() throws Exception {
             // Arrange
@@ -151,7 +153,7 @@ class ExerciseControllerTest {
         }
         
         @Test
-        @WithMockUser
+        @WithMockUser(authorities = {"read:exercises"})
         @DisplayName("Should get all exercises with pagination")
         void shouldGetAllExercisesWithPagination() throws Exception {
             // Arrange
@@ -183,7 +185,7 @@ class ExerciseControllerTest {
         }
         
         @Test
-        @WithMockUser
+        @WithMockUser(authorities = {"read:exercises"})
         @DisplayName("Should get exercises by type")
         void shouldGetExercisesByType() throws Exception {
             // Arrange
@@ -205,7 +207,7 @@ class ExerciseControllerTest {
         }
         
         @Test
-        @WithMockUser
+        @WithMockUser(authorities = {"read:exercises"})
         @DisplayName("Should search exercises by name")
         void shouldSearchExercisesByName() throws Exception {
             // Arrange
@@ -228,13 +230,13 @@ class ExerciseControllerTest {
     }
     
     // ==================== UPDATE EXERCISE TESTS ====================
-    
+
     @Nested
     @DisplayName("PUT /api/v1/exercises/{id} - Update Exercise")
     class UpdateExerciseTests {
-        
+
         @Test
-        @WithMockUser
+        @WithMockUser(authorities = {"write:exercises"})
         @DisplayName("Should update exercise successfully")
         void shouldUpdateExerciseSuccessfully() throws Exception {
             // Arrange
@@ -259,7 +261,7 @@ class ExerciseControllerTest {
         }
         
         @Test
-        @WithMockUser
+        @WithMockUser(authorities = {"write:exercises"})
         @DisplayName("Should return 404 when updating non-existent exercise")
         void shouldReturn404WhenUpdatingNonExistentExercise() throws Exception {
             // Arrange
@@ -276,7 +278,7 @@ class ExerciseControllerTest {
         }
         
         @Test
-        @WithMockUser
+        @WithMockUser(authorities = {"write:exercises"})
         @DisplayName("Should return 400 when updating with invalid data")
         void shouldReturn400WhenUpdatingWithInvalidData() throws Exception {
             // Arrange - Invalid request (missing required fields)
@@ -296,13 +298,13 @@ class ExerciseControllerTest {
     }
     
     // ==================== DELETE EXERCISE TESTS ====================
-    
+
     @Nested
     @DisplayName("DELETE /api/v1/exercises/{id} - Delete Exercise")
     class DeleteExerciseTests {
-        
+
         @Test
-        @WithMockUser
+        @WithMockUser(authorities = {"delete:exercises"})
         @DisplayName("Should delete exercise successfully")
         void shouldDeleteExerciseSuccessfully() throws Exception {
             // Act & Assert
@@ -313,7 +315,7 @@ class ExerciseControllerTest {
         }
         
         @Test
-        @WithMockUser
+        @WithMockUser(authorities = {"delete:exercises"})
         @DisplayName("Should return 404 when deleting non-existent exercise")
         void shouldReturn404WhenDeletingNonExistentExercise() throws Exception {
             // Arrange
@@ -327,13 +329,13 @@ class ExerciseControllerTest {
     }
     
     // ==================== FILTERING TESTS ====================
-    
+
     @Nested
     @DisplayName("Exercise Filtering Tests")
     class FilteringTests {
-        
+
         @Test
-        @WithMockUser
+        @WithMockUser(authorities = {"read:exercises"})
         @DisplayName("Should filter by difficulty level")
         void shouldFilterByDifficultyLevel() throws Exception {
             // Arrange
@@ -355,7 +357,7 @@ class ExerciseControllerTest {
         }
         
         @Test
-        @WithMockUser
+        @WithMockUser(authorities = {"read:exercises"})
         @DisplayName("Should filter by target muscle group")
         void shouldFilterByTargetMuscleGroup() throws Exception {
             // Arrange

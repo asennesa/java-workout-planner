@@ -85,7 +85,7 @@ public class ExerciseController {
         ),
         @ApiResponse(
             responseCode = "403",
-            description = "Forbidden - requires ADMIN or MODERATOR role",
+            description = "Forbidden - authentication required",
             content = @Content
         )
     })
@@ -318,13 +318,13 @@ public class ExerciseController {
     
     /**
      * Delete exercise by ID.
-     * 
+     *
      * @param exerciseId the exercise ID
      * @return ResponseEntity with no content
      */
     @Operation(
-        summary = "Delete exercise (Admin only)",
-        description = "Permanently deletes an exercise from the library. Only accessible by ADMIN role.",
+        summary = "Delete exercise",
+        description = "Permanently deletes an exercise from the library. Requires delete:exercises permission.",
         security = @SecurityRequirement(name = "basicAuth")
     )
     @ApiResponses(value = {
@@ -340,7 +340,7 @@ public class ExerciseController {
         ),
         @ApiResponse(
             responseCode = "403",
-            description = "Forbidden - requires ADMIN role",
+            description = "Forbidden - requires delete:exercises permission",
             content = @Content
         ),
         @ApiResponse(

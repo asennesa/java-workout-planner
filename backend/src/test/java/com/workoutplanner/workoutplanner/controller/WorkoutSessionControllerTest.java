@@ -85,7 +85,7 @@ class WorkoutSessionControllerTest {
         @DisplayName("Should create workout and return 201")
         void shouldCreateWorkoutAndReturn201() throws Exception {
             // Arrange
-            CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(VALID_USER_ID);
+            CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
             WorkoutResponse response = new WorkoutResponse();
             response.setSessionId(VALID_WORKOUT_ID);
             response.setName(WORKOUT_NAME);

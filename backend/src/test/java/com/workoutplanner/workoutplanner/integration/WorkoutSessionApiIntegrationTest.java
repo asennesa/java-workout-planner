@@ -94,7 +94,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("POST /api/v1/workouts - Should create workout and return 201")
     void shouldCreateWorkoutAndReturn201() {
         // Arrange
-        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(testUser.getUserId());
+        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
         
         // Act & Assert
         given()
@@ -135,7 +135,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("GET /api/v1/workouts/{id} - Should return workout by ID")
     void shouldReturnWorkoutById() {
         // Arrange - Create a workout first
-        CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest(testUser.getUserId());
+        CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
         Integer workoutId = given()
             
             .contentType(ContentType.JSON)
@@ -174,7 +174,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
     void shouldReturnPaginatedWorkouts() {
         // Arrange - Create multiple workouts
         for (int i = 1; i <= 3; i++) {
-            CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(testUser.getUserId());
+            CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
             request.setName("Workout " + i);
             given()
                 
@@ -205,7 +205,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("GET /api/v1/workouts/user/{userId} - Should return workouts by user")
     void shouldReturnWorkoutsByUser() {
         // Arrange
-        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(testUser.getUserId());
+        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
         given()
             
             .contentType(ContentType.JSON)
@@ -232,7 +232,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("PUT /api/v1/workouts/{id} - Should update workout")
     void shouldUpdateWorkout() {
         // Arrange - Create a workout first
-        CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest(testUser.getUserId());
+        CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
         Integer workoutId = given()
             
             .contentType(ContentType.JSON)
@@ -244,7 +244,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
             .extract().path("sessionId");
         
         // Update request
-        CreateWorkoutRequest updateRequest = TestDataBuilder.createWorkoutRequest(testUser.getUserId());
+        CreateWorkoutRequest updateRequest = TestDataBuilder.createWorkoutRequest();
         updateRequest.setName("Updated Workout");
         updateRequest.setStatus(WorkoutStatus.IN_PROGRESS);
         
@@ -266,7 +266,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("PATCH /api/v1/workouts/{id}/status - Should update workout status")
     void shouldUpdateWorkoutStatus() {
         // Arrange - Create a workout first
-        CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest(testUser.getUserId());
+        CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
         Integer workoutId = given()
             
             .contentType(ContentType.JSON)
@@ -297,7 +297,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("PATCH /api/v1/workouts/{id}/status - Should return 400 for invalid action")
     void shouldReturn400ForInvalidAction() {
         // Arrange
-        CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest(testUser.getUserId());
+        CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
         Integer workoutId = given()
             
             .contentType(ContentType.JSON)
@@ -328,7 +328,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("DELETE /api/v1/workouts/{id} - Should delete workout and return 204")
     void shouldDeleteWorkoutAndReturn204() {
         // Arrange - Create a workout first
-        CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest(testUser.getUserId());
+        CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
         Integer workoutId = given()
             
             .contentType(ContentType.JSON)
@@ -362,7 +362,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
     @DisplayName("Complete workout lifecycle - Create, Start, Update, Complete, Delete")
     void shouldCompleteWorkoutLifecycle() {
         // 1. Create workout
-        CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest(testUser.getUserId());
+        CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
         createRequest.setName("Full Lifecycle Workout");
         
         Integer workoutId = given()

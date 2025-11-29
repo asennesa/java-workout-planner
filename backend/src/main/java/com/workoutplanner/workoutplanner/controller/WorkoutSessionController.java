@@ -95,9 +95,9 @@ public class WorkoutSessionController {
     public ResponseEntity<WorkoutResponse> createWorkoutSession(
             @Parameter(description ="Workout session details", required = true)
             @Valid @RequestBody CreateWorkoutRequest createWorkoutRequest) {
-        logger.debug("Creating workout session for userId={}", 
-                    createWorkoutRequest.getUserId());
-        
+
+        logger.debug("Creating workout session for name={}", createWorkoutRequest.getName());
+
         WorkoutResponse workoutResponse = workoutSessionService.createWorkoutSession(createWorkoutRequest);
         
         logger.info("Workout session created successfully. sessionId={}, userId={}, status={}", 

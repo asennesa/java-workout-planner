@@ -3,9 +3,17 @@ package com.workoutplanner.workoutplanner.util;
 import com.workoutplanner.workoutplanner.dto.request.*;
 import com.workoutplanner.workoutplanner.entity.*;
 import com.workoutplanner.workoutplanner.enums.*;
+import com.workoutplanner.workoutplanner.security.Auth0Principal;
+import com.workoutplanner.workoutplanner.security.Auth0AuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Test Data Builder utility for creating test objects.
@@ -252,14 +260,66 @@ public class TestDataBuilder {
 
     /**
      * Creates a default CreateWorkoutRequest.
+     * Note: userId is no longer part of the request - it's derived from JWT token.
      */
-    public static CreateWorkoutRequest createWorkoutRequest(Long userId) {
+    public static CreateWorkoutRequest createWorkoutRequest() {
         CreateWorkoutRequest request = new CreateWorkoutRequest();
-        request.setUserId(userId);
         request.setName("Test Workout");
         request.setDescription("Test workout description");
         request.setStatus(WorkoutStatus.PLANNED);
         return request;
+    }
+
+    // ==================== SECURITY CONTEXT UTILITIES ====================
+
+    /**
+     * Sets up the security context with a mock authenticated user.
+     * Use this in @BeforeEach to simulate an authenticated user.
+     *
+     * @param userId the user's database ID
+     */
+    public static void setupSecurityContext(Long userId) {
+        setupSecurityContext(userId, UserRole.USER);
+    }
+
+    /**
+     * Sets up the security context with a mock authenticated user with specific role.
+     *
+     * @param userId the user's database ID
+     * @param role the user's role
+     */
+    public static void setupSecurityContext(Long userId, UserRole role) {
+        Auth0Principal principal = new Auth0Principal(
+            userId,
+            "auth0|test-" + userId,
+            "test" + userId + "@example.com",
+            "testuser" + userId,
+            "Test",
+            "User",
+            role
+        );
+
+        Jwt jwt = Jwt.withTokenValue("test-token")
+            .header("alg", "RS256")
+            .claim("sub", principal.auth0UserId())
+            .issuedAt(Instant.now())
+            .expiresAt(Instant.now().plusSeconds(3600))
+            .build();
+
+        List<SimpleGrantedAuthority> authorities = List.of(
+            new SimpleGrantedAuthority("read:workouts"),
+            new SimpleGrantedAuthority("write:workouts")
+        );
+
+        Auth0AuthenticationToken authToken = new Auth0AuthenticationToken(principal, jwt, authorities);
+        SecurityContextHolder.getContext().setAuthentication(authToken);
+    }
+
+    /**
+     * Clears the security context. Call in @AfterEach to clean up.
+     */
+    public static void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
     }
     
     /**

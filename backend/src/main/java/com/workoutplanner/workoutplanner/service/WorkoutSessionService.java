@@ -81,16 +81,24 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
      * @return WorkoutResponse the created workout response
      */
     @Transactional
-    @PreAuthorize("@userService.isCurrentUser(#createWorkoutRequest.userId) or hasAuthority('write:users')")
+    @PreAuthorize("isAuthenticated()")
     public WorkoutResponse createWorkoutSession(CreateWorkoutRequest createWorkoutRequest) {
-        logger.debug("SERVICE: Creating workout session. userId={}, name={}, status={}", 
-                    createWorkoutRequest.getUserId(), createWorkoutRequest.getName(), createWorkoutRequest.getStatus());
-        
+        // Always get userId from the authenticated user's JWT token - never trust client input
+        final Long userId = SecurityContextHelper.getCurrentUserId();
+
+        // Default status to PLANNED if not provided
+        if (createWorkoutRequest.getStatus() == null) {
+            createWorkoutRequest.setStatus(WorkoutStatus.PLANNED);
+        }
+
+        logger.debug("SERVICE: Creating workout session. userId={}, name={}, status={}",
+                    userId, createWorkoutRequest.getName(), createWorkoutRequest.getStatus());
+
         // Validate workout dates
         validateWorkoutDates(createWorkoutRequest.getStartedAt(), createWorkoutRequest.getCompletedAt());
-        
-        User user = userRepository.findById(createWorkoutRequest.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("User", "ID", createWorkoutRequest.getUserId()));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "ID", userId));
 
         WorkoutSession workoutSession = workoutMapper.toEntity(createWorkoutRequest);
         

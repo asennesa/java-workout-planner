@@ -54,7 +54,6 @@ class WorkoutMapperTest {
     void shouldMapCreateWorkoutRequestToEntity() {
         // Arrange
         CreateWorkoutRequest request = new CreateWorkoutRequest();
-        request.setUserId(1L);
         request.setName("Morning Workout");
         request.setDescription("Upper body training");
         request.setStatus(WorkoutStatus.PLANNED);
@@ -86,7 +85,6 @@ class WorkoutMapperTest {
         LocalDateTime completedAt = LocalDateTime.of(2024, 1, 15, 11, 0);
         
         CreateWorkoutRequest request = new CreateWorkoutRequest();
-        request.setUserId(1L);
         request.setName("Completed Workout");
         request.setStatus(WorkoutStatus.COMPLETED);
         request.setStartedAt(startedAt);
@@ -402,7 +400,6 @@ class WorkoutMapperTest {
     void shouldHandleNullValuesInRequest() {
         // Arrange
         CreateWorkoutRequest request = new CreateWorkoutRequest();
-        request.setUserId(1L);
         request.setName("Minimal Workout");
         request.setStatus(WorkoutStatus.PLANNED);
         // description, startedAt, completedAt are null

@@ -22,10 +22,7 @@ public class CreateWorkoutRequest {
     @Length(max = 1000, message = "Description must not exceed 1000 characters")
     private String description;
 
-    @NotNull(message = "User ID is required")
-    private Long userId;
-
-    @NotNull(message = "Workout status is required")
+    // status defaults to PLANNED if not provided
     private WorkoutStatus status;
 
     private LocalDateTime startedAt;
@@ -39,10 +36,9 @@ public class CreateWorkoutRequest {
     @Length(max = 1000, message = "Session notes must not exceed 1000 characters")
     private String sessionNotes;
 
-    public CreateWorkoutRequest(String name, String description, Long userId, WorkoutStatus status) {
+    public CreateWorkoutRequest(String name, String description, WorkoutStatus status) {
         this.name = name;
         this.description = description;
-        this.userId = userId;
         this.status = status;
     }
 }

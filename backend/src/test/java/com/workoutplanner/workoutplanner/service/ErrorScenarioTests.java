@@ -82,10 +82,18 @@ class ErrorScenarioTests {
     void setUp() {
         testUser = TestDataBuilder.createPersistedUser();
         testWorkout = TestDataBuilder.createDefaultWorkoutSession(testUser);
-        
+
         // Mock clock to return a fixed instant (lenient since not all tests use it)
         lenient().when(clock.instant()).thenReturn(Instant.now());
         lenient().when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
+        // Setup default security context
+        TestDataBuilder.setupSecurityContext(testUser.getUserId());
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void tearDown() {
+        TestDataBuilder.clearSecurityContext();
     }
     
     // ==================== CONCURRENT MODIFICATION TESTS ====================
@@ -98,7 +106,7 @@ class ErrorScenarioTests {
         @DisplayName("Should handle optimistic locking failure gracefully")
         void shouldHandleOptimisticLockingFailure() {
             // Arrange - Simulate concurrent modification
-            CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(testUser.getUserId());
+            CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
             
             when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
             when(workoutMapper.toEntity(any(CreateWorkoutRequest.class))).thenReturn(testWorkout);
@@ -146,7 +154,7 @@ class ErrorScenarioTests {
         @DisplayName("Should handle duplicate key violation")
         void shouldHandleDuplicateKeyViolation() {
             // Arrange - Simulate unique constraint violation
-            CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(testUser.getUserId());
+            CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
             
             when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
             when(workoutMapper.toEntity(any(CreateWorkoutRequest.class))).thenReturn(testWorkout);
@@ -163,10 +171,11 @@ class ErrorScenarioTests {
         @DisplayName("Should handle foreign key constraint violation")
         void shouldHandleForeignKeyConstraintViolation() {
             // Arrange - Try to save workout with non-existent user
-            CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(999L);
-            
+            TestDataBuilder.setupSecurityContext(999L);
+            CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
+
             when(userRepository.findById(999L)).thenReturn(Optional.empty());
-            
+
             // Act & Assert - Should fail before hitting database
             assertThatThrownBy(() -> workoutSessionService.createWorkoutSession(request))
                 .isInstanceOf(ResourceNotFoundException.class)
@@ -189,21 +198,23 @@ class ErrorScenarioTests {
         }
         
         @Test
-        @DisplayName("Should reject request with null user ID")
-        void shouldRejectRequestWithNullUserId() {
-            // Arrange
-            CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(null);
-            
-            // Act & Assert - Should be caught by validation
+        @DisplayName("Should throw exception when no user authenticated")
+        void shouldThrowExceptionWhenNoUserAuthenticated() {
+            // Arrange - Clear security context to simulate unauthenticated request
+            TestDataBuilder.clearSecurityContext();
+            CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
+
+            // Act & Assert - Should fail because no user in security context
             assertThatThrownBy(() -> workoutSessionService.createWorkoutSession(request))
-                .isInstanceOf(RuntimeException.class); // Would be ValidationException with proper setup
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("No authenticated user");
         }
         
         @Test
         @DisplayName("Should handle extremely large data gracefully")
         void shouldHandleExtremelyLargeDataGracefully() {
             // Arrange - Create request with extremely long string
-            CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(testUser.getUserId());
+            CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
             String extremelyLongName = "A".repeat(10000); // 10K characters
             request.setName(extremelyLongName);
             
@@ -242,9 +253,10 @@ class ErrorScenarioTests {
         @DisplayName("Should provide helpful message when user not found")
         void shouldProvideHelpfulMessageWhenUserNotFound() {
             // Arrange
-            CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(999L);
+            TestDataBuilder.setupSecurityContext(999L);
+            CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
             when(userRepository.findById(999L)).thenReturn(Optional.empty());
-            
+
             // Act & Assert
             assertThatThrownBy(() -> workoutSessionService.createWorkoutSession(request))
                 .isInstanceOf(ResourceNotFoundException.class)
@@ -282,7 +294,7 @@ class ErrorScenarioTests {
         @DisplayName("Should handle mapper returning null")
         void shouldHandleMapperReturningNull() {
             // Arrange
-            CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(testUser.getUserId());
+            CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
             
             when(userRepository.findById(testUser.getUserId())).thenReturn(Optional.of(testUser));
             when(workoutMapper.toEntity(any(CreateWorkoutRequest.class))).thenReturn(null); // Mapper fails
