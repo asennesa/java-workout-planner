@@ -34,14 +34,22 @@ const api: AxiosInstance = axios.create({
 // Type for getAccessTokenSilently from Auth0
 type GetAccessTokenSilently = () => Promise<string>;
 
-// Store for the getAccessTokenSilently function
+// Callback for when email verification is required
+type OnEmailVerificationRequired = () => void;
+
+// Store for the getAccessTokenSilently function and callbacks
 let getAccessToken: GetAccessTokenSilently | null = null;
+let onTokenRefreshFailed: OnEmailVerificationRequired | null = null;
 
 /**
  * Initialize the API service with Auth0's getAccessTokenSilently function.
  */
-export const initializeApi = (getAccessTokenSilently: GetAccessTokenSilently): void => {
+export const initializeApi = (
+  getAccessTokenSilently: GetAccessTokenSilently,
+  onEmailVerificationRequired?: OnEmailVerificationRequired
+): void => {
   getAccessToken = getAccessTokenSilently;
+  onTokenRefreshFailed = onEmailVerificationRequired || null;
 };
 
 // Request interceptor to add auth token
@@ -66,14 +74,35 @@ api.interceptors.response.use(
   (error: AxiosError<{ message?: string; error?: string }>) => {
     if (error.response) {
       const { status, data } = error.response;
+
+      // Check if this is an email_not_verified error (403 with specific error code)
+      const isEmailNotVerifiedError =
+        status === 403 && data?.error === 'email_not_verified';
+
+      // Show re-login modal for email verification errors
+      if (isEmailNotVerifiedError && onTokenRefreshFailed) {
+        onTokenRefreshFailed();
+      }
+
       if (status === 401) {
         console.error('Unauthorized - token may be expired');
-      } else if (status === 403) {
+      } else if (status === 403 && !isEmailNotVerifiedError) {
         console.error('Forbidden - insufficient permissions');
       }
-      error.message = data?.message || data?.error || `Request failed with status ${status}`;
+
+      // Provide user-friendly error messages
+      let errorMessage: string;
+      if (isEmailNotVerifiedError) {
+        errorMessage = 'Please verify your email address to continue.';
+      } else if (status === 403) {
+        errorMessage = data?.message || 'You do not have permission to perform this action.';
+      } else {
+        errorMessage = data?.message || data?.error || `Request failed with status ${status}`;
+      }
+
+      return Promise.reject(new Error(errorMessage));
     } else if (error.request) {
-      error.message = 'Network error - please check your connection';
+      return Promise.reject(new Error('Network error - please check your connection'));
     }
     return Promise.reject(error);
   }

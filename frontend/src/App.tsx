@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import { Auth0ProviderWithNavigate, ProtectedRoute } from './auth';
-import { AuthNav, ErrorBoundary, Loading } from './components';
+import { AuthNav, ErrorBoundary, Loading, Modal, Button } from './components';
 import { useApiInitializer } from './hooks';
 import { HomePage } from './pages';
 import './App.css';
@@ -32,7 +32,7 @@ const NotFound = (): JSX.Element => (
 );
 
 function AppContent(): JSX.Element {
-  useApiInitializer();
+  const { showRefreshPrompt, handleRefresh, dismissPrompt } = useApiInitializer();
 
   return (
     <div className="App">
@@ -64,6 +64,23 @@ function AppContent(): JSX.Element {
           </Routes>
         </Suspense>
       </main>
+
+      {/* Modal when email verification is required */}
+      <Modal
+        isOpen={showRefreshPrompt}
+        onClose={handleRefresh}
+        title="Email Verification Required"
+        size="small"
+      >
+        <p style={{ marginBottom: '16px' }}>
+          Please verify your email address to continue. Check your inbox for a verification link from Auth0, then log in again.
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <Button variant="primary" onClick={handleRefresh}>
+            Log In
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }
