@@ -1,4 +1,5 @@
 import { useAuth0 } from '@auth0/auth0-react';
+import { Link } from 'react-router-dom';
 import './AuthButtons.css';
 
 /**
@@ -79,7 +80,9 @@ export const AuthNav = (): JSX.Element => {
     <div className="auth-nav">
       {isAuthenticated ? (
         <div className="auth-nav-authenticated">
-          <span className="user-greeting">Hello, {user?.name || user?.email}</span>
+          <Link to="/profile" className="user-greeting-link">
+            Hello, {user?.name || user?.email}
+          </Link>
           <LogoutButton />
         </div>
       ) : (

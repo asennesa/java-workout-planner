@@ -80,9 +80,6 @@ export const Profile = (): JSX.Element => {
           <div className="profile-card">
             <div className="profile-details">
               <p>
-                <strong>User ID:</strong> {backendUser.userId}
-              </p>
-              <p>
                 <strong>Username:</strong> {backendUser.username || '-'}
               </p>
               <p>
@@ -93,9 +90,6 @@ export const Profile = (): JSX.Element => {
               </p>
               <p>
                 <strong>Last Name:</strong> {backendUser.lastName || '-'}
-              </p>
-              <p>
-                <strong>Role:</strong> <StatusBadge status={backendUser.role} />
               </p>
             </div>
           </div>

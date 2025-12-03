@@ -148,7 +148,7 @@ export const WorkoutDetail = (): JSX.Element => {
       return (
         ex.name.toLowerCase().includes(searchLower) ||
         ex.type.toLowerCase().includes(searchLower) ||
-        ex.muscleGroup?.toLowerCase().includes(searchLower)
+        ex.targetMuscleGroup?.toLowerCase().includes(searchLower)
       );
     });
   }, [exercises, workout?.workoutExercises, exerciseSearch]);
@@ -440,7 +440,7 @@ export const WorkoutDetail = (): JSX.Element => {
                     <span className="exercise-picker-name">{ex.name}</span>
                     <span className="exercise-picker-meta">
                       <StatusBadge status={ex.type} />
-                      {ex.muscleGroup && <span className="muscle-group">{ex.muscleGroup}</span>}
+                      {ex.targetMuscleGroup && <span className="muscle-group">{ex.targetMuscleGroup}</span>}
                     </span>
                   </div>
                 </div>
