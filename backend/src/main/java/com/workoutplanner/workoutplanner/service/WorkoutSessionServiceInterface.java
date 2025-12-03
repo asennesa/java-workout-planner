@@ -3,6 +3,7 @@ package com.workoutplanner.workoutplanner.service;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutExerciseRequest;
 import com.workoutplanner.workoutplanner.dto.request.UpdateWorkoutRequest;
+import com.workoutplanner.workoutplanner.dto.request.UpdateWorkoutExerciseRequest;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutExerciseResponse;
@@ -92,7 +93,16 @@ public interface WorkoutSessionServiceInterface {
      * @param workoutExerciseId the workout exercise ID
      */
     void removeExerciseFromWorkout(Long workoutExerciseId);
-    
+
+    /**
+     * Update a workout exercise (order, notes, etc.).
+     *
+     * @param workoutExerciseId the workout exercise ID
+     * @param updateRequest the update request
+     * @return WorkoutExerciseResponse the updated workout exercise
+     */
+    WorkoutExerciseResponse updateWorkoutExercise(Long workoutExerciseId, UpdateWorkoutExerciseRequest updateRequest);
+
     /**
      * Get exercises for a workout session.
      *

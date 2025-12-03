@@ -63,7 +63,7 @@ export const SetTracker = ({
           newSet = await apiService.createStrengthSet(workoutExerciseId, {
             setNumber,
             reps: 10,
-            weight: 0,
+            weight: 20,
             completed: false,
           });
           break;

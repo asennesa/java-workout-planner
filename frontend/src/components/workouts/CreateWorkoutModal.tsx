@@ -6,6 +6,7 @@ import { Modal, Input, TextArea, Button, Alert } from '../ui';
 interface CreateWorkoutFormData {
   name: string;
   description: string;
+  scheduledDate: string;
 }
 
 interface CreateWorkoutModalProps {
@@ -22,6 +23,7 @@ export const CreateWorkoutModal = ({
   const [formData, setFormData] = useState<CreateWorkoutFormData>({
     name: '',
     description: '',
+    scheduledDate: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,8 +41,9 @@ export const CreateWorkoutModal = ({
       const workout = await apiService.createWorkout({
         name: formData.name,
         description: formData.description || undefined,
+        scheduledDate: formData.scheduledDate || undefined,
       });
-      setFormData({ name: '', description: '' });
+      setFormData({ name: '', description: '', scheduledDate: '' });
       onCreated(workout);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create workout');
@@ -50,7 +53,7 @@ export const CreateWorkoutModal = ({
   };
 
   const handleClose = (): void => {
-    setFormData({ name: '', description: '' });
+    setFormData({ name: '', description: '', scheduledDate: '' });
     setError(null);
     onClose();
   };
@@ -60,6 +63,9 @@ export const CreateWorkoutModal = ({
     (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
       setFormData((prev) => ({ ...prev, [field]: e.target.value }));
     };
+
+  // Get today's date in YYYY-MM-DD format for min attribute
+  const today = new Date().toISOString().split('T')[0];
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Create New Workout">
@@ -73,6 +79,27 @@ export const CreateWorkoutModal = ({
           onChange={handleChange('name')}
           required
         />
+
+        <div className="form-group">
+          <label className="form-label">Scheduled Date (optional)</label>
+          <input
+            type="date"
+            className="form-input"
+            value={formData.scheduledDate}
+            onChange={(e) => setFormData((prev) => ({ ...prev, scheduledDate: e.target.value }))}
+            min={today}
+          />
+          {formData.scheduledDate && (
+            <span className="form-hint">
+              Scheduled for: {new Date(formData.scheduledDate + 'T00:00:00').toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </span>
+          )}
+        </div>
 
         <TextArea
           label="Description (optional)"

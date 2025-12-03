@@ -184,7 +184,12 @@
   justify-content: center;
   z-index: 1000;
   padding: 20px;
-  animation: overlayIn 0.2s ease;
+  animation: overlayIn 0.2s ease forwards;
+}
+
+.modal-overlay-static {
+  animation: none;
+  opacity: 1;
 }
 
 @keyframes overlayIn {
@@ -197,8 +202,14 @@
   border-radius: var(--radius-2xl);
   max-height: 90vh;
   overflow-y: auto;
-  animation: modalIn 0.3s var(--transition-spring);
+  animation: modalIn 0.3s var(--transition-spring) forwards;
   box-shadow: var(--shadow-xl);
+}
+
+.modal-static {
+  animation: none;
+  opacity: 1;
+  transform: scale(1) translateY(0);
 }
 
 .modal-small { width: 100%; max-width: 400px; }
@@ -304,6 +315,36 @@
 .form-textarea {
   resize: vertical;
   min-height: 100px;
+}
+
+/* Date input styling */
+.form-input[type="date"] {
+  appearance: none;
+  -webkit-appearance: none;
+  color: var(--color-gray-800);
+}
+
+.form-input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity var(--transition-fast);
+}
+
+.form-input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* Show placeholder-like text when empty */
+.form-input[type="date"]:invalid::-webkit-datetime-edit {
+  color: var(--color-gray-400);
+}
+
+.form-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: var(--text-sm);
+  color: var(--color-primary-600);
+  font-weight: 500;
 }
 
 .form-select {

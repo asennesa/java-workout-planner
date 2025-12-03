@@ -10,7 +10,6 @@ import {
   type DifficultyLevel,
 } from '../types';
 import {
-  Button,
   Card,
   CardBody,
   StatusBadge,
@@ -18,12 +17,8 @@ import {
   Input,
   EmptyState,
   Alert,
+  Button,
 } from '../components/ui';
-import {
-  CreateExerciseModal,
-  EditExerciseModal,
-  DeleteExerciseModal,
-} from '../components/exercises';
 import './Pages.css';
 
 interface Filters {
@@ -42,34 +37,14 @@ const INITIAL_FILTERS: Filters = {
 
 interface ExerciseCardProps {
   exercise: Exercise;
-  onEdit: (exercise: Exercise) => void;
-  onDelete: (exercise: Exercise) => void;
 }
 
-const ExerciseCard = ({ exercise, onEdit, onDelete }: ExerciseCardProps): JSX.Element => {
+const ExerciseCard = ({ exercise }: ExerciseCardProps): JSX.Element => {
   return (
     <Card className="exercise-library-card">
       <CardBody>
         <div className="exercise-card-header">
           <h3>{exercise.name}</h3>
-          <div className="exercise-card-actions">
-            <button
-              className="icon-button"
-              onClick={() => onEdit(exercise)}
-              title="Edit exercise"
-              aria-label="Edit exercise"
-            >
-              ✏️
-            </button>
-            <button
-              className="icon-button delete"
-              onClick={() => onDelete(exercise)}
-              title="Delete exercise"
-              aria-label="Delete exercise"
-            >
-              🗑️
-            </button>
-          </div>
         </div>
         <div className="exercise-badges">
           <StatusBadge status={exercise.type} />
@@ -94,12 +69,6 @@ export const Exercises = (): JSX.Element => {
   // Pagination state
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-
-  // Modal state
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
 
   // Fetch exercises based on filters
   const fetchExercises = useCallback(
@@ -173,45 +142,6 @@ export const Exercises = (): JSX.Element => {
     fetchExercises(false);
   };
 
-  // Modal handlers
-  const handleEditClick = (exercise: Exercise): void => {
-    setSelectedExercise(exercise);
-    setShowEditModal(true);
-  };
-
-  const handleDeleteClick = (exercise: Exercise): void => {
-    setSelectedExercise(exercise);
-    setShowDeleteModal(true);
-  };
-
-  const handleCloseEditModal = (): void => {
-    setShowEditModal(false);
-    setSelectedExercise(null);
-  };
-
-  const handleCloseDeleteModal = (): void => {
-    setShowDeleteModal(false);
-    setSelectedExercise(null);
-  };
-
-  // CRUD callbacks
-  const handleExerciseCreated = (newExercise: Exercise): void => {
-    setExercises((prev) => [newExercise, ...prev]);
-    setShowCreateModal(false);
-  };
-
-  const handleExerciseUpdated = (updatedExercise: Exercise): void => {
-    setExercises((prev) =>
-      prev.map((ex) => (ex.exerciseId === updatedExercise.exerciseId ? updatedExercise : ex))
-    );
-    handleCloseEditModal();
-  };
-
-  const handleExerciseDeleted = (exerciseId: number): void => {
-    setExercises((prev) => prev.filter((ex) => ex.exerciseId !== exerciseId));
-    handleCloseDeleteModal();
-  };
-
   return (
     <div className="page exercises-page">
       {/* Page Header */}
@@ -220,7 +150,6 @@ export const Exercises = (): JSX.Element => {
           <h1>Exercise Library</h1>
           <p className="page-subtitle">Browse and discover exercises for your workouts</p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>+ Add Exercise</Button>
       </div>
 
       {/* Filters Section */}
@@ -276,9 +205,8 @@ export const Exercises = (): JSX.Element => {
           description={
             hasActiveFilters
               ? 'Try adjusting your filters'
-              : 'Be the first to add an exercise to the library!'
+              : 'No exercises available in the library yet.'
           }
-          action={<Button onClick={() => setShowCreateModal(true)}>Add Exercise</Button>}
         />
       ) : (
         <>
@@ -288,8 +216,6 @@ export const Exercises = (): JSX.Element => {
               <ExerciseCard
                 key={exercise.exerciseId}
                 exercise={exercise}
-                onEdit={handleEditClick}
-                onDelete={handleDeleteClick}
               />
             ))}
           </div>
@@ -311,27 +237,6 @@ export const Exercises = (): JSX.Element => {
           )}
         </>
       )}
-
-      {/* Modals */}
-      <CreateExerciseModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onCreated={handleExerciseCreated}
-      />
-
-      <EditExerciseModal
-        isOpen={showEditModal}
-        exercise={selectedExercise}
-        onClose={handleCloseEditModal}
-        onUpdated={handleExerciseUpdated}
-      />
-
-      <DeleteExerciseModal
-        isOpen={showDeleteModal}
-        exercise={selectedExercise}
-        onClose={handleCloseDeleteModal}
-        onDeleted={handleExerciseDeleted}
-      />
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useId, type ReactNode, type MouseEvent } from 'react';
+import { useEffect, useRef, useId, useState, type ReactNode, type MouseEvent } from 'react';
 import './ui.css';
 
 type ModalSize = 'small' | 'medium' | 'large';
@@ -21,11 +21,19 @@ export const Modal = ({
   const modalRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   const titleId = useId();
+  const [hasAnimated, setHasAnimated] = useState(false);
 
   // Keep onClose ref updated without triggering useEffect
   useEffect(() => {
     onCloseRef.current = onClose;
   });
+
+  // Reset animation state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setHasAnimated(false);
+    }
+  }, [isOpen]);
 
   // Handle escape key and body overflow
   useEffect(() => {
@@ -38,13 +46,17 @@ export const Modal = ({
       document.body.style.overflow = 'hidden';
       // Focus the modal only on initial open
       modalRef.current?.focus();
+      // Mark as animated after first render
+      if (!hasAnimated) {
+        setHasAnimated(true);
+      }
     }
 
     return () => {
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen]);
+  }, [isOpen, hasAnimated]);
 
   if (!isOpen) return null;
 
@@ -56,11 +68,17 @@ export const Modal = ({
     e.stopPropagation();
   };
 
+  // Apply animation class only on first render when opening
+  const overlayClassName = hasAnimated ? 'modal-overlay modal-overlay-static' : 'modal-overlay';
+  const modalClassName = hasAnimated
+    ? `modal modal-${size} modal-static`
+    : `modal modal-${size}`;
+
   return (
-    <div className="modal-overlay" onClick={handleOverlayClick} role="presentation">
+    <div className={overlayClassName} onClick={handleOverlayClick} role="presentation">
       <div
         ref={modalRef}
-        className={`modal modal-${size}`}
+        className={modalClassName}
         onClick={handleModalClick}
         role="dialog"
         aria-modal="true"

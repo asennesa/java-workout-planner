@@ -88,6 +88,7 @@ public abstract class WorkoutMapper {
      */
     @Mapping(target = "exerciseId", source = "exercise.exerciseId")
     @Mapping(target = "exerciseName", source = "exercise.name")
+    @Mapping(target = "exerciseType", source = "exercise.type")
     public abstract WorkoutExerciseResponse toWorkoutExerciseResponse(WorkoutExercise workoutExercise);
 
     /**

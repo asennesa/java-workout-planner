@@ -1,13 +1,11 @@
 package com.workoutplanner.workoutplanner.service;
 
-import com.workoutplanner.workoutplanner.dto.request.CreateExerciseRequest;
 import com.workoutplanner.workoutplanner.dto.response.ExerciseResponse;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.entity.Exercise;
 import com.workoutplanner.workoutplanner.enums.DifficultyLevel;
 import com.workoutplanner.workoutplanner.enums.ExerciseType;
 import com.workoutplanner.workoutplanner.enums.TargetMuscleGroup;
-import com.workoutplanner.workoutplanner.exception.BusinessLogicException;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.mapper.ExerciseMapper;
 import com.workoutplanner.workoutplanner.repository.ExerciseRepository;
@@ -16,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,11 +21,13 @@ import java.util.List;
 
 /**
  * Service implementation for Exercise entity operations.
- * Handles business logic for exercise management including creation, retrieval, and filtering.
- * 
+ * Provides read-only access to the exercise library.
+ *
+ * Note: Exercise creation, modification, and deletion are not available to users.
+ * The exercise library is pre-populated by administrators.
+ *
  * Uses method-level @Transactional for optimal performance:
- * - Read operations use @Transactional(readOnly = true) for better performance
- * - Write operations use @Transactional for data modification
+ * - All operations use @Transactional(readOnly = true) for better performance
  */
 @Service
 public class ExerciseService implements ExerciseServiceInterface {
@@ -42,34 +41,12 @@ public class ExerciseService implements ExerciseServiceInterface {
      * Constructor injection for dependencies.
      * Makes dependencies explicit, immutable, and easier to test.
      */
-    public ExerciseService(ExerciseRepository exerciseRepository, 
+    public ExerciseService(ExerciseRepository exerciseRepository,
                           ExerciseMapper exerciseMapper) {
         this.exerciseRepository = exerciseRepository;
         this.exerciseMapper = exerciseMapper;
     }
-    
-    /**
-     * Create a new exercise.
-     * 
-     * @param createExerciseRequest the exercise creation request
-     * @return the created exercise response
-     */
-    @Transactional
-    @PreAuthorize("hasAuthority('write:exercises')")
-    public ExerciseResponse createExercise(CreateExerciseRequest createExerciseRequest) {
-        logger.debug("SERVICE: Creating new exercise. name={}, type={}, targetMuscle={}, difficulty={}", 
-                    createExerciseRequest.getName(), createExerciseRequest.getType(), 
-                    createExerciseRequest.getTargetMuscleGroup(), createExerciseRequest.getDifficultyLevel());
-        
-        Exercise exercise = exerciseMapper.toEntity(createExerciseRequest);
-        Exercise savedExercise = exerciseRepository.save(exercise);
-        
-        logger.info("SERVICE: Exercise created successfully. exerciseId={}, name={}, type={}", 
-                   savedExercise.getExerciseId(), savedExercise.getName(), savedExercise.getType());
-        
-        return exerciseMapper.toResponse(savedExercise);
-    }
-    
+
     /**
      * Get exercise by ID.
      * 
@@ -207,84 +184,5 @@ public class ExerciseService implements ExerciseServiceInterface {
                                                          DifficultyLevel difficultyLevel) {
         List<Exercise> exercises = exerciseRepository.findByTypeAndTargetMuscleGroupAndDifficultyLevel(type, targetMuscleGroup, difficultyLevel);
         return exerciseMapper.toResponseList(exercises);
-    }
-    
-    /**
-     * Update exercise.
-     * 
-     * @param exerciseId the exercise ID
-     * @param createExerciseRequest the updated exercise information
-     * @return the updated exercise response
-     * @throws ResourceNotFoundException if exercise not found
-     */
-    @Transactional
-    @PreAuthorize("@resourceSecurityService.canModifyExercise(#exerciseId)")
-    public ExerciseResponse updateExercise(Long exerciseId, CreateExerciseRequest createExerciseRequest) {
-        logger.debug("SERVICE: Updating exercise. exerciseId={}, newName={}", 
-                    exerciseId, createExerciseRequest.getName());
-        
-        Exercise exercise = exerciseRepository.findById(exerciseId)
-                .orElseThrow(() -> new ResourceNotFoundException("Exercise", "ID", exerciseId));
-        
-        String oldName = exercise.getName();
-        
-        exerciseMapper.updateEntity(createExerciseRequest, exercise);
-        Exercise savedExercise = exerciseRepository.save(exercise);
-        
-        logger.info("SERVICE: Exercise updated successfully. exerciseId={}, oldName={}, newName={}", 
-                   exerciseId, oldName, savedExercise.getName());
-        
-        return exerciseMapper.toResponse(savedExercise);
-    }
-    
-    /**
-     * Delete exercise by ID.
-     * 
-     * @param exerciseId the exercise ID
-     * @throws ResourceNotFoundException if exercise not found
-     */
-    @Transactional
-    @PreAuthorize("@resourceSecurityService.canDeleteExercise(#exerciseId)")
-    public void deleteExercise(Long exerciseId) {
-        logger.debug("SERVICE: Soft deleting exercise. exerciseId={}", exerciseId);
-        
-        Exercise exercise = exerciseRepository.findById(exerciseId)
-                .orElseThrow(() -> new ResourceNotFoundException("Exercise", "ID", exerciseId));
-        
-        String name = exercise.getName();
-        ExerciseType type = exercise.getType();
-        
-        exercise.softDelete();
-        exerciseRepository.save(exercise);
-        
-        logger.info("SERVICE: Exercise soft deleted successfully. exerciseId={}, name={}, type={}", 
-                   exerciseId, name, type);
-    }
-    
-    /**
-     * Restore a soft deleted exercise.
-     * 
-     * @param exerciseId the exercise ID
-     * @throws ResourceNotFoundException if exercise not found
-     */
-    @Transactional
-    public void restoreExercise(Long exerciseId) {
-        logger.debug("SERVICE: Restoring soft deleted exercise. exerciseId={}", exerciseId);
-        
-        // Use findByIdIncludingDeleted because we need to access the deleted exercise to restore it
-        Exercise exercise = exerciseRepository.findByIdIncludingDeleted(exerciseId)
-                .orElseThrow(() -> new ResourceNotFoundException("Exercise", "ID", exerciseId));
-        
-        if (exercise.isActive()) {
-            logger.warn("SERVICE: Exercise is already active. exerciseId={}", exerciseId);
-            throw new BusinessLogicException("Exercise is not deleted and cannot be restored");
-        }
-        
-        String name = exercise.getName();
-        exercise.restore();
-        exerciseRepository.save(exercise);
-        
-        logger.info("SERVICE: Exercise restored successfully. exerciseId={}, name={}", 
-                   exerciseId, name);
     }
 }

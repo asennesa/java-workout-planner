@@ -96,18 +96,6 @@ export interface WorkoutSession {
 
 // ============ Request Types ============
 
-export interface CreateExerciseRequest {
-  name: string;
-  description?: string;
-  type: ExerciseType;
-  targetMuscleGroup: TargetMuscleGroup;
-  difficultyLevel: DifficultyLevel;
-  instructions?: string;
-  equipmentRequired?: string;
-  videoUrl?: string;
-  imageUrl?: string;
-}
-
 export interface CreateWorkoutRequest {
   name: string;
   description?: string;
@@ -124,13 +112,8 @@ export interface UpdateWorkoutRequest {
 
 export interface CreateWorkoutExerciseRequest {
   exerciseId: number;
-  orderIndex?: number;
+  orderInWorkout: number;
   notes?: string;
-  targetSets?: number;
-  targetReps?: number;
-  targetWeight?: number;
-  targetDuration?: number;
-  targetDistance?: number;
 }
 
 export interface CreateStrengthSetRequest {

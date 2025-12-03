@@ -1,3 +1,1 @@
-export { CreateExerciseModal } from './CreateExerciseModal';
-export { EditExerciseModal } from './EditExerciseModal';
-export { DeleteExerciseModal } from './DeleteExerciseModal';
+// Exercise components - Read-only library (no CRUD modals)

@@ -134,6 +134,9 @@ export const Dashboard = (): JSX.Element => {
                   <p className="workout-description">{workout.description}</p>
                 )}
                 <div className="workout-meta">
+                  {workout.scheduledDate && (
+                    <span>Scheduled: {formatDate(workout.scheduledDate)}</span>
+                  )}
                   <span>Created: {formatDate(workout.createdAt)}</span>
                   {workout.workoutExercises && (
                     <span>{workout.workoutExercises.length} exercises</span>

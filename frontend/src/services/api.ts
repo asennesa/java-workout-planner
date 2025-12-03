@@ -7,7 +7,6 @@ import type {
   BaseSet,
   PagedResponse,
   ExistenceCheckResponse,
-  CreateExerciseRequest,
   CreateWorkoutRequest,
   UpdateWorkoutRequest,
   CreateWorkoutExerciseRequest,
@@ -71,7 +70,7 @@ api.interceptors.request.use(
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
-  (error: AxiosError<{ message?: string; error?: string }>) => {
+  (error: AxiosError<{ message?: string; error?: string; errors?: Record<string, string> }>) => {
     if (error.response) {
       const { status, data } = error.response;
 
@@ -96,6 +95,10 @@ api.interceptors.response.use(
         errorMessage = 'Please verify your email address to continue.';
       } else if (status === 403) {
         errorMessage = data?.message || 'You do not have permission to perform this action.';
+      } else if (data?.errors && typeof data.errors === 'object') {
+        // Handle validation errors - extract field-specific messages
+        const errorMessages = Object.values(data.errors);
+        errorMessage = errorMessages.length > 0 ? errorMessages.join('. ') : (data?.message || `Request failed with status ${status}`);
       } else {
         errorMessage = data?.message || data?.error || `Request failed with status ${status}`;
       }
@@ -159,12 +162,12 @@ export const apiService = {
 
   updateWorkoutExercise: (
     workoutExerciseId: number,
-    data: Partial<CreateWorkoutExerciseRequest>
+    data: { orderInWorkout?: number; notes?: string }
   ): Promise<WorkoutExercise> =>
-    api.put(`/workout-exercises/${workoutExerciseId}`, data).then((res) => res.data),
+    api.put(`/workouts/exercises/${workoutExerciseId}`, data).then((res) => res.data),
 
   deleteWorkoutExercise: (workoutExerciseId: number): Promise<void> =>
-    api.delete(`/workout-exercises/${workoutExerciseId}`),
+    api.delete(`/workouts/exercises/${workoutExerciseId}`),
 
   // ============ Exercise Library Endpoints ============
 
@@ -189,14 +192,6 @@ export const apiService = {
         params: { type, targetMuscleGroup, difficultyLevel, page, size },
       })
       .then((res) => res.data),
-
-  createExercise: (exerciseData: CreateExerciseRequest): Promise<Exercise> =>
-    api.post('/exercises', exerciseData).then((res) => res.data),
-
-  updateExercise: (exerciseId: number, exerciseData: CreateExerciseRequest): Promise<Exercise> =>
-    api.put(`/exercises/${exerciseId}`, exerciseData).then((res) => res.data),
-
-  deleteExercise: (exerciseId: number): Promise<void> => api.delete(`/exercises/${exerciseId}`),
 
   // ============ Strength Set Endpoints ============
 

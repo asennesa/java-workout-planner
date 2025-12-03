@@ -1,5 +1,6 @@
 package com.workoutplanner.workoutplanner.dto.response;
 
+import com.workoutplanner.workoutplanner.enums.ExerciseType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,6 +13,7 @@ public class WorkoutExerciseResponse {
     private Long workoutExerciseId;
     private Long exerciseId;
     private String exerciseName;
+    private ExerciseType exerciseType;
     private Integer orderInWorkout;
     private String notes;
 }

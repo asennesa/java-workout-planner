@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.validator.constraints.Length;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -34,6 +35,8 @@ public class UpdateWorkoutRequest {
 
     private WorkoutStatus status;
 
+    private LocalDate scheduledDate;
+
     private LocalDateTime startedAt;
 
     private LocalDateTime completedAt;
@@ -53,12 +56,13 @@ public class UpdateWorkoutRequest {
      */
     @AssertTrue(message = "At least one field must be provided for update")
     private boolean isAtLeastOneFieldProvided() {
-        return name != null || 
-               description != null || 
-               status != null || 
-               startedAt != null || 
-               completedAt != null || 
-               actualDurationInMinutes != null || 
+        return name != null ||
+               description != null ||
+               status != null ||
+               scheduledDate != null ||
+               startedAt != null ||
+               completedAt != null ||
+               actualDurationInMinutes != null ||
                sessionNotes != null;
     }
 }

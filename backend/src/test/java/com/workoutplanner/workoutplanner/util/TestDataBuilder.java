@@ -323,19 +323,6 @@ public class TestDataBuilder {
     }
     
     /**
-     * Creates a CreateExerciseRequest.
-     */
-    public static CreateExerciseRequest createExerciseRequest() {
-        CreateExerciseRequest request = new CreateExerciseRequest();
-        request.setName("Test Exercise");
-        request.setType(ExerciseType.STRENGTH);
-        request.setDescription("Test description");
-        request.setTargetMuscleGroup(TargetMuscleGroup.CHEST);
-        request.setDifficultyLevel(DifficultyLevel.INTERMEDIATE);
-        return request;
-    }
-    
-    /**
      * Creates a CreateWorkoutExerciseRequest.
      */
     public static CreateWorkoutExerciseRequest createWorkoutExerciseRequest(Long exerciseId) {

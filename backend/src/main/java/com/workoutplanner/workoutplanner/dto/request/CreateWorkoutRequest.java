@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.validator.constraints.Length;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -24,6 +25,8 @@ public class CreateWorkoutRequest {
 
     // status defaults to PLANNED if not provided
     private WorkoutStatus status;
+
+    private LocalDate scheduledDate;
 
     private LocalDateTime startedAt;
 

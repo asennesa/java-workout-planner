@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type ChangeEvent } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { apiService } from '../services/api';
 import type { Exercise, WorkoutAction, WorkoutStatus } from '../types';
@@ -11,7 +11,6 @@ import {
   Alert,
   EmptyState,
   Modal,
-  Select,
 } from '../components/ui';
 import { SetTracker } from '../components/workouts/SetTracker';
 import './Pages.css';
@@ -29,6 +28,9 @@ interface WorkoutSessionExtended {
   description?: string;
   status: WorkoutStatus;
   workoutExercises: WorkoutExerciseExtended[];
+  scheduledDate?: string;
+  startedAt?: string;
+  completedAt?: string;
   actualDurationInMinutes?: number;
   createdAt: string;
   updatedAt: string;
@@ -48,7 +50,8 @@ export const WorkoutDetail = (): JSX.Element => {
   const [error, setError] = useState<string | null>(null);
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string>('');
+  const [selectedExerciseIds, setSelectedExerciseIds] = useState<Set<number>>(new Set());
+  const [exerciseSearch, setExerciseSearch] = useState('');
   const [addingExercise, setAddingExercise] = useState(false);
   const [expandedExercise, setExpandedExercise] = useState<number | null>(null);
 
@@ -89,24 +92,66 @@ export const WorkoutDetail = (): JSX.Element => {
     }
   };
 
-  const handleAddExercise = async (): Promise<void> => {
-    if (!selectedExerciseId || !sessionId) return;
+  const handleAddExercises = async (): Promise<void> => {
+    if (selectedExerciseIds.size === 0 || !sessionId) return;
     try {
       setAddingExercise(true);
-      const order = (workout?.workoutExercises?.length || 0) + 1;
-      await apiService.addExerciseToWorkout(parseInt(sessionId), {
-        exerciseId: parseInt(selectedExerciseId),
-        orderIndex: order,
-      });
+      let order = (workout?.workoutExercises?.length || 0) + 1;
+
+      for (const exerciseId of selectedExerciseIds) {
+        await apiService.addExerciseToWorkout(parseInt(sessionId), {
+          exerciseId,
+          orderInWorkout: order++,
+        });
+      }
+
       await fetchWorkout();
       setShowAddExercise(false);
-      setSelectedExerciseId('');
+      setSelectedExerciseIds(new Set());
+      setExerciseSearch('');
     } catch (err) {
-      alert('Failed to add exercise: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      alert('Failed to add exercises: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setAddingExercise(false);
     }
   };
+
+  const toggleExerciseSelection = (exerciseId: number): void => {
+    setSelectedExerciseIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(exerciseId)) {
+        newSet.delete(exerciseId);
+      } else {
+        newSet.add(exerciseId);
+      }
+      return newSet;
+    });
+  };
+
+  // Filter exercises based on search and exclude already added ones
+  const filteredExercises = useMemo(() => {
+    const alreadyAddedIds = new Set(
+      workout?.workoutExercises?.map(we => {
+        // Find the exercise ID from the exercise list by name
+        const ex = exercises.find(e => e.name === we.exerciseName);
+        return ex?.exerciseId;
+      }).filter(Boolean)
+    );
+
+    return exercises.filter(ex => {
+      // Exclude already added exercises
+      if (alreadyAddedIds.has(ex.exerciseId)) return false;
+
+      // Filter by search term
+      if (!exerciseSearch) return true;
+      const searchLower = exerciseSearch.toLowerCase();
+      return (
+        ex.name.toLowerCase().includes(searchLower) ||
+        ex.type.toLowerCase().includes(searchLower) ||
+        ex.muscleGroup?.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [exercises, workout?.workoutExercises, exerciseSearch]);
 
   const handleRemoveExercise = async (workoutExerciseId: number): Promise<void> => {
     if (!window.confirm('Remove this exercise from the workout?')) return;
@@ -115,6 +160,32 @@ export const WorkoutDetail = (): JSX.Element => {
       await fetchWorkout();
     } catch (err) {
       alert('Failed to remove exercise: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
+  };
+
+  const handleMoveExercise = async (workoutExerciseId: number, direction: 'up' | 'down'): Promise<void> => {
+    if (!workout?.workoutExercises) return;
+
+    const currentIndex = workout.workoutExercises.findIndex(we => we.workoutExerciseId === workoutExerciseId);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= workout.workoutExercises.length) return;
+
+    const currentExercise = workout.workoutExercises[currentIndex];
+    const swapExercise = workout.workoutExercises[newIndex];
+
+    try {
+      // Swap the order values
+      await apiService.updateWorkoutExercise(currentExercise.workoutExerciseId, {
+        orderInWorkout: swapExercise.orderInWorkout,
+      });
+      await apiService.updateWorkoutExercise(swapExercise.workoutExerciseId, {
+        orderInWorkout: currentExercise.orderInWorkout,
+      });
+      await fetchWorkout();
+    } catch (err) {
+      alert('Failed to reorder exercise: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
   };
 
@@ -150,6 +221,27 @@ export const WorkoutDetail = (): JSX.Element => {
     const hrs = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+  };
+
+  const formatDate = (dateString?: string): string => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const formatDateTime = (dateString?: string): string => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
   };
 
   if (loading) {
@@ -188,6 +280,15 @@ export const WorkoutDetail = (): JSX.Element => {
           <h1>{workout.name}</h1>
           <div className="workout-detail-meta">
             <StatusBadge status={workout.status} />
+            {workout.scheduledDate && (
+              <span>Scheduled: {formatDate(workout.scheduledDate)}</span>
+            )}
+            {workout.startedAt && (
+              <span>Started: {formatDateTime(workout.startedAt)}</span>
+            )}
+            {workout.completedAt && (
+              <span>Completed: {formatDateTime(workout.completedAt)}</span>
+            )}
             {workout.actualDurationInMinutes && (
               <span>Duration: {formatDuration(workout.actualDurationInMinutes)}</span>
             )}
@@ -230,10 +331,28 @@ export const WorkoutDetail = (): JSX.Element => {
           />
         ) : (
           <div className="exercise-list">
-            {workout.workoutExercises.map((we) => (
+            {workout.workoutExercises.map((we, index) => (
               <Card key={we.workoutExerciseId} className="exercise-card">
                 <CardHeader>
                   <div className="exercise-header-content">
+                    <div className="exercise-reorder-buttons">
+                      <button
+                        className="reorder-btn"
+                        onClick={() => handleMoveExercise(we.workoutExerciseId, 'up')}
+                        disabled={index === 0}
+                        title="Move up"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        className="reorder-btn"
+                        onClick={() => handleMoveExercise(we.workoutExerciseId, 'down')}
+                        disabled={index === workout.workoutExercises.length - 1}
+                        title="Move down"
+                      >
+                        ▼
+                      </button>
+                    </div>
                     <span className="exercise-order">{we.orderInWorkout}</span>
                     <div>
                       <h3>{we.exerciseName}</h3>
@@ -277,30 +396,75 @@ export const WorkoutDetail = (): JSX.Element => {
 
       <Modal
         isOpen={showAddExercise}
-        onClose={() => setShowAddExercise(false)}
-        title="Add Exercise to Workout"
+        onClose={() => {
+          setShowAddExercise(false);
+          setSelectedExerciseIds(new Set());
+          setExerciseSearch('');
+        }}
+        title="Add Exercises to Workout"
+        size="large"
       >
-        <Select
-          label="Select Exercise"
-          value={selectedExerciseId}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedExerciseId(e.target.value)}
-          options={exercises.map((ex) => ({
-            value: String(ex.exerciseId),
-            label: `${ex.name} (${ex.type})`,
-          }))}
-          placeholder="Choose an exercise..."
-        />
+        <div className="exercise-picker">
+          <div className="exercise-picker-header">
+            <input
+              type="text"
+              className="form-input exercise-search"
+              placeholder="Search exercises..."
+              value={exerciseSearch}
+              onChange={(e) => setExerciseSearch(e.target.value)}
+              autoFocus
+            />
+            {selectedExerciseIds.size > 0 && (
+              <span className="selected-count">
+                {selectedExerciseIds.size} selected
+              </span>
+            )}
+          </div>
+
+          <div className="exercise-picker-list">
+            {filteredExercises.length === 0 ? (
+              <div className="exercise-picker-empty">
+                {exerciseSearch ? 'No exercises match your search' : 'No exercises available'}
+              </div>
+            ) : (
+              filteredExercises.map((ex) => (
+                <div
+                  key={ex.exerciseId}
+                  className={`exercise-picker-item ${selectedExerciseIds.has(ex.exerciseId) ? 'selected' : ''}`}
+                  onClick={() => toggleExerciseSelection(ex.exerciseId)}
+                >
+                  <div className="exercise-picker-checkbox">
+                    {selectedExerciseIds.has(ex.exerciseId) ? '✓' : ''}
+                  </div>
+                  <div className="exercise-picker-info">
+                    <span className="exercise-picker-name">{ex.name}</span>
+                    <span className="exercise-picker-meta">
+                      <StatusBadge status={ex.type} />
+                      {ex.muscleGroup && <span className="muscle-group">{ex.muscleGroup}</span>}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
         <div className="modal-actions">
-          <Button variant="ghost" onClick={() => setShowAddExercise(false)}>
+          <Button variant="ghost" onClick={() => {
+            setShowAddExercise(false);
+            setSelectedExerciseIds(new Set());
+            setExerciseSearch('');
+          }}>
             Cancel
           </Button>
-          <Button onClick={handleAddExercise} loading={addingExercise} disabled={!selectedExerciseId}>
-            Add to Workout
+          <Button
+            onClick={handleAddExercises}
+            loading={addingExercise}
+            disabled={selectedExerciseIds.size === 0}
+          >
+            Add {selectedExerciseIds.size > 0 ? `${selectedExerciseIds.size} ` : ''}Exercise{selectedExerciseIds.size !== 1 ? 's' : ''}
           </Button>
         </div>
-        <p className="modal-hint">
-          Don't see the exercise you need? <Link to="/exercises">Browse or create exercises</Link>
-        </p>
       </Modal>
     </div>
   );

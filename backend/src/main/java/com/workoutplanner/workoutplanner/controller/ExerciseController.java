@@ -1,7 +1,6 @@
 package com.workoutplanner.workoutplanner.controller;
 
 import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
-import com.workoutplanner.workoutplanner.dto.request.CreateExerciseRequest;
 import com.workoutplanner.workoutplanner.dto.response.ExerciseResponse;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,12 +18,10 @@ import com.workoutplanner.workoutplanner.enums.DifficultyLevel;
 import com.workoutplanner.workoutplanner.enums.ExerciseType;
 import com.workoutplanner.workoutplanner.enums.TargetMuscleGroup;
 import com.workoutplanner.workoutplanner.service.ExerciseService;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -34,15 +31,18 @@ import java.util.List;
 
 /**
  * REST Controller for Exercise operations.
- * Provides endpoints for exercise management following REST API best practices.
- * 
+ * Provides read-only endpoints for browsing the exercise library.
+ *
+ * Note: Exercise creation, modification, and deletion are restricted to administrators.
+ * Users can only browse and use the preloaded exercises in their workouts.
+ *
  * CORS is configured globally in CorsConfig.java
  * API Version: v1
  */
 @RestController
 @RequestMapping(ApiVersionConstants.V1_BASE_PATH + "/exercises")
 @Validated
-@Tag(name = "Exercise Management", description = "Endpoints for managing the exercise library (Strength, Cardio, Flexibility)")
+@Tag(name = "Exercise Library", description = "Read-only endpoints for browsing the exercise library (Strength, Cardio, Flexibility)")
 public class ExerciseController {
     
     private static final Logger logger = LoggerFactory.getLogger(ExerciseController.class);
@@ -54,54 +54,6 @@ public class ExerciseController {
      */
     public ExerciseController(ExerciseService exerciseService) {
         this.exerciseService = exerciseService;
-    }
-    
-    /**
-     * Create a new exercise.
-     * 
-     * @param createExerciseRequest the exercise creation request
-     * @return ResponseEntity containing the created exercise response
-     */
-    @Operation(
-        summary = "Create a new exercise (Admin/Moderator only)",
-        description = "Creates a new exercise in the library. Only accessible by ADMIN and MODERATOR roles.",
-        security = @SecurityRequirement(name = "basicAuth")
-    )
-    @ApiResponses(value = {
-        @ApiResponse(
-            responseCode = "201",
-            description = "Exercise created successfully",
-            content = @Content(schema = @Schema(implementation = ExerciseResponse.class))
-        ),
-        @ApiResponse(
-            responseCode = "400",
-            description = "Invalid input - validation errors",
-            content = @Content
-        ),
-        @ApiResponse(
-            responseCode = "401",
-            description = "Unauthorized - authentication required",
-            content = @Content
-        ),
-        @ApiResponse(
-            responseCode = "403",
-            description = "Forbidden - authentication required",
-            content = @Content
-        )
-    })
-    @PostMapping
-    @PreAuthorize("hasAuthority('write:exercises')")
-    public ResponseEntity<ExerciseResponse> createExercise(
-            @Parameter(description = "Exercise details", required = true)
-            @Valid @RequestBody CreateExerciseRequest createExerciseRequest) {
-        logger.debug("Creating exercise: name={}, type={}", createExerciseRequest.getName(), createExerciseRequest.getType());
-        
-        ExerciseResponse exerciseResponse = exerciseService.createExercise(createExerciseRequest);
-        
-        logger.info("Exercise created successfully. exerciseId={}, name={}, type={}", 
-                   exerciseResponse.getExerciseId(), exerciseResponse.getName(), exerciseResponse.getType());
-        
-        return ResponseEntity.status(HttpStatus.CREATED).body(exerciseResponse);
     }
     
     /**
@@ -264,102 +216,5 @@ public class ExerciseController {
             @RequestParam(required = false) DifficultyLevel difficultyLevel) {
         List<ExerciseResponse> exerciseResponses = exerciseService.getExercisesByCriteria(type, targetMuscleGroup, difficultyLevel);
         return ResponseEntity.ok(exerciseResponses);
-    }
-    
-    /**
-     * Update exercise.
-     * 
-     * @param exerciseId the exercise ID
-     * @param createExerciseRequest the updated exercise information
-     * @return ResponseEntity containing the updated exercise response
-     */
-    @Operation(
-        summary = "Update exercise (Admin/Moderator only)",
-        description = "Updates an existing exercise. Only accessible by ADMIN and MODERATOR roles.",
-        security = @SecurityRequirement(name = "basicAuth")
-    )
-    @ApiResponses(value = {
-        @ApiResponse(
-            responseCode = "200",
-            description = "Exercise updated successfully",
-            content = @Content(schema = @Schema(implementation = ExerciseResponse.class))
-        ),
-        @ApiResponse(
-            responseCode = "400",
-            description = "Invalid input - validation errors",
-            content = @Content
-        ),
-        @ApiResponse(
-            responseCode = "401",
-            description = "Unauthorized - authentication required",
-            content = @Content
-        ),
-        @ApiResponse(
-            responseCode = "403",
-            description = "Forbidden - requires ADMIN or MODERATOR role",
-            content = @Content
-        ),
-        @ApiResponse(
-            responseCode = "404",
-            description = "Exercise not found",
-            content = @Content
-        )
-    })
-    @PutMapping("/{exerciseId}")
-    @PreAuthorize("hasAuthority('write:exercises')")
-    public ResponseEntity<ExerciseResponse> updateExercise(
-            @Parameter(description = "Exercise ID", required = true, example = "1")
-            @PathVariable Long exerciseId, 
-            @Parameter(description = "Updated exercise details", required = true)
-            @Valid @RequestBody CreateExerciseRequest createExerciseRequest) {
-        ExerciseResponse exerciseResponse = exerciseService.updateExercise(exerciseId, createExerciseRequest);
-        return ResponseEntity.ok(exerciseResponse);
-    }
-    
-    /**
-     * Delete exercise by ID.
-     *
-     * @param exerciseId the exercise ID
-     * @return ResponseEntity with no content
-     */
-    @Operation(
-        summary = "Delete exercise",
-        description = "Permanently deletes an exercise from the library. Requires delete:exercises permission.",
-        security = @SecurityRequirement(name = "basicAuth")
-    )
-    @ApiResponses(value = {
-        @ApiResponse(
-            responseCode = "204",
-            description = "Exercise deleted successfully",
-            content = @Content
-        ),
-        @ApiResponse(
-            responseCode = "401",
-            description = "Unauthorized - authentication required",
-            content = @Content
-        ),
-        @ApiResponse(
-            responseCode = "403",
-            description = "Forbidden - requires delete:exercises permission",
-            content = @Content
-        ),
-        @ApiResponse(
-            responseCode = "404",
-            description = "Exercise not found",
-            content = @Content
-        )
-    })
-    @DeleteMapping("/{exerciseId}")
-    @PreAuthorize("hasAuthority('delete:exercises')")
-    public ResponseEntity<Void> deleteExercise(
-            @Parameter(description = "Exercise ID to delete", required = true, example = "1")
-            @PathVariable Long exerciseId) {
-        logger.warn("Deleting exercise: exerciseId={}", exerciseId);
-        
-        exerciseService.deleteExercise(exerciseId);
-        
-        logger.info("Exercise deleted successfully. exerciseId={}", exerciseId);
-        
-        return ResponseEntity.noContent().build();
     }
 }

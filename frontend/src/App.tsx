@@ -32,7 +32,7 @@ const NotFound = (): JSX.Element => (
 );
 
 function AppContent(): JSX.Element {
-  const { showRefreshPrompt, handleRefresh, dismissPrompt } = useApiInitializer();
+  const { showRefreshPrompt, handleRefresh } = useApiInitializer();
 
   return (
     <div className="App">

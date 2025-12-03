@@ -389,6 +389,157 @@
   gap: 8px;
 }
 
+/* Exercise Reorder Buttons */
+.exercise-reorder-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-right: 8px;
+}
+
+.reorder-btn {
+  width: 24px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--color-gray-200);
+  background: var(--color-gray-50);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 10px;
+  color: var(--color-gray-500);
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reorder-btn:hover:not(:disabled) {
+  background: var(--color-gray-100);
+  border-color: var(--color-gray-300);
+  color: var(--color-gray-700);
+}
+
+.reorder-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ============ Exercise Picker (Multi-Select) ============ */
+.exercise-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.exercise-picker-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.exercise-picker-header .exercise-search {
+  flex: 1;
+}
+
+.selected-count {
+  background: var(--color-primary-500);
+  color: white;
+  padding: 8px 14px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.exercise-picker-list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  background: var(--color-gray-50);
+}
+
+.exercise-picker-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--color-gray-500);
+  font-size: var(--text-sm);
+}
+
+.exercise-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border-bottom: 1px solid var(--color-gray-100);
+  background: white;
+}
+
+.exercise-picker-item:last-child {
+  border-bottom: none;
+}
+
+.exercise-picker-item:hover {
+  background: var(--color-gray-50);
+}
+
+.exercise-picker-item.selected {
+  background: var(--color-primary-50);
+  border-color: var(--color-primary-100);
+}
+
+.exercise-picker-item.selected:hover {
+  background: var(--color-primary-100);
+}
+
+.exercise-picker-checkbox {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.exercise-picker-item.selected .exercise-picker-checkbox {
+  background: var(--color-primary-500);
+  border-color: var(--color-primary-500);
+}
+
+.exercise-picker-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.exercise-picker-name {
+  display: block;
+  font-weight: 600;
+  color: var(--color-gray-900);
+  margin-bottom: 4px;
+}
+
+.exercise-picker-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.exercise-picker-meta .muscle-group {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-gray-500);
+}
+
 /* ============ Exercises Library ============ */
 .exercises-page .filters-section {
   display: flex;

@@ -3,6 +3,7 @@ package com.workoutplanner.workoutplanner.service;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutExerciseRequest;
 import com.workoutplanner.workoutplanner.dto.request.UpdateWorkoutRequest;
+import com.workoutplanner.workoutplanner.dto.request.UpdateWorkoutExerciseRequest;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutResponse;
 import com.workoutplanner.workoutplanner.dto.response.WorkoutExerciseResponse;
@@ -427,6 +428,30 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
                 .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", workoutExerciseId));
 
         workoutExerciseRepository.delete(workoutExercise);
+    }
+
+    /**
+     * Update a workout exercise (order, notes, etc.).
+     *
+     * @param workoutExerciseId the workout exercise ID
+     * @param updateRequest the update request
+     * @return WorkoutExerciseResponse the updated workout exercise
+     */
+    @Transactional
+    @PreAuthorize("@resourceSecurityService.canModifyWorkoutExercise(#workoutExerciseId)")
+    public WorkoutExerciseResponse updateWorkoutExercise(Long workoutExerciseId, UpdateWorkoutExerciseRequest updateRequest) {
+        WorkoutExercise workoutExercise = workoutExerciseRepository.findById(workoutExerciseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", workoutExerciseId));
+
+        if (updateRequest.getOrderInWorkout() != null) {
+            workoutExercise.setOrderInWorkout(updateRequest.getOrderInWorkout());
+        }
+        if (updateRequest.getNotes() != null) {
+            workoutExercise.setNotes(updateRequest.getNotes());
+        }
+
+        WorkoutExercise savedWorkoutExercise = workoutExerciseRepository.save(workoutExercise);
+        return workoutMapper.toWorkoutExerciseResponse(savedWorkoutExercise);
     }
 
     /**

@@ -5,6 +5,7 @@ import com.workoutplanner.workoutplanner.util.ApiVersionConstants;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutRequest;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutExerciseRequest;
 import com.workoutplanner.workoutplanner.dto.request.UpdateWorkoutRequest;
+import com.workoutplanner.workoutplanner.dto.request.UpdateWorkoutExerciseRequest;
 import com.workoutplanner.workoutplanner.dto.request.WorkoutActionRequest;
 import com.workoutplanner.workoutplanner.exception.OptimisticLockConflictException;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
@@ -478,7 +479,93 @@ public class WorkoutSessionController {
         List<WorkoutExerciseResponse> workoutExerciseResponses = workoutSessionService.getWorkoutExercises(sessionId);
         return ResponseEntity.ok(workoutExerciseResponses);
     }
-    
+
+    /**
+     * Remove an exercise from a workout session.
+     *
+     * @param workoutExerciseId the workout exercise ID to remove
+     * @return ResponseEntity with no content
+     */
+    @Operation(
+        summary = "Remove exercise from workout session",
+        description = "Removes an exercise from a workout session. This also deletes all associated sets.",
+        security = @SecurityRequirement(name = "basicAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "204",
+            description = "Exercise removed from workout successfully"
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Workout exercise not found",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content
+        )
+    })
+    @DeleteMapping("/exercises/{workoutExerciseId}")
+    @PreAuthorize("hasAuthority('write:workouts') and @resourceSecurityService.canModifyWorkoutExercise(#workoutExerciseId)")
+    public ResponseEntity<Void> removeExerciseFromWorkout(
+            @Parameter(description = "Workout Exercise ID", required = true, example = "1")
+            @PathVariable Long workoutExerciseId) {
+        logger.debug("Removing exercise from workout. workoutExerciseId={}", workoutExerciseId);
+
+        workoutSessionService.removeExerciseFromWorkout(workoutExerciseId);
+
+        logger.info("Exercise removed from workout successfully. workoutExerciseId={}", workoutExerciseId);
+
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Update a workout exercise (e.g., change order or notes).
+     *
+     * @param workoutExerciseId the workout exercise ID to update
+     * @param updateRequest the update request containing new values
+     * @return ResponseEntity containing the updated workout exercise response
+     */
+    @Operation(
+        summary = "Update workout exercise",
+        description = "Updates a workout exercise's order or notes.",
+        security = @SecurityRequirement(name = "basicAuth")
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Workout exercise updated successfully",
+            content = @Content(schema = @Schema(implementation = WorkoutExerciseResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Workout exercise not found",
+            content = @Content
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - authentication required",
+            content = @Content
+        )
+    })
+    @PutMapping("/exercises/{workoutExerciseId}")
+    @PreAuthorize("hasAuthority('write:workouts') and @resourceSecurityService.canModifyWorkoutExercise(#workoutExerciseId)")
+    public ResponseEntity<WorkoutExerciseResponse> updateWorkoutExercise(
+            @Parameter(description = "Workout Exercise ID", required = true, example = "1")
+            @PathVariable Long workoutExerciseId,
+            @Parameter(description = "Update request with new order or notes")
+            @Valid @RequestBody UpdateWorkoutExerciseRequest updateRequest) {
+        logger.debug("Updating workout exercise. workoutExerciseId={}", workoutExerciseId);
+
+        WorkoutExerciseResponse response = workoutSessionService.updateWorkoutExercise(workoutExerciseId, updateRequest);
+
+        logger.info("Workout exercise updated successfully. workoutExerciseId={}", workoutExerciseId);
+
+        return ResponseEntity.ok(response);
+    }
+
     /**
      * Handle optimistic lock conflicts.
      * Returns a 409 Conflict status with a clear error message.
