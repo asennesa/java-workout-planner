@@ -2,6 +2,7 @@ package com.workoutplanner.workoutplanner.service;
 
 import com.workoutplanner.workoutplanner.entity.*;
 import com.workoutplanner.workoutplanner.repository.*;
+import com.workoutplanner.workoutplanner.security.SecurityContextHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -43,7 +44,6 @@ public class ResourceSecurityService {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceSecurityService.class);
 
-    private final Auth0CurrentUserService currentUserService;
     private final WorkoutSessionRepository workoutSessionRepository;
     private final WorkoutExerciseRepository workoutExerciseRepository;
     private final StrengthSetRepository strengthSetRepository;
@@ -51,13 +51,11 @@ public class ResourceSecurityService {
     private final FlexibilitySetRepository flexibilitySetRepository;
 
     public ResourceSecurityService(
-            Auth0CurrentUserService currentUserService,
             WorkoutSessionRepository workoutSessionRepository,
             WorkoutExerciseRepository workoutExerciseRepository,
             StrengthSetRepository strengthSetRepository,
             CardioSetRepository cardioSetRepository,
             FlexibilitySetRepository flexibilitySetRepository) {
-        this.currentUserService = currentUserService;
         this.workoutSessionRepository = workoutSessionRepository;
         this.workoutExerciseRepository = workoutExerciseRepository;
         this.strengthSetRepository = strengthSetRepository;
@@ -79,34 +77,34 @@ public class ResourceSecurityService {
      */
     public boolean canAccessWorkout(Long sessionId) {
         try {
-            Long currentUserId = currentUserService.getCurrentUserId();
-            
+            Long currentUserId = SecurityContextHelper.getCurrentUserId();
+
             // Admin bypass - can access all workouts
             if (isAdmin()) {
                 logger.debug("Admin access granted to workout sessionId={}", sessionId);
                 return true;
             }
-            
+
             // Check ownership
             WorkoutSession workout = workoutSessionRepository.findById(sessionId)
                 .orElse(null);
-            
+
             if (workout == null) {
                 logger.debug("Workout not found: sessionId={}", sessionId);
                 return false; // Will result in 404
             }
-            
+
             boolean isOwner = workout.getUser().getUserId().equals(currentUserId);
-            
+
             if (!isOwner) {
-                logger.warn("SECURITY: User {} attempted to access workout {} owned by user {}", 
+                logger.warn("SECURITY: User {} attempted to access workout {} owned by user {}",
                            currentUserId, sessionId, workout.getUser().getUserId());
             }
-            
+
             return isOwner;
-            
+
         } catch (Exception e) {
-            logger.error("Error checking workout access for sessionId={}: {}", 
+            logger.error("Error checking workout access for sessionId={}: {}",
                         sessionId, e.getMessage());
             return false; // Deny by default on error
         }
@@ -130,18 +128,26 @@ public class ResourceSecurityService {
         try {
             WorkoutExercise workoutExercise = workoutExerciseRepository.findById(workoutExerciseId)
                 .orElse(null);
-            
+
             if (workoutExercise == null) {
                 return false;
             }
-            
+
             // Check access to parent workout
             return canAccessWorkout(workoutExercise.getWorkoutSession().getSessionId());
-            
+
         } catch (Exception e) {
             logger.error("Error checking workout exercise access: {}", e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * Check if current user can modify a workout exercise.
+     * Currently same as canAccessWorkoutExercise, but kept separate for future flexibility.
+     */
+    public boolean canModifyWorkoutExercise(Long workoutExerciseId) {
+        return canAccessWorkoutExercise(workoutExerciseId);
     }
 
     // ==================== SET SECURITY ====================
@@ -157,23 +163,9 @@ public class ResourceSecurityService {
      * @return true if user can access the set, false otherwise
      */
     public boolean canAccessSet(Long setId) {
-        // Try strength set first
-        if (canAccessStrengthSet(setId)) {
-            return true;
-        }
-
-        // Try cardio set
-        if (canAccessCardioSet(setId)) {
-            return true;
-        }
-
-        // Try flexibility set
-        if (canAccessFlexibilitySet(setId)) {
-            return true;
-        }
-
-        // Set not found or user doesn't own it
-        return false;
+        return canAccessStrengthSet(setId)
+            || canAccessCardioSet(setId)
+            || canAccessFlexibilitySet(setId);
     }
 
     /**
@@ -232,57 +224,6 @@ public class ResourceSecurityService {
             
         } catch (Exception e) {
             logger.error("Error checking flexibility set access: {}", e.getMessage());
-            return false;
-        }
-    }
-
-    // ==================== EXERCISE LIBRARY SECURITY ====================
-
-    /**
-     * Check if current user can modify an exercise.
-     * Exercises are community resources, so only moderators/admins can modify.
-     * 
-     * Access granted if:
-     * - User has write:exercises permission (moderator), OR
-     * - User is admin
-     */
-    public boolean canModifyExercise(Long exerciseId) {
-        try {
-            // Check if user has write:exercises permission
-            if (hasAuthority("write:exercises")) {
-                return true;
-            }
-            
-            // Admin can also modify
-            if (isAdmin()) {
-                return true;
-            }
-            
-            logger.debug("User does not have permission to modify exercise");
-            return false;
-            
-        } catch (Exception e) {
-            logger.error("Error checking exercise modification permission: {}", e.getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Check if current user can delete an exercise.
-     * Only admins can delete exercises.
-     */
-    public boolean canDeleteExercise(Long exerciseId) {
-        try {
-            boolean isAdmin = hasAuthority("delete:exercises");
-            
-            if (!isAdmin) {
-                logger.warn("SECURITY: Non-admin user attempted to delete exercise {}", exerciseId);
-            }
-            
-            return isAdmin;
-            
-        } catch (Exception e) {
-            logger.error("Error checking exercise deletion permission: {}", e.getMessage());
             return false;
         }
     }

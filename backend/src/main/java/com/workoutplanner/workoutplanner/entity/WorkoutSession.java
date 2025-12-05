@@ -6,11 +6,16 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Workout session entity representing a user's workout.
+ */
 @Entity
 @Table(name = "workout_sessions")
 @Getter
@@ -38,6 +43,9 @@ public class WorkoutSession extends AuditableEntity {
     @Column(name = "status", nullable = false)
     private WorkoutStatus status;
 
+    @Column(name = "scheduled_date")
+    private LocalDate scheduledDate;
+
     @Column(name = "started_at")
     private LocalDateTime startedAt;
 
@@ -58,42 +66,25 @@ public class WorkoutSession extends AuditableEntity {
     @Column(name = "version", nullable = false)
     private Long version = 0L;
 
-    /**
-     * Equals method following Hibernate best practices.
-     * Uses database ID for equality when entity is persisted,
-     * falls back to field comparison for transient entities.
-     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        
+
         WorkoutSession that = (WorkoutSession) o;
-        
-        // If both entities are persisted (have IDs), use ID for equality
         if (sessionId != null && that.sessionId != null) {
             return Objects.equals(sessionId, that.sessionId);
         }
-        
-        // For transient entities, compare unique fields (name, user, and startedAt)
         return Objects.equals(name, that.name) &&
                Objects.equals(user, that.user) &&
                Objects.equals(startedAt, that.startedAt);
     }
 
-    /**
-     * HashCode method following Hibernate best practices.
-     * Uses database ID when entity is persisted,
-     * falls back to unique fields for transient entities.
-     */
     @Override
     public int hashCode() {
-        // If entity is persisted, use ID for hash
         if (sessionId != null) {
             return Objects.hash(sessionId);
         }
-        
-        // For transient entities, use unique fields
         return Objects.hash(name, user, startedAt);
     }
 }

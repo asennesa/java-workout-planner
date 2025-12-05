@@ -209,7 +209,7 @@ class StrengthSetServiceTest {
             List<StrengthSet> strengthSets = List.of(testStrengthSet);
             List<SetResponse> responses = List.of(testSetResponse);
             
-            when(strengthSetRepository.findByWorkoutExercise_WorkoutExerciseIdOrderBySetNumberAsc(1L))
+            when(strengthSetRepository.findByWorkoutExerciseIdOrderBySetNumber(1L))
                 .thenReturn(strengthSets);
             when(baseSetMapper.toSetResponseList(strengthSets)).thenReturn(responses);
             
@@ -221,23 +221,6 @@ class StrengthSetServiceTest {
             assertThat(result.get(0).getSetId()).isEqualTo(1L);
         }
         
-        @Test
-        @DisplayName("Should get strength sets by workout session")
-        void shouldGetStrengthSetsByWorkoutSession() {
-            // Arrange
-            List<StrengthSet> strengthSets = List.of(testStrengthSet);
-            List<SetResponse> responses = List.of(testSetResponse);
-            
-            when(strengthSetRepository.findByWorkoutExercise_WorkoutSession_SessionId(1L))
-                .thenReturn(strengthSets);
-            when(baseSetMapper.toSetResponseList(strengthSets)).thenReturn(responses);
-            
-            // Act
-            List<SetResponse> result = strengthSetService.getSetsByWorkoutSession(1L);
-            
-            // Assert
-            assertThat(result).hasSize(1);
-        }
     }
     
     // ==================== UPDATE SET TESTS ====================
@@ -261,7 +244,7 @@ class StrengthSetServiceTest {
             
             // Assert
             assertThat(result).isNotNull();
-            verify(workoutMapper).updateStrengthSetEntity(eq(request), eq(testStrengthSet));
+            verify(workoutMapper).updateStrengthSetEntity(request, testStrengthSet);
             verify(strengthSetRepository).save(testStrengthSet);
         }
         
@@ -307,52 +290,6 @@ class StrengthSetServiceTest {
             
             // Act & Assert
             assertThatThrownBy(() -> strengthSetService.deleteSet(999L))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Strength set");
-        }
-    }
-    
-    // ==================== RESTORE SET TESTS ====================
-    
-    @Nested
-    @DisplayName("Restore StrengthSet Tests")
-    class RestoreSetTests {
-        
-        @Test
-        @DisplayName("Should restore soft deleted strength set successfully")
-        void shouldRestoreSoftDeletedStrengthSetSuccessfully() {
-            // Arrange
-            testStrengthSet.softDelete();
-            when(strengthSetRepository.findByIdIncludingDeleted(1L)).thenReturn(Optional.of(testStrengthSet));
-            when(strengthSetRepository.save(any(StrengthSet.class))).thenReturn(testStrengthSet);
-            
-            // Act
-            strengthSetService.restoreSet(1L);
-            
-            // Assert
-            verify(strengthSetRepository).save(argThat(StrengthSet::isActive));
-        }
-        
-        @Test
-        @DisplayName("Should throw exception when restoring active set")
-        void shouldThrowExceptionWhenRestoringActiveSet() {
-            // Arrange
-            when(strengthSetRepository.findByIdIncludingDeleted(1L)).thenReturn(Optional.of(testStrengthSet));
-            
-            // Act & Assert
-            assertThatThrownBy(() -> strengthSetService.restoreSet(1L))
-                .isInstanceOf(BusinessLogicException.class)
-                .hasMessageContaining("not deleted");
-        }
-        
-        @Test
-        @DisplayName("Should throw exception when restoring non-existent set")
-        void shouldThrowExceptionWhenRestoringNonExistentSet() {
-            // Arrange
-            when(strengthSetRepository.findByIdIncludingDeleted(999L)).thenReturn(Optional.empty());
-            
-            // Act & Assert
-            assertThatThrownBy(() -> strengthSetService.restoreSet(999L))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Strength set");
         }

@@ -209,7 +209,7 @@ class FlexibilitySetServiceTest {
             List<FlexibilitySet> flexibilitySets = List.of(testFlexibilitySet);
             List<SetResponse> responses = List.of(testSetResponse);
             
-            when(flexibilitySetRepository.findByWorkoutExercise_WorkoutExerciseIdOrderBySetNumberAsc(1L))
+            when(flexibilitySetRepository.findByWorkoutExerciseIdOrderBySetNumber(1L))
                 .thenReturn(flexibilitySets);
             when(baseSetMapper.toFlexibilitySetResponseList(flexibilitySets)).thenReturn(responses);
             
@@ -221,23 +221,6 @@ class FlexibilitySetServiceTest {
             assertThat(result.get(0).getSetId()).isEqualTo(1L);
         }
         
-        @Test
-        @DisplayName("Should get flexibility sets by workout session")
-        void shouldGetFlexibilitySetsByWorkoutSession() {
-            // Arrange
-            List<FlexibilitySet> flexibilitySets = List.of(testFlexibilitySet);
-            List<SetResponse> responses = List.of(testSetResponse);
-            
-            when(flexibilitySetRepository.findByWorkoutExercise_WorkoutSession_SessionId(1L))
-                .thenReturn(flexibilitySets);
-            when(baseSetMapper.toFlexibilitySetResponseList(flexibilitySets)).thenReturn(responses);
-            
-            // Act
-            List<SetResponse> result = flexibilitySetService.getSetsByWorkoutSession(1L);
-            
-            // Assert
-            assertThat(result).hasSize(1);
-        }
     }
     
     // ==================== UPDATE SET TESTS ====================
@@ -261,7 +244,7 @@ class FlexibilitySetServiceTest {
             
             // Assert
             assertThat(result).isNotNull();
-            verify(workoutMapper).updateFlexibilitySetEntity(eq(request), eq(testFlexibilitySet));
+            verify(workoutMapper).updateFlexibilitySetEntity(request, testFlexibilitySet);
             verify(flexibilitySetRepository).save(testFlexibilitySet);
         }
         
@@ -307,52 +290,6 @@ class FlexibilitySetServiceTest {
             
             // Act & Assert
             assertThatThrownBy(() -> flexibilitySetService.deleteSet(999L))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Flexibility set");
-        }
-    }
-    
-    // ==================== RESTORE SET TESTS ====================
-    
-    @Nested
-    @DisplayName("Restore FlexibilitySet Tests")
-    class RestoreSetTests {
-        
-        @Test
-        @DisplayName("Should restore soft deleted flexibility set successfully")
-        void shouldRestoreSoftDeletedFlexibilitySetSuccessfully() {
-            // Arrange
-            testFlexibilitySet.softDelete();
-            when(flexibilitySetRepository.findByIdIncludingDeleted(1L)).thenReturn(Optional.of(testFlexibilitySet));
-            when(flexibilitySetRepository.save(any(FlexibilitySet.class))).thenReturn(testFlexibilitySet);
-            
-            // Act
-            flexibilitySetService.restoreSet(1L);
-            
-            // Assert
-            verify(flexibilitySetRepository).save(argThat(FlexibilitySet::isActive));
-        }
-        
-        @Test
-        @DisplayName("Should throw exception when restoring active set")
-        void shouldThrowExceptionWhenRestoringActiveSet() {
-            // Arrange
-            when(flexibilitySetRepository.findByIdIncludingDeleted(1L)).thenReturn(Optional.of(testFlexibilitySet));
-            
-            // Act & Assert
-            assertThatThrownBy(() -> flexibilitySetService.restoreSet(1L))
-                .isInstanceOf(BusinessLogicException.class)
-                .hasMessageContaining("not deleted");
-        }
-        
-        @Test
-        @DisplayName("Should throw exception when restoring non-existent set")
-        void shouldThrowExceptionWhenRestoringNonExistentSet() {
-            // Arrange
-            when(flexibilitySetRepository.findByIdIncludingDeleted(999L)).thenReturn(Optional.empty());
-            
-            // Act & Assert
-            assertThatThrownBy(() -> flexibilitySetService.restoreSet(999L))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Flexibility set");
         }

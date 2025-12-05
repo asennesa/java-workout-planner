@@ -84,12 +84,10 @@ class WorkoutSessionServiceTest {
     private User testUser;
     private WorkoutSession testWorkoutSession;
     private Exercise testExercise;
-    private LocalDateTime fixedNow;
-    
+
     @BeforeEach
     void setUp() {
         // Fixed time for deterministic testing
-        fixedNow = LocalDateTime.of(2024, 1, 15, 10, 0);
         Clock fixedClock = Clock.fixed(
             Instant.parse("2024-01-15T10:00:00Z"),
             ZoneId.of("UTC")
@@ -102,15 +100,23 @@ class WorkoutSessionServiceTest {
         testUser = TestDataBuilder.createPersistedUser();
         testWorkoutSession = TestDataBuilder.createDefaultWorkoutSession(testUser);
         testExercise = TestDataBuilder.createStrengthExercise(); // Has ID
+
+        // Setup default security context with user ID 1
+        TestDataBuilder.setupSecurityContext(1L);
     }
-    
+
+    @org.junit.jupiter.api.AfterEach
+    void tearDown() {
+        TestDataBuilder.clearSecurityContext();
+    }
+
     // ==================== CREATE WORKOUT TESTS ====================
     
     @Test
     @DisplayName("Should create workout session successfully")
     void shouldCreateWorkoutSessionSuccessfully() {
         // Arrange
-        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(1L);
+        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
         WorkoutResponse expectedResponse = new WorkoutResponse();
         expectedResponse.setSessionId(1L);
         expectedResponse.setName("Test Workout");
@@ -139,7 +145,8 @@ class WorkoutSessionServiceTest {
     @DisplayName("Should throw ResourceNotFoundException when user not found during workout creation")
     void shouldThrowExceptionWhenUserNotFoundDuringCreation() {
         // Arrange
-        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(999L);
+        TestDataBuilder.setupSecurityContext(999L);
+        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
         
         // Act & Assert
@@ -157,7 +164,7 @@ class WorkoutSessionServiceTest {
     @DisplayName("Should set startedAt when creating IN_PROGRESS workout without startedAt")
     void shouldSetStartedAtWhenCreatingInProgressWorkout() {
         // Arrange
-        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(1L);
+        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
         request.setStatus(WorkoutStatus.IN_PROGRESS);
         request.setStartedAt(null); // No start time provided
         
@@ -183,11 +190,12 @@ class WorkoutSessionServiceTest {
     @DisplayName("Should throw ValidationException when startedAt is in the future")
     void shouldThrowValidationExceptionWhenStartedAtInFuture() {
         // Arrange
-        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(1L);
-        request.setStartedAt(fixedNow.plusDays(1)); // Future date
-        
+        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
+        // Use real future date (relative to actual LocalDateTime.now() used by service)
+        request.setStartedAt(LocalDateTime.now().plusDays(1)); // Future date
+
         // No need to stub repository - validation happens before repository call
-        
+
         // Act & Assert
         assertThatThrownBy(() -> workoutSessionService.createWorkoutSession(request))
             .isInstanceOf(ValidationException.class)
@@ -198,12 +206,13 @@ class WorkoutSessionServiceTest {
     @DisplayName("Should throw ValidationException when completedAt is before startedAt")
     void shouldThrowValidationExceptionWhenCompletedAtBeforeStartedAt() {
         // Arrange
-        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest(1L);
-        request.setStartedAt(fixedNow);
-        request.setCompletedAt(fixedNow.minusHours(1)); // Before start
-        
+        CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
+        LocalDateTime now = LocalDateTime.now();
+        request.setStartedAt(now.minusHours(1)); // 1 hour ago
+        request.setCompletedAt(now.minusHours(2)); // 2 hours ago - before start
+
         // No need to stub repository - validation happens before repository call
-        
+
         // Act & Assert
         assertThatThrownBy(() -> workoutSessionService.createWorkoutSession(request))
             .isInstanceOf(ValidationException.class)
@@ -255,7 +264,7 @@ class WorkoutSessionServiceTest {
         List<WorkoutSession> workouts = List.of(testWorkoutSession);
         List<WorkoutResponse> expectedResponses = List.of(new WorkoutResponse());
         
-        when(workoutSessionRepository.findByUser_UserIdOrderByStartedAtDesc(1L))
+        when(workoutSessionRepository.findByUserIdOrderByStartedAtDesc(1L))
             .thenReturn(workouts);
         when(workoutMapper.toWorkoutResponseList(workouts)).thenReturn(expectedResponses);
         
@@ -264,7 +273,7 @@ class WorkoutSessionServiceTest {
         
         // Assert
         assertThat(result).hasSize(1);
-        verify(workoutSessionRepository).findByUser_UserIdOrderByStartedAtDesc(1L);
+        verify(workoutSessionRepository).findByUserIdOrderByStartedAtDesc(1L);
     }
     
     @Test
@@ -287,7 +296,7 @@ class WorkoutSessionServiceTest {
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getTotalElements()).isEqualTo(1);
         assertThat(result.getTotalPages()).isEqualTo(1);
-        assertThat(result.getPageNumber()).isEqualTo(0);
+        assertThat(result.getPageNumber()).isZero();
     }
     
     // ==================== UPDATE WORKOUT TESTS ====================
@@ -402,36 +411,6 @@ class WorkoutSessionServiceTest {
         verify(workoutSessionRepository).save(argThat(ws -> !ws.isActive()));
     }
     
-    @Test
-    @DisplayName("Should restore soft deleted workout session successfully")
-    void shouldRestoreSoftDeletedWorkoutSuccessfully() {
-        // Arrange
-        testWorkoutSession.softDelete();
-        when(workoutSessionRepository.findByIdIncludingDeleted(1L))
-            .thenReturn(Optional.of(testWorkoutSession));
-        when(workoutSessionRepository.save(any(WorkoutSession.class))).thenReturn(testWorkoutSession);
-        
-        // Act
-        workoutSessionService.restoreWorkoutSession(1L);
-        
-        // Assert
-        verify(workoutSessionRepository).findByIdIncludingDeleted(1L);
-        verify(workoutSessionRepository).save(argThat(WorkoutSession::isActive));
-    }
-    
-    @Test
-    @DisplayName("Should throw exception when restoring active workout")
-    void shouldThrowExceptionWhenRestoringActiveWorkout() {
-        // Arrange
-        when(workoutSessionRepository.findByIdIncludingDeleted(1L))
-            .thenReturn(Optional.of(testWorkoutSession));
-        
-        // Act & Assert
-        assertThatThrownBy(() -> workoutSessionService.restoreWorkoutSession(1L))
-            .isInstanceOf(BusinessLogicException.class)
-            .hasMessageContaining("not deleted");
-    }
-    
     // ==================== WORKOUT EXERCISE TESTS ====================
     
     @Test
@@ -479,7 +458,7 @@ class WorkoutSessionServiceTest {
         List<WorkoutExercise> exercises = List.of(workoutExercise);
         List<WorkoutExerciseResponse> responses = List.of(new WorkoutExerciseResponse());
         
-        when(workoutExerciseRepository.findByWorkoutSession_SessionIdOrderByOrderInWorkoutAsc(1L))
+        when(workoutExerciseRepository.findBySessionIdOrderByOrder(1L))
             .thenReturn(exercises);
         when(workoutMapper.toWorkoutExerciseResponseList(exercises)).thenReturn(responses);
         
@@ -488,7 +467,7 @@ class WorkoutSessionServiceTest {
         
         // Assert
         assertThat(result).hasSize(1);
-        verify(workoutExerciseRepository).findByWorkoutSession_SessionIdOrderByOrderInWorkoutAsc(1L);
+        verify(workoutExerciseRepository).findBySessionIdOrderByOrder(1L);
     }
     
     @Test

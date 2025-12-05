@@ -5,12 +5,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+
 import java.math.BigDecimal;
-import java.util.Objects;
 
 /**
- * Strength set entity extending BaseSet.
- * Contains strength-specific fields and logic.
+ * Strength set entity with reps and weight tracking.
  */
 @Entity
 @Table(name = "strength_sets", indexes = {
@@ -30,38 +29,12 @@ public class StrengthSet extends BaseSet {
     private BigDecimal weight;
 
     @Override
-    public String getExerciseType() {
-        return "STRENGTH";
-    }
-
-    @Override
-    public String getSetSummary() {
-        return String.format("%d reps @ %.2f kg", reps, weight != null ? weight : 0.0);
-    }
-
-    /**
-     * Equals method for StrengthSet.
-     * Uses parent class logic but includes strength-specific fields.
-     */
-    @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
-        
-        StrengthSet that = (StrengthSet) o;
-        
-        // Compare strength-specific fields
-        return Objects.equals(reps, that.reps) &&
-               Objects.equals(weight, that.weight);
+        return super.equals(o);
     }
 
-    /**
-     * HashCode method for StrengthSet.
-     * Combines parent hash with strength-specific fields.
-     */
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), reps, weight);
+        return super.hashCode();
     }
 }

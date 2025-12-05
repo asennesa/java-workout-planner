@@ -158,19 +158,15 @@ class UserMapperTest {
     }
     
     @Test
-    @DisplayName("Should map user flags correctly")
-    void shouldMapUserFlagsCorrectly() {
+    @DisplayName("Should map user to response correctly")
+    void shouldMapUserToResponseCorrectly() {
         // Arrange
         User user = TestDataBuilder.createPersistedUser();
-        user.setEnabled(true);
-        user.setAccountNonExpired(true);
-        user.setAccountNonLocked(true);
-        user.setCredentialsNonExpired(true);
-        
+
         // Act
         UserResponse response = userMapper.toResponse(user);
-        
-        // Assert - Response should contain these fields if they exist
+
+        // Assert
         assertThat(response).isNotNull();
         assertThat(response.getUsername()).isEqualTo("testuser");
     }

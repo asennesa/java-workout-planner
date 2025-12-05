@@ -1,0 +1,35 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-add-auth0-user-id
+      author: workout-planner
+      comment: "Add Auth0 user ID column for OAuth2/JWT authentication integration"
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: auth0_user_id
+                  type: varchar(100)
+                  remarks: "Auth0 user ID (format: {provider}|{id}, e.g., auth0|507f1f77bcf86cd799439011)"
+
+        - addUniqueConstraint:
+            tableName: users
+            columnNames: auth0_user_id
+            constraintName: uk_users_auth0_user_id
+
+        - createIndex:
+            tableName: users
+            indexName: idx_users_auth0_user_id
+            columns:
+              - column:
+                  name: auth0_user_id
+      rollback:
+        - dropIndex:
+            tableName: users
+            indexName: idx_users_auth0_user_id
+        - dropUniqueConstraint:
+            tableName: users
+            constraintName: uk_users_auth0_user_id
+        - dropColumn:
+            tableName: users
+            columnName: auth0_user_id

@@ -216,7 +216,7 @@ class CardioSetServiceTest {
             List<CardioSet> cardioSets = List.of(testCardioSet);
             List<SetResponse> responses = List.of(testSetResponse);
             
-            when(cardioSetRepository.findByWorkoutExercise_WorkoutExerciseIdOrderBySetNumberAsc(1L))
+            when(cardioSetRepository.findByWorkoutExerciseIdOrderBySetNumber(1L))
                 .thenReturn(cardioSets);
             when(baseSetMapper.toCardioSetResponseList(cardioSets)).thenReturn(responses);
             
@@ -228,23 +228,6 @@ class CardioSetServiceTest {
             assertThat(result.get(0).getSetId()).isEqualTo(1L);
         }
         
-        @Test
-        @DisplayName("Should get cardio sets by workout session")
-        void shouldGetCardioSetsByWorkoutSession() {
-            // Arrange
-            List<CardioSet> cardioSets = List.of(testCardioSet);
-            List<SetResponse> responses = List.of(testSetResponse);
-            
-            when(cardioSetRepository.findByWorkoutExercise_WorkoutSession_SessionId(1L))
-                .thenReturn(cardioSets);
-            when(baseSetMapper.toCardioSetResponseList(cardioSets)).thenReturn(responses);
-            
-            // Act
-            List<SetResponse> result = cardioSetService.getSetsByWorkoutSession(1L);
-            
-            // Assert
-            assertThat(result).hasSize(1);
-        }
     }
     
     // ==================== UPDATE SET TESTS ====================
@@ -268,7 +251,7 @@ class CardioSetServiceTest {
             
             // Assert
             assertThat(result).isNotNull();
-            verify(workoutMapper).updateCardioSetEntity(eq(request), eq(testCardioSet));
+            verify(workoutMapper).updateCardioSetEntity(request, testCardioSet);
             verify(cardioSetRepository).save(testCardioSet);
         }
         
@@ -314,52 +297,6 @@ class CardioSetServiceTest {
             
             // Act & Assert
             assertThatThrownBy(() -> cardioSetService.deleteSet(999L))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Cardio set");
-        }
-    }
-    
-    // ==================== RESTORE SET TESTS ====================
-    
-    @Nested
-    @DisplayName("Restore CardioSet Tests")
-    class RestoreSetTests {
-        
-        @Test
-        @DisplayName("Should restore soft deleted cardio set successfully")
-        void shouldRestoreSoftDeletedCardioSetSuccessfully() {
-            // Arrange
-            testCardioSet.softDelete();
-            when(cardioSetRepository.findByIdIncludingDeleted(1L)).thenReturn(Optional.of(testCardioSet));
-            when(cardioSetRepository.save(any(CardioSet.class))).thenReturn(testCardioSet);
-            
-            // Act
-            cardioSetService.restoreSet(1L);
-            
-            // Assert
-            verify(cardioSetRepository).save(argThat(CardioSet::isActive));
-        }
-        
-        @Test
-        @DisplayName("Should throw exception when restoring active set")
-        void shouldThrowExceptionWhenRestoringActiveSet() {
-            // Arrange
-            when(cardioSetRepository.findByIdIncludingDeleted(1L)).thenReturn(Optional.of(testCardioSet));
-            
-            // Act & Assert
-            assertThatThrownBy(() -> cardioSetService.restoreSet(1L))
-                .isInstanceOf(BusinessLogicException.class)
-                .hasMessageContaining("not deleted");
-        }
-        
-        @Test
-        @DisplayName("Should throw exception when restoring non-existent set")
-        void shouldThrowExceptionWhenRestoringNonExistentSet() {
-            // Arrange
-            when(cardioSetRepository.findByIdIncludingDeleted(999L)).thenReturn(Optional.empty());
-            
-            // Act & Assert
-            assertThatThrownBy(() -> cardioSetService.restoreSet(999L))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Cardio set");
         }

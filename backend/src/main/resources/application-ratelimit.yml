@@ -1,0 +1,99 @@
+# =============================================================================
+# Rate Limiting Configuration (Bucket4j Spring Boot Starter)
+# =============================================================================
+# Official documentation: https://github.com/MarcGiffing/bucket4j-spring-boot-starter
+#
+# This configuration uses the Token Bucket algorithm (industry standard):
+# - capacity: Maximum burst size (tokens in bucket)
+# - time/unit: Refill period
+# - refill-speed: "greedy" (all at once) or "interval" (spread over time)
+#
+# Rate limits are applied per IP address
+# =============================================================================
+
+spring:
+  cache:
+    jcache:
+      provider: com.github.benmanes.caffeine.jcache.spi.CaffeineCachingProvider
+    caffeine:
+      spec: maximumSize=1000000,expireAfterAccess=3600s
+
+bucket4j:
+  enabled: true
+
+  filters:
+    # =========================================================================
+    # User Creation - Prevent mass account creation attacks
+    # 10 requests per hour per IP
+    # =========================================================================
+    - cache-name: rate-limit-buckets
+      url: /api/v1/users
+      http-method: POST
+      http-response-body: '{"message":"Rate limit exceeded. Maximum 10 user registrations per hour allowed.","status":429}'
+      rate-limits:
+        - cache-key: getRemoteAddr()
+          bandwidths:
+            - capacity: 10
+              time: 1
+              unit: hours
+              refill-speed: interval
+
+    # =========================================================================
+    # Username/Email Check - Prevent enumeration attacks
+    # 30 requests per minute per IP (allows for form validation + retries)
+    # =========================================================================
+    - cache-name: rate-limit-buckets
+      url: /api/v1/users/check-username
+      http-response-body: '{"message":"Rate limit exceeded. Please try again later.","status":429}'
+      rate-limits:
+        - cache-key: getRemoteAddr()
+          bandwidths:
+            - capacity: 30
+              time: 1
+              unit: minutes
+              refill-speed: interval
+
+    - cache-name: rate-limit-buckets
+      url: /api/v1/users/check-email
+      http-response-body: '{"message":"Rate limit exceeded. Please try again later.","status":429}'
+      rate-limits:
+        - cache-key: getRemoteAddr()
+          bandwidths:
+            - capacity: 30
+              time: 1
+              unit: minutes
+              refill-speed: interval
+
+    # =========================================================================
+    # User Deletion - Admin operation, rate limited per user
+    # 10 requests per hour per authenticated user
+    # =========================================================================
+    - cache-name: rate-limit-buckets
+      url: /api/v1/users/.*
+      http-method: DELETE
+      http-response-body: '{"message":"Rate limit exceeded for user deletion.","status":429}'
+      rate-limits:
+        - cache-key: "@securityService.getUsername()"
+          execute-condition: "@securityService.isAuthenticated()"
+          bandwidths:
+            - capacity: 10
+              time: 1
+              unit: hours
+              refill-speed: interval
+
+    # =========================================================================
+    # Workout Creation - Standard API rate limit
+    # 100 requests per minute per authenticated user
+    # =========================================================================
+    - cache-name: rate-limit-buckets
+      url: /api/v1/workouts
+      http-method: POST
+      http-response-body: '{"message":"Rate limit exceeded for workout creation.","status":429}'
+      rate-limits:
+        - cache-key: "@securityService.getUsername()"
+          execute-condition: "@securityService.isAuthenticated()"
+          bandwidths:
+            - capacity: 100
+              time: 1
+              unit: minutes
+              refill-speed: interval

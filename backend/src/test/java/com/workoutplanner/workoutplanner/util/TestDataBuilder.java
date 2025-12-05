@@ -3,9 +3,17 @@ package com.workoutplanner.workoutplanner.util;
 import com.workoutplanner.workoutplanner.dto.request.*;
 import com.workoutplanner.workoutplanner.entity.*;
 import com.workoutplanner.workoutplanner.enums.*;
+import com.workoutplanner.workoutplanner.security.Auth0Principal;
+import com.workoutplanner.workoutplanner.security.Auth0AuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Test Data Builder utility for creating test objects.
@@ -27,21 +35,27 @@ import java.time.LocalDateTime;
  * - Setting IDs on new entities can cause JPA/Hibernate issues
  */
 public class TestDataBuilder {
-    
+
+    // Counter for generating unique IDs in test data
+    private static final AtomicLong USER_COUNTER = new AtomicLong(0);
+
     // ==================== USER BUILDERS ====================
-    
+
     /**
      * Creates a NEW user ready to be saved (no ID set).
      * Use this when testing user creation or saving new users.
-     * 
+     * Each call generates unique auth0_user_id, username, and email to avoid conflicts.
+     *
      * @return User entity without ID (ready for persistence)
      */
     public static User createNewUser() {
+        long counter = USER_COUNTER.incrementAndGet();
         User user = new User();
         // No ID set - this is a new entity
-        user.setAuth0UserId("auth0|507f1f77bcf86cd799439011");
-        user.setUsername("testuser");
-        user.setEmail("test@example.com");
+        // Use counter to ensure unique values for auth0_user_id, username, and email
+        user.setAuth0UserId("auth0|507f1f77bcf86cd799439" + String.format("%03d", counter));
+        user.setUsername("testuser" + counter);
+        user.setEmail("test" + counter + "@example.com");
         user.setFirstName("Test");
         user.setLastName("User");
         user.setRole(UserRole.USER);
@@ -202,18 +216,6 @@ public class TestDataBuilder {
         return workout;
     }
     
-    /**
-     * Creates a completed workout session.
-     */
-    public static WorkoutSession createCompletedWorkout(User user, LocalDateTime startedAt, LocalDateTime completedAt) {
-        WorkoutSession workout = createNewWorkoutSession(user);
-        workout.setStatus(WorkoutStatus.COMPLETED);
-        workout.setStartedAt(startedAt);
-        workout.setCompletedAt(completedAt);
-        workout.setActualDurationInMinutes(60);
-        return workout;
-    }
-    
     // ==================== DTO REQUEST BUILDERS ====================
     
     /**
@@ -230,49 +232,67 @@ public class TestDataBuilder {
     }
     
     /**
-     * Creates a CreateUserRequest with custom username and email.
-     */
-    public static CreateUserRequest createUserRequest(String username, String email) {
-        CreateUserRequest request = createUserRequest();
-        request.setUsername(username);
-        request.setEmail(email);
-        return request;
-    }
-    
-    /**
-     * Creates a UserUpdateRequest for testing profile updates.
-     */
-    public static UserUpdateRequest createUserUpdateRequest() {
-        UserUpdateRequest request = new UserUpdateRequest();
-        request.setFirstName("Updated");
-        request.setLastName("Name");
-        request.setEmail("updated@example.com");
-        return request;
-    }
-
-    /**
      * Creates a default CreateWorkoutRequest.
+     * Note: userId is no longer part of the request - it's derived from JWT token.
      */
-    public static CreateWorkoutRequest createWorkoutRequest(Long userId) {
+    public static CreateWorkoutRequest createWorkoutRequest() {
         CreateWorkoutRequest request = new CreateWorkoutRequest();
-        request.setUserId(userId);
         request.setName("Test Workout");
         request.setDescription("Test workout description");
         request.setStatus(WorkoutStatus.PLANNED);
         return request;
     }
-    
+
+    // ==================== SECURITY CONTEXT UTILITIES ====================
+
     /**
-     * Creates a CreateExerciseRequest.
+     * Sets up the security context with a mock authenticated user.
+     * Use this in @BeforeEach to simulate an authenticated user.
+     *
+     * @param userId the user's database ID
      */
-    public static CreateExerciseRequest createExerciseRequest() {
-        CreateExerciseRequest request = new CreateExerciseRequest();
-        request.setName("Test Exercise");
-        request.setType(ExerciseType.STRENGTH);
-        request.setDescription("Test description");
-        request.setTargetMuscleGroup(TargetMuscleGroup.CHEST);
-        request.setDifficultyLevel(DifficultyLevel.INTERMEDIATE);
-        return request;
+    public static void setupSecurityContext(Long userId) {
+        setupSecurityContext(userId, UserRole.USER);
+    }
+
+    /**
+     * Sets up the security context with a mock authenticated user with specific role.
+     *
+     * @param userId the user's database ID
+     * @param role the user's role
+     */
+    public static void setupSecurityContext(Long userId, UserRole role) {
+        Auth0Principal principal = new Auth0Principal(
+            userId,
+            "auth0|test-" + userId,
+            "test" + userId + "@example.com",
+            "testuser" + userId,
+            "Test",
+            "User",
+            role
+        );
+
+        Jwt jwt = Jwt.withTokenValue("test-token")
+            .header("alg", "RS256")
+            .claim("sub", principal.auth0UserId())
+            .issuedAt(Instant.now())
+            .expiresAt(Instant.now().plusSeconds(3600))
+            .build();
+
+        List<SimpleGrantedAuthority> authorities = List.of(
+            new SimpleGrantedAuthority("read:workouts"),
+            new SimpleGrantedAuthority("write:workouts")
+        );
+
+        Auth0AuthenticationToken authToken = new Auth0AuthenticationToken(principal, jwt, authorities);
+        SecurityContextHolder.getContext().setAuthentication(authToken);
+    }
+
+    /**
+     * Clears the security context. Call in @AfterEach to clean up.
+     */
+    public static void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
     }
     
     /**
