@@ -20,27 +20,19 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Service implementation for managing cardio set operations.
- * Handles business logic for cardio sets.
- * 
- * Uses method-level @Transactional for optimal performance:
- * - Read operations use @Transactional(readOnly = true) for better performance
- * - Write operations use @Transactional for data modification
+ * Service for managing cardio set operations.
  */
 @Service
-public class CardioSetService implements CardioSetServiceInterface {
+public class CardioSetService implements SetServiceInterface<CreateCardioSetRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(CardioSetService.class);
+    private static final String CARDIO_SET = "Cardio set";
 
     private final CardioSetRepository cardioSetRepository;
     private final WorkoutExerciseRepository workoutExerciseRepository;
     private final WorkoutMapper workoutMapper;
     private final BaseSetMapper baseSetMapper;
 
-    /**
-     * Constructor injection for dependencies.
-     * Makes dependencies explicit, immutable, and easier to test.
-     */
     public CardioSetService(CardioSetRepository cardioSetRepository,
                            WorkoutExerciseRepository workoutExerciseRepository,
                            WorkoutMapper workoutMapper,
@@ -51,29 +43,17 @@ public class CardioSetService implements CardioSetServiceInterface {
         this.baseSetMapper = baseSetMapper;
     }
 
-    /**
-     * Create a new cardio set.
-     * 
-     * Professional approach: workoutExerciseId is passed separately as it comes from URL path,
-     * not from the request body. This follows REST best practices.
-     *
-     * @param workoutExerciseId the workout exercise ID from URL path parameter
-     * @param createCardioSetRequest the cardio set creation request from body
-     * @return SetResponse the created cardio set response
-     */
+    @Override
     @Transactional
     @PreAuthorize("@resourceSecurityService.canAccessWorkoutExercise(#workoutExerciseId)")
-    public SetResponse createSet(Long workoutExerciseId, CreateCardioSetRequest createCardioSetRequest) {
-        logger.debug("SERVICE: Creating cardio set. workoutExerciseId={}, setNumber={}, duration={}s, distance={}", 
-                    workoutExerciseId, createCardioSetRequest.getSetNumber(),
-                    createCardioSetRequest.getDurationInSeconds(), createCardioSetRequest.getDistance());
-        
+    public SetResponse createSet(Long workoutExerciseId, CreateCardioSetRequest request) {
+        logger.debug("Creating cardio set for workoutExerciseId={}", workoutExerciseId);
+
         WorkoutExercise workoutExercise = workoutExerciseRepository.findById(workoutExerciseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", workoutExerciseId));
 
-        // Validate exercise type matches set type - business rule enforcement
-        if (workoutExercise.getExercise() != null && 
-            workoutExercise.getExercise().getType() != null && 
+        if (workoutExercise.getExercise() != null &&
+            workoutExercise.getExercise().getType() != null &&
             workoutExercise.getExercise().getType() != ExerciseType.CARDIO) {
             throw new BusinessLogicException(
                 String.format("Cannot add cardio sets to a %s exercise. Exercise '%s' is of type %s.",
@@ -83,129 +63,58 @@ public class CardioSetService implements CardioSetServiceInterface {
             );
         }
 
-        CardioSet cardioSet = workoutMapper.toCardioSetEntity(createCardioSetRequest);
-        
+        CardioSet cardioSet = workoutMapper.toCardioSetEntity(request);
         cardioSet.setWorkoutExercise(workoutExercise);
+        CardioSet saved = cardioSetRepository.save(cardioSet);
 
-        CardioSet savedCardioSet = cardioSetRepository.save(cardioSet);
-        
-        logger.info("SERVICE: Cardio set created successfully. setId={}, workoutExerciseId={}, setNumber={}", 
-                   savedCardioSet.getSetId(), savedCardioSet.getWorkoutExercise().getWorkoutExerciseId(),
-                   savedCardioSet.getSetNumber());
-        
-        return baseSetMapper.toSetResponse(savedCardioSet);
+        logger.info("Cardio set created: setId={}", saved.getSetId());
+        return baseSetMapper.toSetResponse(saved);
     }
 
-    /**
-     * Get cardio set by ID.
-     *
-     * @param setId the set ID
-     * @return SetResponse the cardio set response
-     */
+    @Override
     @Transactional(readOnly = true)
     public SetResponse getSetById(Long setId) {
         CardioSet cardioSet = cardioSetRepository.findById(setId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cardio set", "ID", setId));
-
+                .orElseThrow(() -> new ResourceNotFoundException(CARDIO_SET, "ID", setId));
         return baseSetMapper.toSetResponse(cardioSet);
     }
 
-    /**
-     * Get cardio sets by workout exercise ID.
-     *
-     * @param workoutExerciseId the workout exercise ID
-     * @return List of SetResponse
-     */
+    @Override
     @Transactional(readOnly = true)
     @PreAuthorize("@resourceSecurityService.canAccessWorkoutExercise(#workoutExerciseId)")
     public List<SetResponse> getSetsByWorkoutExercise(Long workoutExerciseId) {
-        List<CardioSet> cardioSets = cardioSetRepository.findByWorkoutExercise_WorkoutExerciseIdOrderBySetNumberAsc(workoutExerciseId);
-        return baseSetMapper.toCardioSetResponseList(cardioSets);
+        List<CardioSet> sets = cardioSetRepository.findByWorkoutExerciseIdOrderBySetNumber(workoutExerciseId);
+        return baseSetMapper.toCardioSetResponseList(sets);
     }
 
-    /**
-     * Update cardio set.
-     *
-     * @param setId the set ID
-     * @param createCardioSetRequest the updated cardio set information
-     * @return SetResponse the updated cardio set response
-     */
+    @Override
     @Transactional
     @PreAuthorize("@resourceSecurityService.canAccessCardioSet(#setId)")
-    public SetResponse updateSet(Long setId, CreateCardioSetRequest createCardioSetRequest) {
-        logger.debug("SERVICE: Updating cardio set. setId={}, duration={}s, distance={}", 
-                    setId, createCardioSetRequest.getDurationInSeconds(), createCardioSetRequest.getDistance());
-        
+    public SetResponse updateSet(Long setId, CreateCardioSetRequest request) {
+        logger.debug("Updating cardio set: setId={}", setId);
+
         CardioSet cardioSet = cardioSetRepository.findById(setId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cardio set", "ID", setId));
+                .orElseThrow(() -> new ResourceNotFoundException(CARDIO_SET, "ID", setId));
 
-        workoutMapper.updateCardioSetEntity(createCardioSetRequest, cardioSet);
+        workoutMapper.updateCardioSetEntity(request, cardioSet);
+        CardioSet saved = cardioSetRepository.save(cardioSet);
 
-        CardioSet savedCardioSet = cardioSetRepository.save(cardioSet);
-        
-        logger.info("SERVICE: Cardio set updated successfully. setId={}, setNumber={}", 
-                   savedCardioSet.getSetId(), savedCardioSet.getSetNumber());
-        
-        return baseSetMapper.toSetResponse(savedCardioSet);
+        logger.info("Cardio set updated: setId={}", saved.getSetId());
+        return baseSetMapper.toSetResponse(saved);
     }
 
-    /**
-     * Delete cardio set.
-     *
-     * @param setId the set ID
-     */
+    @Override
     @Transactional
     @PreAuthorize("@resourceSecurityService.canAccessCardioSet(#setId)")
     public void deleteSet(Long setId) {
-        logger.debug("SERVICE: Soft deleting cardio set. setId={}", setId);
-        
-        CardioSet cardioSet = cardioSetRepository.findById(setId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cardio set", "ID", setId));
+        logger.debug("Soft deleting cardio set: setId={}", setId);
 
-        Integer setNumber = cardioSet.getSetNumber();
-        Long workoutExerciseId = cardioSet.getWorkoutExercise().getWorkoutExerciseId();
-        
+        CardioSet cardioSet = cardioSetRepository.findById(setId)
+                .orElseThrow(() -> new ResourceNotFoundException(CARDIO_SET, "ID", setId));
+
         cardioSet.softDelete();
         cardioSetRepository.save(cardioSet);
-        
-        logger.info("SERVICE: Cardio set soft deleted successfully. setId={}, workoutExerciseId={}, setNumber={}", 
-                   setId, workoutExerciseId, setNumber);
-    }
-    
-    /**
-     * Restore a soft deleted cardio set.
-     * 
-     * @param setId the set ID
-     * @throws ResourceNotFoundException if cardio set not found
-     */
-    @Transactional
-    public void restoreSet(Long setId) {
-        logger.debug("SERVICE: Restoring soft deleted cardio set. setId={}", setId);
-        
-        // Use findByIdIncludingDeleted because we need to access the deleted set to restore it
-        CardioSet cardioSet = cardioSetRepository.findByIdIncludingDeleted(setId)
-                .orElseThrow(() -> new ResourceNotFoundException("Cardio set", "ID", setId));
-        
-        if (cardioSet.isActive()) {
-            logger.warn("SERVICE: Cardio set is already active. setId={}", setId);
-            throw new BusinessLogicException("Cardio set is not deleted and cannot be restored");
-        }
-        
-        cardioSet.restore();
-        cardioSetRepository.save(cardioSet);
-        
-        logger.info("SERVICE: Cardio set restored successfully. setId={}", setId);
-    }
 
-    /**
-     * Get all cardio sets for a workout session.
-     *
-     * @param sessionId the workout session ID
-     * @return List of SetResponse
-     */
-    @Transactional(readOnly = true)
-    public List<SetResponse> getSetsByWorkoutSession(Long sessionId) {
-        List<CardioSet> cardioSets = cardioSetRepository.findByWorkoutExercise_WorkoutSession_SessionId(sessionId);
-        return baseSetMapper.toCardioSetResponseList(cardioSets);
+        logger.info("Cardio set deleted: setId={}", setId);
     }
 }

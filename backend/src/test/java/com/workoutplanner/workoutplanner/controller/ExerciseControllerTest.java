@@ -1,6 +1,5 @@
 package com.workoutplanner.workoutplanner.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.workoutplanner.workoutplanner.dto.response.ExerciseResponse;
 import com.workoutplanner.workoutplanner.dto.response.PagedResponse;
 import com.workoutplanner.workoutplanner.enums.DifficultyLevel;
@@ -15,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.test.context.support.WithMockUser;
+import com.workoutplanner.workoutplanner.config.TestSecurityConfig;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -44,15 +44,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @WebMvcTest(ExerciseController.class)
 @ActiveProfiles("test")
-@Import(com.workoutplanner.workoutplanner.config.TestSecurityConfig.class)
+@Import(TestSecurityConfig.class)
 @DisplayName("ExerciseController Unit Tests")
 class ExerciseControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @MockitoBean
     private ExerciseService exerciseService;

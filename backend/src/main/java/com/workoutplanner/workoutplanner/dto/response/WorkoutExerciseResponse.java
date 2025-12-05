@@ -5,6 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Response for workout exercise data (exercise within a workout).
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

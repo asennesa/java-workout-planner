@@ -1,4 +1,4 @@
-package com.workoutplanner.workoutplanner.config;
+package com.workoutplanner.workoutplanner.data;
 
 import com.workoutplanner.workoutplanner.entity.Exercise;
 import com.workoutplanner.workoutplanner.enums.DifficultyLevel;

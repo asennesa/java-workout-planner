@@ -163,23 +163,9 @@ public class ResourceSecurityService {
      * @return true if user can access the set, false otherwise
      */
     public boolean canAccessSet(Long setId) {
-        // Try strength set first
-        if (canAccessStrengthSet(setId)) {
-            return true;
-        }
-
-        // Try cardio set
-        if (canAccessCardioSet(setId)) {
-            return true;
-        }
-
-        // Try flexibility set
-        if (canAccessFlexibilitySet(setId)) {
-            return true;
-        }
-
-        // Set not found or user doesn't own it
-        return false;
+        return canAccessStrengthSet(setId)
+            || canAccessCardioSet(setId)
+            || canAccessFlexibilitySet(setId);
     }
 
     /**

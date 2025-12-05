@@ -122,7 +122,7 @@ class WorkoutSessionRepositoryIntegrationTest extends AbstractIntegrationTest {
         
         // Assert - User should be loaded eagerly (no lazy loading exception)
         assertThat(result).isPresent();
-        assertThat(result.get().getUser().getUsername()).isEqualTo("testuser");
+        assertThat(result.get().getUser().getUsername()).isEqualTo(testUser.getUsername());
     }
     
     @Test
@@ -144,7 +144,7 @@ class WorkoutSessionRepositoryIntegrationTest extends AbstractIntegrationTest {
         workoutSessionRepository.save(workout3);
         
         // Act
-        List<WorkoutSession> workouts = workoutSessionRepository.findByUser_UserIdOrderByStartedAtDesc(testUser.getUserId());
+        List<WorkoutSession> workouts = workoutSessionRepository.findByUserIdOrderByStartedAtDesc(testUser.getUserId());
         
         // Assert - Should be ordered newest first
         assertThat(workouts).hasSize(3);
@@ -181,10 +181,10 @@ class WorkoutSessionRepositoryIntegrationTest extends AbstractIntegrationTest {
         
         // Act
         workout.softDelete();
-        workout = workoutSessionRepository.save(workout);
+        workoutSessionRepository.save(workout);
         entityManager.flush();
         entityManager.clear();
-        
+
         // Assert - Regular findById should not find deleted workout
         Optional<WorkoutSession> notFound = workoutSessionRepository.findById(workoutId);
         assertThat(notFound).isEmpty();
@@ -206,14 +206,14 @@ class WorkoutSessionRepositoryIntegrationTest extends AbstractIntegrationTest {
         
         // Soft delete and flush to database
         workout.softDelete();
-        workout = workoutSessionRepository.save(workout);
+        workoutSessionRepository.save(workout);
         entityManager.flush();
         entityManager.clear(); // Clear persistence context to avoid stale state
-        
+
         // Act - Retrieve fresh entity from database
-        WorkoutSession deleted = workoutSessionRepository.findByIdIncludingDeleted(workoutId).get();
+        WorkoutSession deleted = workoutSessionRepository.findByIdIncludingDeleted(workoutId).orElseThrow();
         deleted.restore();
-        deleted = workoutSessionRepository.save(deleted);
+        workoutSessionRepository.save(deleted);
         entityManager.flush();
         entityManager.clear();
         
@@ -230,24 +230,25 @@ class WorkoutSessionRepositoryIntegrationTest extends AbstractIntegrationTest {
         // Arrange
         WorkoutSession workout1 = TestDataBuilder.createNewWorkoutSession(testUser);
         workout1.setName("Active Workout");
-        workout1 = workoutSessionRepository.save(workout1);
-        
+        workoutSessionRepository.save(workout1);
+
         WorkoutSession workout2 = TestDataBuilder.createNewWorkoutSession(testUser);
         workout2.setName("Deleted Workout");
         workout2 = workoutSessionRepository.save(workout2);
+        Long workout2Id = workout2.getSessionId();
         entityManager.flush();
         entityManager.clear(); // Clear to avoid stale state
-        
+
         // Retrieve fresh entity from database before soft delete
-        workout2 = workoutSessionRepository.findById(workout2.getSessionId()).get();
-        workout2.softDelete();
-        workout2 = workoutSessionRepository.save(workout2);
+        WorkoutSession toDelete = workoutSessionRepository.findById(workout2Id).orElseThrow();
+        toDelete.softDelete();
+        workoutSessionRepository.save(toDelete);
         entityManager.flush();
         entityManager.clear();
         
         // Act
         List<WorkoutSession> allWorkouts = workoutSessionRepository.findAll();
-        List<WorkoutSession> userWorkouts = workoutSessionRepository.findByUser_UserIdOrderByStartedAtDesc(testUser.getUserId());
+        List<WorkoutSession> userWorkouts = workoutSessionRepository.findByUserIdOrderByStartedAtDesc(testUser.getUserId());
         
         // Assert - Only active workout should be found
         assertThat(allWorkouts).hasSize(1);
@@ -268,7 +269,7 @@ class WorkoutSessionRepositoryIntegrationTest extends AbstractIntegrationTest {
         entityManager.flush();
         
         // Act - Version should start at 0 and increment
-        assertThat(workout.getVersion()).isEqualTo(0L);
+        assertThat(workout.getVersion()).isZero();
         
         workout.setName("Updated Once");
         workout = workoutSessionRepository.save(workout);

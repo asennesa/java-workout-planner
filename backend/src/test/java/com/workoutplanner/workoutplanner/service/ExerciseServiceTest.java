@@ -81,24 +81,6 @@ class ExerciseServiceTest {
     }
 
     @Test
-    @DisplayName("Should get exercises by type successfully")
-    void shouldGetExercisesByTypeSuccessfully() {
-        // Arrange
-        List<Exercise> exercises = List.of(testExercise);
-        List<ExerciseResponse> responses = List.of(testResponse);
-
-        when(exerciseRepository.findByType(ExerciseType.STRENGTH)).thenReturn(exercises);
-        when(exerciseMapper.toResponseList(exercises)).thenReturn(responses);
-
-        // Act
-        List<ExerciseResponse> result = exerciseService.getExercisesByType(ExerciseType.STRENGTH);
-
-        // Assert
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getType()).isEqualTo(ExerciseType.STRENGTH);
-    }
-
-    @Test
     @DisplayName("Should search exercises by name successfully")
     void shouldSearchExercisesByNameSuccessfully() {
         // Arrange

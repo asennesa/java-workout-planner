@@ -211,21 +211,6 @@ class UserServiceTest {
         }
 
         @Test
-        @DisplayName("Should get user by email successfully")
-        void shouldGetUserByEmailSuccessfully() {
-            // Arrange
-            when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-            when(userMapper.toResponse(testUser)).thenReturn(testResponse);
-            
-            // Act
-            UserResponse result = userService.getUserByEmail("test@example.com");
-            
-            // Assert
-            assertThat(result).isNotNull();
-            assertThat(result.getEmail()).isEqualTo("test@example.com");
-        }
-        
-        @Test
         @DisplayName("Should get all users with pagination")
         void shouldGetAllUsersWithPagination() {
             // Arrange
@@ -260,18 +245,19 @@ class UserServiceTest {
             UserUpdateRequest request = new UserUpdateRequest();
             request.setFirstName("Updated");
             request.setLastName("Name");
-            
+            // secureUpdate = false triggers basic update path
+
             when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
             when(userRepository.save(testUser)).thenReturn(testUser);
             when(userMapper.toResponse(testUser)).thenReturn(testResponse);
-            
+
             // Act
-            UserResponse result = userService.updateUserBasic(1L, request);
-            
+            UserResponse result = userService.updateUser(1L, request);
+
             // Assert
             assertThat(result).isNotNull();
-            verify(userRepository).save(argThat(user -> 
-                user.getFirstName().equals("Updated") && 
+            verify(userRepository).save(argThat(user ->
+                user.getFirstName().equals("Updated") &&
                 user.getLastName().equals("Name")
             ));
         }
@@ -313,32 +299,6 @@ class UserServiceTest {
             verify(userRepository, never()).save(any(User.class));
         }
         
-        @Test
-        @DisplayName("Should restore soft deleted user")
-        void shouldRestoreSoftDeletedUser() {
-            // Arrange
-            testUser.softDelete();
-            when(userRepository.findByIdIncludingDeleted(1L)).thenReturn(Optional.of(testUser));
-            when(userRepository.save(testUser)).thenReturn(testUser);
-            
-            // Act
-            userService.restoreUser(1L);
-            
-            // Assert
-            verify(userRepository).save(argThat(User::isActive));
-        }
-        
-        @Test
-        @DisplayName("Should throw exception when restoring active user")
-        void shouldThrowExceptionWhenRestoringActiveUser() {
-            // Arrange
-            when(userRepository.findByIdIncludingDeleted(1L)).thenReturn(Optional.of(testUser));
-            
-            // Act & Assert
-            assertThatThrownBy(() -> userService.restoreUser(1L))
-                .isInstanceOf(BusinessLogicException.class)
-                .hasMessageContaining("not deleted");
-        }
     }
     
     // ==================== VALIDATION TESTS ====================

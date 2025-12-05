@@ -1,6 +1,6 @@
 services:
   sonarqube:
-    image: sonarqube:10.6-community
+    image: sonarqube:community
     container_name: workoutplanner-sonarqube
     ports:
       - "9000:9000"

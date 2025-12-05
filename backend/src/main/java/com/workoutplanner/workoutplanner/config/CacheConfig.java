@@ -1,48 +1,55 @@
 package com.workoutplanner.workoutplanner.config;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
-import org.springframework.cache.CacheManager;
+import com.github.benmanes.caffeine.jcache.spi.CaffeineCachingProvider;
 import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.cache.caffeine.CaffeineCacheManager;
+import org.springframework.cache.jcache.JCacheCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import javax.cache.CacheManager;
+import javax.cache.Caching;
+import javax.cache.configuration.MutableConfiguration;
+import javax.cache.expiry.CreatedExpiryPolicy;
+import javax.cache.expiry.Duration;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Cache configuration using Caffeine.
+ * JCache configuration using Caffeine provider.
  *
- * Industry Best Practice:
- * - Uses Caffeine (high-performance Java caching library)
- * - Configurable TTL per cache
- * - Maximum size limits to prevent memory issues
- * - Automatic eviction of stale entries
- *
- * Caches:
- * - auth0Users: Caches Auth0Principal DTOs by Auth0 user ID (5 min TTL)
- *   - Reduces DB queries by ~90% for authenticated requests
- *   - Short TTL ensures profile updates are reflected quickly
- *   - DTOs are serializable and have no lazy loading issues
+ * Provides caches for:
+ * - rate-limit-buckets: Token buckets for Bucket4j rate limiting (1 hour TTL)
+ * - auth0Users: Auth0 user principal caching (5 min TTL)
  */
 @Configuration
 @EnableCaching
 public class CacheConfig {
 
     @Bean
-    public CacheManager cacheManager() {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager();
+    public CacheManager jCacheManager() {
+        CacheManager cacheManager = Caching.getCachingProvider(CaffeineCachingProvider.class.getName())
+                .getCacheManager();
 
-        // Default cache configuration
-        cacheManager.setCaffeine(Caffeine.newBuilder()
-            .expireAfterWrite(5, TimeUnit.MINUTES)
-            .maximumSize(1000)
-            .recordStats()); // Enable stats for monitoring
+        // Rate limit buckets cache (1 hour TTL)
+        createCacheIfNotExists(cacheManager, "rate-limit-buckets", 1, TimeUnit.HOURS);
 
-        // Register specific caches
-        cacheManager.setCacheNames(java.util.List.of(
-            "auth0Users"  // Auth0Principal DTO cache by Auth0 ID
-        ));
+        // Auth0 users cache (5 min TTL for quick profile updates)
+        createCacheIfNotExists(cacheManager, "auth0Users", 5, TimeUnit.MINUTES);
 
         return cacheManager;
+    }
+
+    private void createCacheIfNotExists(CacheManager cacheManager, String cacheName, long duration, TimeUnit unit) {
+        if (cacheManager.getCache(cacheName) == null) {
+            MutableConfiguration<Object, Object> config = new MutableConfiguration<>()
+                    .setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(new Duration(unit, duration)))
+                    .setStoreByValue(false)
+                    .setStatisticsEnabled(true);
+            cacheManager.createCache(cacheName, config);
+        }
+    }
+
+    @Bean
+    public org.springframework.cache.CacheManager cacheManager(CacheManager jCacheManager) {
+        return new JCacheCacheManager(jCacheManager);
     }
 }

@@ -11,6 +11,9 @@ import org.mapstruct.MappingConstants;
 
 import java.util.List;
 
+/**
+ * MapStruct mapper for set entity conversions.
+ */
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public abstract class BaseSetMapper {
 
@@ -25,12 +28,12 @@ public abstract class BaseSetMapper {
     public abstract SetResponse toSetResponse(BaseSet set);
 
     public SetResponse toConcreteSetResponse(BaseSet set) {
-        if (set instanceof StrengthSet) {
-            return toSetResponse((StrengthSet) set);
-        } else if (set instanceof CardioSet) {
-            return toSetResponse((CardioSet) set);
-        } else if (set instanceof FlexibilitySet) {
-            return toSetResponse((FlexibilitySet) set);
+        if (set instanceof StrengthSet strengthSet) {
+            return toSetResponse(strengthSet);
+        } else if (set instanceof CardioSet cardioSet) {
+            return toSetResponse(cardioSet);
+        } else if (set instanceof FlexibilitySet flexibilitySet) {
+            return toSetResponse(flexibilitySet);
         }
         return toSetResponse(set);
     }
@@ -59,18 +62,9 @@ public abstract class BaseSetMapper {
     @Mapping(target = "durationInSeconds", ignore = true)
     public abstract SetResponse toSetResponse(FlexibilitySet set);
 
-    /**
-     * Maps list of StrengthSet entities to list of SetResponse DTOs
-     */
     public abstract List<SetResponse> toSetResponseList(List<StrengthSet> strengthSets);
 
-    /**
-     * Maps list of CardioSet entities to list of SetResponse DTOs
-     */
     public abstract List<SetResponse> toCardioSetResponseList(List<CardioSet> cardioSets);
 
-    /**
-     * Maps list of FlexibilitySet entities to list of SetResponse DTOs
-     */
     public abstract List<SetResponse> toFlexibilitySetResponseList(List<FlexibilitySet> flexibilitySets);
 }

@@ -12,9 +12,6 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
-import org.springframework.security.oauth2.core.OAuth2TokenValidator;
-import org.springframework.security.oauth2.jwt.*;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -22,43 +19,24 @@ import org.springframework.web.cors.CorsConfigurationSource;
 /**
  * Auth0 OAuth2 + JWT Security Configuration.
  *
- * Industry Best Practice Implementation:
- * - OAuth2 Resource Server with JWT validation
- * - JwtAuthenticationConverter extracts authorities only (stateless, fast)
- * - Auth0UserSyncFilter handles user sync with database (transactional, cached)
- * - Stateless authentication (no server-side sessions)
- * - RS256 signature verification using Auth0's JWKS
- * - Audience validation
- * - Permission-based access control (OAuth2 standard)
+ * Uses Spring Boot's auto-configured JwtDecoder with:
+ * - Issuer validation (spring.security.oauth2.resourceserver.jwt.issuer-uri)
+ * - Audience validation (spring.security.oauth2.resourceserver.jwt.audiences)
+ * - RS256 signature verification via Auth0's JWKS endpoint
  *
- * Architecture:
- * <pre>
- * Request → JwtDecoder → Auth0JwtAuthenticationConverter → JwtAuthenticationToken
- *                                                                    ↓
- *                                                        Auth0UserSyncFilter
- *                                                        (user sync, transactional)
- *                                                                    ↓
- *                                                        Auth0AuthenticationToken
- *                                                        (Auth0Principal DTO + Authorities)
- *                                                                    ↓
- *                                                             SecurityContext
- * </pre>
- *
+ * @see <a href="https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html">Spring Security JWT</a>
  * @see <a href="https://auth0.com/docs/quickstart/backend/java-spring-security5">Auth0 Spring Security</a>
  */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
-@Profile("!test & !dev")  // Only active in production (Auth0 mode)
+@Profile("!test & !dev")
 public class Auth0SecurityConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(Auth0SecurityConfig.class);
 
     @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
     private String issuerUri;
-
-    @Value("${auth0.audience}")
-    private String audience;
 
     private final CorsConfigurationSource corsConfigurationSource;
     private final Auth0JwtAuthenticationConverter auth0JwtAuthenticationConverter;
@@ -72,6 +50,9 @@ public class Auth0SecurityConfig {
 
     /**
      * Security filter chain with JWT authentication.
+     *
+     * JWT decoding and validation (issuer + audience) is auto-configured by Spring Boot
+     * based on application.properties settings.
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -82,7 +63,6 @@ public class Auth0SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
             .authorizeHttpRequests(authz -> authz
-                // Allow CORS preflight requests
                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
 
                 // Public endpoints
@@ -90,7 +70,7 @@ public class Auth0SecurityConfig {
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                 .requestMatchers("/api/v1/users/check-username", "/api/v1/users/check-email").permitAll()
 
-                // Protected endpoints (fine-grained checks at method level)
+                // Protected endpoints
                 .requestMatchers("/api/v1/workouts/**")
                     .hasAnyAuthority("read:workouts", "write:workouts", "delete:workouts")
                 .requestMatchers("/api/v1/exercises/**")
@@ -110,35 +90,12 @@ public class Auth0SecurityConfig {
                 .cacheControl(Customizer.withDefaults())
             )
 
-            // OAuth2 Resource Server with custom converter
+            // Uses Spring Boot auto-configured JwtDecoder with audience validation
             .oauth2ResourceServer(oauth2 -> oauth2
-                .jwt(jwt -> jwt
-                    .decoder(jwtDecoder())
-                    .jwtAuthenticationConverter(auth0JwtAuthenticationConverter)
-                )
+                .jwt(jwt -> jwt.jwtAuthenticationConverter(auth0JwtAuthenticationConverter))
             );
 
         logger.info("Auth0 Security configured. Issuer: {}", issuerUri);
         return http.build();
-    }
-
-    /**
-     * JWT Decoder with issuer and audience validation.
-     */
-    @Bean
-    public JwtDecoder jwtDecoder() {
-        NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder
-            .withIssuerLocation(issuerUri)
-            .build();
-
-        OAuth2TokenValidator<Jwt> audienceValidator = new AudienceValidator(audience);
-        OAuth2TokenValidator<Jwt> withIssuer = JwtValidators.createDefaultWithIssuer(issuerUri);
-        OAuth2TokenValidator<Jwt> combined =
-            new DelegatingOAuth2TokenValidator<>(withIssuer, audienceValidator);
-
-        jwtDecoder.setJwtValidator(combined);
-
-        logger.info("JWT Decoder configured. Issuer: {}, Audience: {}", issuerUri, audience);
-        return jwtDecoder;
     }
 }

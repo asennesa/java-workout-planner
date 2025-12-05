@@ -52,7 +52,7 @@ import java.io.IOException;
 @Order(Ordered.LOWEST_PRECEDENCE - 10) // Run after Spring Security filters
 public class Auth0UserSyncFilter extends OncePerRequestFilter {
 
-    private static final Logger logger = LoggerFactory.getLogger(Auth0UserSyncFilter.class);
+    private static final Logger log = LoggerFactory.getLogger(Auth0UserSyncFilter.class);
 
     private final Auth0UserSyncService userSyncService;
 
@@ -74,7 +74,7 @@ public class Auth0UserSyncFilter extends OncePerRequestFilter {
                 Jwt jwt = jwtAuth.getToken();
                 String auth0UserId = jwt.getSubject();
 
-                logger.debug("Syncing user for request: {}", auth0UserId);
+                log.debug("Syncing user for request: {}", auth0UserId);
 
                 // Verify email for non-social providers
                 verifyEmailIfRequired(jwt, auth0UserId);
@@ -91,11 +91,11 @@ public class Auth0UserSyncFilter extends OncePerRequestFilter {
 
                 SecurityContextHolder.getContext().setAuthentication(auth0Token);
 
-                logger.debug("User synced successfully: userId={}, email={}",
+                log.debug("User synced successfully: userId={}, email={}",
                     principal.userId(), principal.email());
 
             } catch (EmailNotVerifiedException e) {
-                logger.warn("Email not verified: {}", e.getMessage());
+                log.warn("Email not verified: {}", e.getMessage());
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                 response.setContentType("application/json");
                 response.getWriter().write(
@@ -103,7 +103,7 @@ public class Auth0UserSyncFilter extends OncePerRequestFilter {
                 );
                 return; // Don't continue filter chain
             } catch (Exception e) {
-                logger.error("Error syncing user: {}", e.getMessage(), e);
+                log.error("Error syncing user: {}", e.getMessage(), e);
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 response.setContentType("application/json");
                 response.getWriter().write(
@@ -122,7 +122,7 @@ public class Auth0UserSyncFilter extends OncePerRequestFilter {
      */
     private void verifyEmailIfRequired(Jwt jwt, String auth0UserId) {
         if (isSocialLoginProvider(auth0UserId)) {
-            logger.debug("Social login provider - email verified by provider: {}", auth0UserId);
+            log.debug("Social login provider - email verified by provider: {}", auth0UserId);
             return;
         }
 

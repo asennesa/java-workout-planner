@@ -5,26 +5,12 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.validator.constraints.Length;
 
 import java.math.BigDecimal;
 
 /**
  * DTO for creating strength training sets.
- * 
- * Note: workoutExerciseId is NOT included here as it comes from the URL path parameter.
- * This follows REST best practices where resource identifiers belong in the URL.
- * 
- * Strength sets track:
- * - Number of repetitions (reps)
- * - Weight lifted
- * - Rest time between sets
- * 
- * All fields except notes and restTimeInSeconds are required.
- * 
- * @author WorkoutPlanner Team
- * @version 1.0
- * @since 1.0
+ * Tracks reps, weight, and optional rest time.
  */
 @Getter
 @Setter
@@ -51,7 +37,7 @@ public class CreateStrengthSetRequest {
     @Max(value = 3600, message = "Rest time cannot exceed 1 hour (3600 seconds)")
     private Integer restTimeInSeconds;
 
-    @Length(max = 500, message = "Set notes must not exceed 500 characters")
+    @Size(max = 500, message = "Set notes must not exceed 500 characters")
     private String notes;
 
     private Boolean completed = false;

@@ -7,7 +7,6 @@ import com.workoutplanner.workoutplanner.security.exception.Auth0AuthenticationE
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -18,23 +17,7 @@ import java.util.Optional;
 
 /**
  * Service for synchronizing Auth0 users with local database.
- *
- * Industry Best Practice:
- * - @Transactional for proper transaction boundaries
- * - @Cacheable with proper ordering (cache checked AFTER transaction)
- * - Returns DTO (Auth0Principal) not JPA entity
- * - Separate service class for testability
- *
- * Cache Strategy:
- * - Cache key: Auth0 user ID (stable identifier)
- * - Cache TTL: 5 minutes (configured in CacheConfig)
- * - Cache stores Auth0Principal DTO (not JPA entity)
- * - Cache eviction on user profile update
- *
- * Transaction + Cache Ordering:
- * Spring processes: @Transactional → @Cacheable
- * This means: transaction commits BEFORE cache stores result
- * Result: No stale cache on rollback
+ * Returns DTO (Auth0Principal) not JPA entity. Cache key is Auth0 user ID.
  */
 @Service
 @Profile("!test & !dev")  // Only active in production (Auth0 mode)
@@ -52,13 +35,6 @@ public class Auth0UserSyncService {
         this.audience = audience;
     }
 
-    /**
-     * Synchronizes an Auth0 user with the local database.
-     * Returns a DTO (not JPA entity) for use in SecurityContext.
-     *
-     * @param jwt the JWT token
-     * @return Auth0Principal DTO with user information
-     */
     @Transactional
     @Cacheable(value = "auth0Users", key = "#jwt.subject")
     public Auth0Principal syncUser(Jwt jwt) {
@@ -74,22 +50,9 @@ public class Auth0UserSyncService {
             user = createUser(jwt);
         }
 
-        // Return DTO, not entity
         return toAuth0Principal(user);
     }
 
-    /**
-     * Evicts a user from cache.
-     * Call this when user profile is updated via API.
-     */
-    @CacheEvict(value = "auth0Users", key = "#auth0UserId")
-    public void evictFromCache(String auth0UserId) {
-        logger.debug("Evicting user from cache: {}", auth0UserId);
-    }
-
-    /**
-     * Converts JPA entity to DTO for SecurityContext.
-     */
     private Auth0Principal toAuth0Principal(User user) {
         return new Auth0Principal(
             user.getUserId(),
@@ -102,9 +65,6 @@ public class Auth0UserSyncService {
         );
     }
 
-    /**
-     * Creates a new user from JWT claims.
-     */
     private User createUser(Jwt jwt) {
         User user = new User();
         user.setAuth0UserId(jwt.getSubject());
@@ -122,9 +82,6 @@ public class Auth0UserSyncService {
         return savedUser;
     }
 
-    /**
-     * Updates user profile if JWT claims have changed.
-     */
     private User updateUserIfNeeded(User user, Jwt jwt) {
         boolean updated = false;
 
@@ -162,8 +119,6 @@ public class Auth0UserSyncService {
 
         return user;
     }
-
-    // ==================== JWT Claim Extractors ====================
 
     private String extractEmail(Jwt jwt) {
         String email = jwt.getClaimAsString("email");

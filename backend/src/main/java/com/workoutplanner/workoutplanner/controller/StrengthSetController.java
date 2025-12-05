@@ -9,43 +9,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * REST Controller for Strength Set operations.
- * 
- * Provides endpoints for managing strength training sets including:
- * - Weight lifted
- * - Number of repetitions
- * - Set completion tracking
- * 
- * All CRUD operations are inherited from BaseSetController.
- * 
- * Following REST best practices with fully nested resource hierarchy:
- * Endpoint: /api/v1/workout-exercises/{workoutExerciseId}/strength-sets
- * 
- * This shows clear parent-child relationship: strength sets belong to a workout exercise.
- * 
- * @see BaseSetController for available operations
+ * Controller for strength set operations. Inherits CRUD from {@link BaseSetController}.
  */
 @RestController
 @RequestMapping(ApiVersionConstants.V1_BASE_PATH + "/workout-exercises/{workoutExerciseId}/strength-sets")
-@Tag(name = "Strength Sets", description = "Endpoints for managing strength training sets (weight, repetitions, etc.)")
+@Tag(name = "Strength Sets", description = "Manage strength training sets (weight, repetitions)")
 public class StrengthSetController extends BaseSetController<CreateStrengthSetRequest> {
 
     private final StrengthSetService strengthSetService;
 
-    /**
-     * Constructor with dependency injection.
-     * 
-     * @param strengthSetService the strength set service
-     */
     public StrengthSetController(StrengthSetService strengthSetService) {
         this.strengthSetService = strengthSetService;
     }
 
-    /**
-     * Provides the strength set service implementation.
-     * 
-     * @return StrengthSetService instance
-     */
     @Override
     protected SetServiceInterface<CreateStrengthSetRequest> getService() {
         return strengthSetService;

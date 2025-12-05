@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Test Data Builder utility for creating test objects.
@@ -35,21 +35,27 @@ import java.util.Map;
  * - Setting IDs on new entities can cause JPA/Hibernate issues
  */
 public class TestDataBuilder {
-    
+
+    // Counter for generating unique IDs in test data
+    private static final AtomicLong USER_COUNTER = new AtomicLong(0);
+
     // ==================== USER BUILDERS ====================
-    
+
     /**
      * Creates a NEW user ready to be saved (no ID set).
      * Use this when testing user creation or saving new users.
-     * 
+     * Each call generates unique auth0_user_id, username, and email to avoid conflicts.
+     *
      * @return User entity without ID (ready for persistence)
      */
     public static User createNewUser() {
+        long counter = USER_COUNTER.incrementAndGet();
         User user = new User();
         // No ID set - this is a new entity
-        user.setAuth0UserId("auth0|507f1f77bcf86cd799439011");
-        user.setUsername("testuser");
-        user.setEmail("test@example.com");
+        // Use counter to ensure unique values for auth0_user_id, username, and email
+        user.setAuth0UserId("auth0|507f1f77bcf86cd799439" + String.format("%03d", counter));
+        user.setUsername("testuser" + counter);
+        user.setEmail("test" + counter + "@example.com");
         user.setFirstName("Test");
         user.setLastName("User");
         user.setRole(UserRole.USER);
@@ -210,18 +216,6 @@ public class TestDataBuilder {
         return workout;
     }
     
-    /**
-     * Creates a completed workout session.
-     */
-    public static WorkoutSession createCompletedWorkout(User user, LocalDateTime startedAt, LocalDateTime completedAt) {
-        WorkoutSession workout = createNewWorkoutSession(user);
-        workout.setStatus(WorkoutStatus.COMPLETED);
-        workout.setStartedAt(startedAt);
-        workout.setCompletedAt(completedAt);
-        workout.setActualDurationInMinutes(60);
-        return workout;
-    }
-    
     // ==================== DTO REQUEST BUILDERS ====================
     
     /**
@@ -237,27 +231,6 @@ public class TestDataBuilder {
         return request;
     }
     
-    /**
-     * Creates a CreateUserRequest with custom username and email.
-     */
-    public static CreateUserRequest createUserRequest(String username, String email) {
-        CreateUserRequest request = createUserRequest();
-        request.setUsername(username);
-        request.setEmail(email);
-        return request;
-    }
-    
-    /**
-     * Creates a UserUpdateRequest for testing profile updates.
-     */
-    public static UserUpdateRequest createUserUpdateRequest() {
-        UserUpdateRequest request = new UserUpdateRequest();
-        request.setFirstName("Updated");
-        request.setLastName("Name");
-        request.setEmail("updated@example.com");
-        return request;
-    }
-
     /**
      * Creates a default CreateWorkoutRequest.
      * Note: userId is no longer part of the request - it's derived from JWT token.

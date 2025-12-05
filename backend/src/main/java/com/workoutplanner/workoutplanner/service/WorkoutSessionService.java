@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
 public class WorkoutSessionService implements WorkoutSessionServiceInterface {
 
     private static final Logger logger = LoggerFactory.getLogger(WorkoutSessionService.class);
+    private static final String WORKOUT_SESSION = "Workout session";
 
     private final WorkoutSessionRepository workoutSessionRepository;
     private final WorkoutExerciseRepository workoutExerciseRepository;
@@ -130,7 +131,7 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
     @PreAuthorize("@resourceSecurityService.canAccessWorkout(#sessionId)")
     public WorkoutResponse getWorkoutSessionById(Long sessionId) {
         WorkoutSession workoutSession = workoutSessionRepository.findWithUserBySessionId(sessionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
+                .orElseThrow(() -> new ResourceNotFoundException(WORKOUT_SESSION, "ID", sessionId));
 
         return workoutMapper.toWorkoutResponse(workoutSession);
     }
@@ -145,7 +146,7 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
     @Transactional(readOnly = true)
     @PreAuthorize("@userService.isCurrentUser(#userId) or hasAuthority('read:users')")
     public List<WorkoutResponse> getWorkoutSessionsByUserId(Long userId) {
-        List<WorkoutSession> workoutSessions = workoutSessionRepository.findByUser_UserIdOrderByStartedAtDesc(userId);
+        List<WorkoutSession> workoutSessions = workoutSessionRepository.findByUserIdOrderByStartedAtDesc(userId);
         return workoutMapper.toWorkoutResponseList(workoutSessions);
     }
 
@@ -163,7 +164,7 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
 
         logger.debug("Getting workouts for current user. userId={}", userId);
 
-        List<WorkoutSession> workoutSessions = workoutSessionRepository.findByUser_UserIdOrderByStartedAtDesc(userId);
+        List<WorkoutSession> workoutSessions = workoutSessionRepository.findByUserIdOrderByStartedAtDesc(userId);
         return workoutMapper.toWorkoutResponseList(workoutSessions);
     }
 
@@ -180,39 +181,39 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
         
         // Load workout session with user
         WorkoutSession workoutSession = workoutSessionRepository.findWithUserBySessionId(sessionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
+                .orElseThrow(() -> new ResourceNotFoundException(WORKOUT_SESSION, "ID", sessionId));
         
-        List<WorkoutExercise> exercises = workoutExerciseRepository.findByWorkoutSession_SessionIdOrderByOrderInWorkoutAsc(sessionId);
-        
+        List<WorkoutExercise> exercises = workoutExerciseRepository.findBySessionIdOrderByOrder(sessionId);
+
         loadSetsBasedOnExerciseType(sessionId, exercises);
-        
+
         workoutSession.setWorkoutExercises(exercises);
-        
-        logger.info("Successfully loaded workout session {} with {} exercises using smart loading", 
+
+        logger.info("Successfully loaded workout session {} with {} exercises using smart loading",
                    sessionId, exercises.size());
-        
+
         return workoutMapper.toWorkoutResponse(workoutSession);
     }
-    
+
     /**
      * Smart loading method that loads sets based on exercise type.
      * This prevents loading unnecessary set types and optimizes performance.
-     * 
+     *
      * @param sessionId the workout session ID
      * @param exercises the list of exercises to load sets for
      */
     private void loadSetsBasedOnExerciseType(Long sessionId, List<WorkoutExercise> exercises) {
         logger.debug("Starting smart loading for session {} with {} exercises", sessionId, exercises.size());
-        
-        Map<Long, WorkoutExercise> strengthExercises = workoutExerciseRepository.findStrengthExercisesWithSetsByWorkoutSession_SessionIdAndExercise_TypeOrderByOrderInWorkoutAsc(sessionId, "STRENGTH")
+
+        Map<Long, WorkoutExercise> strengthExercises = workoutExerciseRepository.findStrengthExercisesWithSets(sessionId, "STRENGTH")
                 .stream().collect(Collectors.toMap(WorkoutExercise::getWorkoutExerciseId, Function.identity()));
         logger.debug("Loaded {} strength exercises with sets", strengthExercises.size());
-        
-        Map<Long, WorkoutExercise> cardioExercises = workoutExerciseRepository.findCardioExercisesWithSetsByWorkoutSession_SessionIdAndExercise_TypeOrderByOrderInWorkoutAsc(sessionId, "CARDIO")
+
+        Map<Long, WorkoutExercise> cardioExercises = workoutExerciseRepository.findCardioExercisesWithSets(sessionId, "CARDIO")
                 .stream().collect(Collectors.toMap(WorkoutExercise::getWorkoutExerciseId, Function.identity()));
         logger.debug("Loaded {} cardio exercises with sets", cardioExercises.size());
-        
-        Map<Long, WorkoutExercise> flexibilityExercises = workoutExerciseRepository.findFlexibilityExercisesWithSetsByWorkoutSession_SessionIdAndExercise_TypeOrderByOrderInWorkoutAsc(sessionId, "FLEXIBILITY")
+
+        Map<Long, WorkoutExercise> flexibilityExercises = workoutExerciseRepository.findFlexibilityExercisesWithSets(sessionId, "FLEXIBILITY")
                 .stream().collect(Collectors.toMap(WorkoutExercise::getWorkoutExerciseId, Function.identity()));
         logger.debug("Loaded {} flexibility exercises with sets", flexibilityExercises.size());
         
@@ -272,7 +273,7 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
             validateWorkoutDates(updateWorkoutRequest.getStartedAt(), updateWorkoutRequest.getCompletedAt());
             
             WorkoutSession workoutSession = workoutSessionRepository.findById(sessionId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
+                    .orElseThrow(() -> new ResourceNotFoundException(WORKOUT_SESSION, "ID", sessionId));
 
             workoutMapper.updateEntity(updateWorkoutRequest, workoutSession);
 
@@ -305,7 +306,7 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
             logger.debug("SERVICE: Updating workout session status. sessionId={}, newStatus={}", sessionId, status);
             
             WorkoutSession workoutSession = workoutSessionRepository.findById(sessionId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
+                    .orElseThrow(() -> new ResourceNotFoundException(WORKOUT_SESSION, "ID", sessionId));
 
             WorkoutStatus oldStatus = workoutSession.getStatus();
             handleStatusTransition(workoutSession, status);
@@ -326,6 +327,7 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
         }
     }
 
+    @Transactional
     @PreAuthorize("@resourceSecurityService.canModifyWorkout(#sessionId)")
     public WorkoutResponse performAction(Long sessionId, String action) {
         WorkoutStatus status = switch (action.toLowerCase()) {
@@ -335,7 +337,36 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
             case "cancel" -> WorkoutStatus.CANCELLED;
             default -> throw new IllegalArgumentException("Invalid action: " + action);
         };
-        return updateWorkoutSessionStatus(sessionId, status);
+        return performStatusUpdate(sessionId, status);
+    }
+
+    /**
+     * Internal method for status updates to avoid self-invocation of @Transactional methods.
+     */
+    private WorkoutResponse performStatusUpdate(Long sessionId, WorkoutStatus status) {
+        try {
+            logger.debug("SERVICE: Updating workout session status. sessionId={}, newStatus={}", sessionId, status);
+
+            WorkoutSession workoutSession = workoutSessionRepository.findById(sessionId)
+                    .orElseThrow(() -> new ResourceNotFoundException(WORKOUT_SESSION, "ID", sessionId));
+
+            WorkoutStatus oldStatus = workoutSession.getStatus();
+            handleStatusTransition(workoutSession, status);
+            workoutSession.setStatus(status);
+
+            WorkoutSession savedWorkoutSession = workoutSessionRepository.save(workoutSession);
+
+            logger.info("SERVICE: Workout session status updated. sessionId={}, oldStatus={}, newStatus={}",
+                       sessionId, oldStatus, status);
+
+            return workoutMapper.toWorkoutResponse(savedWorkoutSession);
+
+        } catch (ObjectOptimisticLockingFailureException e) {
+            logger.warn("Optimistic lock conflict when updating workout session status {}: {}", sessionId, e.getMessage());
+            throw new OptimisticLockConflictException(
+                "The workout session was modified by another user. Please refresh and try again."
+            );
+        }
     }
 
     /**
@@ -349,44 +380,12 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
         logger.debug("SERVICE: Soft deleting workout session. sessionId={}", sessionId);
         
         WorkoutSession workoutSession = workoutSessionRepository.findById(sessionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
+                .orElseThrow(() -> new ResourceNotFoundException(WORKOUT_SESSION, "ID", sessionId));
 
-        String name = workoutSession.getName();
-        WorkoutStatus status = workoutSession.getStatus();
-        Long userId = workoutSession.getUser().getUserId();
-        
         workoutSession.softDelete();
         workoutSessionRepository.save(workoutSession);
-        
-        logger.info("SERVICE: Workout session soft deleted successfully. sessionId={}, name={}, status={}, userId={}", 
-                   sessionId, name, status, userId);
-    }
-    
-    /**
-     * Restore a soft deleted workout session.
-     * 
-     * @param sessionId the workout session ID
-     * @throws ResourceNotFoundException if workout session not found
-     */
-    @Transactional
-    public void restoreWorkoutSession(Long sessionId) {
-        logger.debug("SERVICE: Restoring soft deleted workout session. sessionId={}", sessionId);
-        
-        // Use findByIdIncludingDeleted because we need to access the deleted session to restore it
-        WorkoutSession workoutSession = workoutSessionRepository.findByIdIncludingDeleted(sessionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
-        
-        if (workoutSession.isActive()) {
-            logger.warn("SERVICE: Workout session is already active. sessionId={}", sessionId);
-            throw new BusinessLogicException("Workout session is not deleted and cannot be restored");
-        }
-        
-        String name = workoutSession.getName();
-        workoutSession.restore();
-        workoutSessionRepository.save(workoutSession);
-        
-        logger.info("SERVICE: Workout session restored successfully. sessionId={}, name={}", 
-                   sessionId, name);
+
+        logger.info("Workout session deleted: sessionId={}", sessionId);
     }
 
     /**
@@ -403,7 +402,7 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
     @PreAuthorize("@resourceSecurityService.canModifyWorkout(#sessionId)")
     public WorkoutExerciseResponse addExerciseToWorkout(Long sessionId, CreateWorkoutExerciseRequest createWorkoutExerciseRequest) {
         WorkoutSession workoutSession = workoutSessionRepository.findById(sessionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Workout session", "ID", sessionId));
+                .orElseThrow(() -> new ResourceNotFoundException(WORKOUT_SESSION, "ID", sessionId));
 
         Exercise exercise = exerciseRepository.findById(createWorkoutExerciseRequest.getExerciseId())
                 .orElseThrow(() -> new ResourceNotFoundException("Exercise", "ID", createWorkoutExerciseRequest.getExerciseId()));
@@ -464,7 +463,7 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
     @Transactional(readOnly = true)
     @PreAuthorize("@resourceSecurityService.canAccessWorkout(#sessionId)")
     public List<WorkoutExerciseResponse> getWorkoutExercises(Long sessionId) {
-        List<WorkoutExercise> workoutExercises = workoutExerciseRepository.findByWorkoutSession_SessionIdOrderByOrderInWorkoutAsc(sessionId);
+        List<WorkoutExercise> workoutExercises = workoutExerciseRepository.findBySessionIdOrderByOrder(sessionId);
         return workoutMapper.toWorkoutExerciseResponseList(workoutExercises);
     }
 
@@ -526,8 +525,7 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
                     }
                 }
                 break;
-            case CANCELLED:
-            case PAUSED:
+            case CANCELLED, PAUSED:
                 break;
             case PLANNED:
                 workoutSession.setStartedAt(null);

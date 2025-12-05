@@ -1,12 +1,14 @@
 package com.workoutplanner.workoutplanner.integration;
 
 import com.workoutplanner.workoutplanner.config.AbstractIntegrationTest;
+import com.workoutplanner.workoutplanner.config.TestSecurityConfig;
 import com.workoutplanner.workoutplanner.dto.request.CreateWorkoutRequest;
 import com.workoutplanner.workoutplanner.dto.request.WorkoutActionRequest;
 import com.workoutplanner.workoutplanner.entity.User;
 import com.workoutplanner.workoutplanner.enums.UserRole;
 import com.workoutplanner.workoutplanner.enums.WorkoutStatus;
 import com.workoutplanner.workoutplanner.repository.UserRepository;
+import com.workoutplanner.workoutplanner.repository.WorkoutSessionRepository;
 import com.workoutplanner.workoutplanner.util.TestDataBuilder;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.AfterEach;
@@ -14,13 +16,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
 /**
  * API Integration tests for WorkoutSession endpoints.
- * 
+ *
  * Industry Best Practices Demonstrated:
  * 1. Use REST Assured for API testing
  * 2. Test complete request-response cycle
@@ -29,62 +33,58 @@ import static org.hamcrest.Matchers.*;
  * 5. Test validation errors
  * 6. Test CORS headers
  * 7. Test pagination
- * 
+ *
  * Testing Philosophy:
  * - Integration tests verify the entire application stack works together
  * - Test from HTTP request to database and back
  * - Verify API contracts (status codes, response format)
  * - Test real-world scenarios and workflows
+ *
+ * NOTE: This class disables @Transactional because REST Assured HTTP calls
+ * execute in separate transactions. Data must be committed for HTTP endpoints
+ * to see it. Manual cleanup is performed in @AfterEach.
  */
 @DisplayName("Workout Session API Integration Tests")
+@Transactional(propagation = Propagation.NOT_SUPPORTED) // Disable inherited @Transactional for REST Assured tests
 class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
     
     @Autowired
     private UserRepository userRepository;
-    
+
+    @Autowired
+    private WorkoutSessionRepository workoutSessionRepository;
+
     private User testUser;
 
     @BeforeEach
     void setUpUser() {
         // Create test user for integration tests
+        // Using saveAndFlush to ensure the user is committed to the database
+        // before REST Assured makes HTTP calls (which run in separate transactions)
         testUser = TestDataBuilder.createNewUser(); // For repository.save()
         testUser.setRole(UserRole.USER);
-        testUser = userRepository.save(testUser);
+        testUser = userRepository.saveAndFlush(testUser);
+
+        // Configure the TestAuthFilter to use this user's ID for authentication
+        // This ensures the authenticated user matches the test user in the database
+        TestSecurityConfig.TestAuthFilter.setTestUserId(testUser.getUserId());
     }
     
     /**
      * CRITICAL FIX: Manual cleanup required for API integration tests.
-     * 
+     *
      * @Transactional rollback doesn't work with REST Assured because HTTP calls
      * execute in separate transactions. We must manually clean up test data
      * to prevent test pollution and ensure test isolation.
-     * 
+     *
      * Note: Delete in reverse order of foreign key dependencies.
      */
     @AfterEach
     void cleanUpTestData() {
         // Clean up in reverse order of dependencies
         // WorkoutSessions reference Users, so delete workouts first
-        try {
-            given()
-                
-            .when()
-                .get("/workouts")
-            .then()
-                .extract()
-                .jsonPath()
-                .getList("content.sessionId", Long.class)
-                .forEach(sessionId -> {
-                    given()
-                        
-                    .when()
-                        .delete("/workouts/" + sessionId);
-                });
-        } catch (Exception e) {
-            // Ignore errors during cleanup
-        }
-        
-        // Clean up users
+        // Using repository directly for reliable cleanup
+        workoutSessionRepository.deleteAll();
         userRepository.deleteAll();
     }
     
@@ -198,7 +198,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
             .body("content", hasSize(3))
             .body("totalElements", equalTo(3))
             .body("totalPages", equalTo(1))
-            .body("currentPage", equalTo(0));
+            .body("pageNumber", equalTo(0));
     }
     
     @Test

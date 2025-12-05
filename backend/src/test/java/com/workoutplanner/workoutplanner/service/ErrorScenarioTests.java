@@ -279,13 +279,14 @@ class ErrorScenarioTests {
         @DisplayName("Should handle null return from repository gracefully")
         void shouldHandleNullReturnFromRepositoryGracefully() {
             // Arrange - Simulate repository returning empty Optional (not found)
-            when(workoutSessionRepository.findById(1L)).thenReturn(Optional.empty());
-            
+            // Service uses findWithUserBySessionId, not findById
+            when(workoutSessionRepository.findWithUserBySessionId(1L)).thenReturn(Optional.empty());
+
             // Act & Assert - Should throw ResourceNotFoundException (correct behavior)
             assertThatThrownBy(() -> workoutSessionService.getWorkoutSessionById(1L))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Workout session not found");
-            
+
             // NOTE: Service correctly handles missing data by throwing domain exception
             // This is better than letting NullPointerException bubble up
         }
@@ -305,25 +306,5 @@ class ErrorScenarioTests {
         }
     }
     
-    // ==================== STATE TRANSITION ERROR TESTS ====================
-    
-    @Nested
-    @DisplayName("State Transition Error Tests")
-    class StateTransitionErrorTests {
-        
-        @Test
-        @DisplayName("Should prevent invalid state transitions")
-        void shouldPreventInvalidStateTransitions() {
-            // Example: Can't complete a workout that's already completed
-            // This would test business rule validation
-            
-            // Documentation placeholder for state machine testing
-            // In real implementation:
-            // - Test PLANNED -> IN_PROGRESS (valid)
-            // - Test IN_PROGRESS -> COMPLETED (valid)
-            // - Test COMPLETED -> IN_PROGRESS (invalid)
-            // - Test PLANNED -> COMPLETED (might be invalid)
-        }
-    }
 }
 

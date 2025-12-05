@@ -20,27 +20,19 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Service implementation for managing strength set operations.
- * Handles business logic for strength sets.
- * 
- * Uses method-level @Transactional for optimal performance:
- * - Read operations use @Transactional(readOnly = true) for better performance
- * - Write operations use @Transactional for data modification
+ * Service for managing strength set operations.
  */
 @Service
-public class StrengthSetService implements StrengthSetServiceInterface {
+public class StrengthSetService implements SetServiceInterface<CreateStrengthSetRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(StrengthSetService.class);
+    private static final String STRENGTH_SET = "Strength set";
 
     private final StrengthSetRepository strengthSetRepository;
     private final WorkoutExerciseRepository workoutExerciseRepository;
     private final WorkoutMapper workoutMapper;
     private final BaseSetMapper baseSetMapper;
 
-    /**
-     * Constructor injection for dependencies.
-     * Makes dependencies explicit, immutable, and easier to test.
-     */
     public StrengthSetService(StrengthSetRepository strengthSetRepository,
                              WorkoutExerciseRepository workoutExerciseRepository,
                              WorkoutMapper workoutMapper,
@@ -51,29 +43,17 @@ public class StrengthSetService implements StrengthSetServiceInterface {
         this.baseSetMapper = baseSetMapper;
     }
 
-    /**
-     * Create a new strength set.
-     * 
-     * Professional approach: workoutExerciseId is passed separately as it comes from URL path,
-     * not from the request body. This follows REST best practices.
-     *
-     * @param workoutExerciseId the workout exercise ID from URL path parameter
-     * @param createStrengthSetRequest the strength set creation request from body
-     * @return SetResponse the created strength set response
-     */
+    @Override
     @Transactional
     @PreAuthorize("@resourceSecurityService.canAccessWorkoutExercise(#workoutExerciseId)")
-    public SetResponse createSet(Long workoutExerciseId, CreateStrengthSetRequest createStrengthSetRequest) {
-        logger.debug("SERVICE: Creating strength set. workoutExerciseId={}, setNumber={}, reps={}, weight={}", 
-                    workoutExerciseId, createStrengthSetRequest.getSetNumber(),
-                    createStrengthSetRequest.getReps(), createStrengthSetRequest.getWeight());
-        
+    public SetResponse createSet(Long workoutExerciseId, CreateStrengthSetRequest request) {
+        logger.debug("Creating strength set for workoutExerciseId={}", workoutExerciseId);
+
         WorkoutExercise workoutExercise = workoutExerciseRepository.findById(workoutExerciseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Workout exercise", "ID", workoutExerciseId));
 
-        // Validate exercise type matches set type - business rule enforcement
-        if (workoutExercise.getExercise() != null && 
-            workoutExercise.getExercise().getType() != null && 
+        if (workoutExercise.getExercise() != null &&
+            workoutExercise.getExercise().getType() != null &&
             workoutExercise.getExercise().getType() != ExerciseType.STRENGTH) {
             throw new BusinessLogicException(
                 String.format("Cannot add strength sets to a %s exercise. Exercise '%s' is of type %s.",
@@ -83,129 +63,58 @@ public class StrengthSetService implements StrengthSetServiceInterface {
             );
         }
 
-        StrengthSet strengthSet = workoutMapper.toStrengthSetEntity(createStrengthSetRequest);
-        
+        StrengthSet strengthSet = workoutMapper.toStrengthSetEntity(request);
         strengthSet.setWorkoutExercise(workoutExercise);
+        StrengthSet saved = strengthSetRepository.save(strengthSet);
 
-        StrengthSet savedStrengthSet = strengthSetRepository.save(strengthSet);
-        
-        logger.info("SERVICE: Strength set created successfully. setId={}, workoutExerciseId={}, setNumber={}", 
-                   savedStrengthSet.getSetId(), savedStrengthSet.getWorkoutExercise().getWorkoutExerciseId(),
-                   savedStrengthSet.getSetNumber());
-        
-        return baseSetMapper.toSetResponse(savedStrengthSet);
+        logger.info("Strength set created: setId={}", saved.getSetId());
+        return baseSetMapper.toSetResponse(saved);
     }
 
-    /**
-     * Get strength set by ID.
-     *
-     * @param setId the set ID
-     * @return SetResponse the strength set response
-     */
+    @Override
     @Transactional(readOnly = true)
     public SetResponse getSetById(Long setId) {
         StrengthSet strengthSet = strengthSetRepository.findById(setId)
-                .orElseThrow(() -> new ResourceNotFoundException("Strength set", "ID", setId));
-
+                .orElseThrow(() -> new ResourceNotFoundException(STRENGTH_SET, "ID", setId));
         return baseSetMapper.toSetResponse(strengthSet);
     }
 
-    /**
-     * Get strength sets by workout exercise ID.
-     *
-     * @param workoutExerciseId the workout exercise ID
-     * @return List of SetResponse
-     */
+    @Override
     @Transactional(readOnly = true)
     @PreAuthorize("@resourceSecurityService.canAccessWorkoutExercise(#workoutExerciseId)")
     public List<SetResponse> getSetsByWorkoutExercise(Long workoutExerciseId) {
-        List<StrengthSet> strengthSets = strengthSetRepository.findByWorkoutExercise_WorkoutExerciseIdOrderBySetNumberAsc(workoutExerciseId);
-        return baseSetMapper.toSetResponseList(strengthSets);
+        List<StrengthSet> sets = strengthSetRepository.findByWorkoutExerciseIdOrderBySetNumber(workoutExerciseId);
+        return baseSetMapper.toSetResponseList(sets);
     }
 
-    /**
-     * Update strength set.
-     *
-     * @param setId the set ID
-     * @param createStrengthSetRequest the updated strength set information
-     * @return SetResponse the updated strength set response
-     */
+    @Override
     @Transactional
     @PreAuthorize("@resourceSecurityService.canAccessStrengthSet(#setId)")
-    public SetResponse updateSet(Long setId, CreateStrengthSetRequest createStrengthSetRequest) {
-        logger.debug("SERVICE: Updating strength set. setId={}, reps={}, weight={}", 
-                    setId, createStrengthSetRequest.getReps(), createStrengthSetRequest.getWeight());
-        
+    public SetResponse updateSet(Long setId, CreateStrengthSetRequest request) {
+        logger.debug("Updating strength set: setId={}", setId);
+
         StrengthSet strengthSet = strengthSetRepository.findById(setId)
-                .orElseThrow(() -> new ResourceNotFoundException("Strength set", "ID", setId));
+                .orElseThrow(() -> new ResourceNotFoundException(STRENGTH_SET, "ID", setId));
 
-        workoutMapper.updateStrengthSetEntity(createStrengthSetRequest, strengthSet);
+        workoutMapper.updateStrengthSetEntity(request, strengthSet);
+        StrengthSet saved = strengthSetRepository.save(strengthSet);
 
-        StrengthSet savedStrengthSet = strengthSetRepository.save(strengthSet);
-        
-        logger.info("SERVICE: Strength set updated successfully. setId={}, setNumber={}", 
-                   savedStrengthSet.getSetId(), savedStrengthSet.getSetNumber());
-        
-        return baseSetMapper.toSetResponse(savedStrengthSet);
+        logger.info("Strength set updated: setId={}", saved.getSetId());
+        return baseSetMapper.toSetResponse(saved);
     }
 
-    /**
-     * Delete strength set.
-     *
-     * @param setId the set ID
-     */
+    @Override
     @Transactional
     @PreAuthorize("@resourceSecurityService.canAccessStrengthSet(#setId)")
     public void deleteSet(Long setId) {
-        logger.debug("SERVICE: Soft deleting strength set. setId={}", setId);
-        
-        StrengthSet strengthSet = strengthSetRepository.findById(setId)
-                .orElseThrow(() -> new ResourceNotFoundException("Strength set", "ID", setId));
+        logger.debug("Soft deleting strength set: setId={}", setId);
 
-        Integer setNumber = strengthSet.getSetNumber();
-        Long workoutExerciseId = strengthSet.getWorkoutExercise().getWorkoutExerciseId();
-        
+        StrengthSet strengthSet = strengthSetRepository.findById(setId)
+                .orElseThrow(() -> new ResourceNotFoundException(STRENGTH_SET, "ID", setId));
+
         strengthSet.softDelete();
         strengthSetRepository.save(strengthSet);
-        
-        logger.info("SERVICE: Strength set soft deleted successfully. setId={}, workoutExerciseId={}, setNumber={}", 
-                   setId, workoutExerciseId, setNumber);
-    }
-    
-    /**
-     * Restore a soft deleted strength set.
-     * 
-     * @param setId the set ID
-     * @throws ResourceNotFoundException if strength set not found
-     */
-    @Transactional
-    public void restoreSet(Long setId) {
-        logger.debug("SERVICE: Restoring soft deleted strength set. setId={}", setId);
-        
-        // Use findByIdIncludingDeleted because we need to access the deleted set to restore it
-        StrengthSet strengthSet = strengthSetRepository.findByIdIncludingDeleted(setId)
-                .orElseThrow(() -> new ResourceNotFoundException("Strength set", "ID", setId));
-        
-        if (strengthSet.isActive()) {
-            logger.warn("SERVICE: Strength set is already active. setId={}", setId);
-            throw new BusinessLogicException("Strength set is not deleted and cannot be restored");
-        }
-        
-        strengthSet.restore();
-        strengthSetRepository.save(strengthSet);
-        
-        logger.info("SERVICE: Strength set restored successfully. setId={}", setId);
-    }
 
-    /**
-     * Get all strength sets for a workout session.
-     *
-     * @param sessionId the workout session ID
-     * @return List of SetResponse
-     */
-    @Transactional(readOnly = true)
-    public List<SetResponse> getSetsByWorkoutSession(Long sessionId) {
-        List<StrengthSet> strengthSets = strengthSetRepository.findByWorkoutExercise_WorkoutSession_SessionId(sessionId);
-        return baseSetMapper.toSetResponseList(strengthSets);
+        logger.info("Strength set deleted: setId={}", setId);
     }
 }

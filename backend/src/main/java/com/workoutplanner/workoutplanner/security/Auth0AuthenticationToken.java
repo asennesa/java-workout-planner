@@ -5,18 +5,10 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.util.Collection;
+import java.util.Objects;
 
 /**
  * Custom authentication token for Auth0 authenticated users.
- *
- * Industry Best Practice:
- * - Extends AbstractAuthenticationToken for Spring Security integration
- * - Contains Auth0Principal DTO (not JPA entity)
- * - Immutable after construction
- * - Holds JWT for token forwarding to downstream services
- *
- * This token replaces JwtAuthenticationToken in the SecurityContext
- * after Auth0UserSyncFilter processes the request.
  */
 public class Auth0AuthenticationToken extends AbstractAuthenticationToken {
 
@@ -43,36 +35,21 @@ public class Auth0AuthenticationToken extends AbstractAuthenticationToken {
         return principal;
     }
 
-    /**
-     * Gets the JWT token for forwarding to downstream services.
-     */
-    public Jwt getJwt() {
-        return jwt;
-    }
-
-    /**
-     * Gets the user's database ID.
-     */
-    public Long getUserId() {
-        return principal.userId();
-    }
-
-    /**
-     * Gets the Auth0 user ID.
-     */
-    public String getAuth0UserId() {
-        return principal.auth0UserId();
-    }
-
-    /**
-     * Gets the user's email.
-     */
-    public String getEmail() {
-        return principal.email();
-    }
-
     @Override
     public String getName() {
         return principal.getName();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Auth0AuthenticationToken that)) return false;
+        if (!super.equals(o)) return false;
+        return Objects.equals(principal, that.principal) && Objects.equals(jwt, that.jwt);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), principal, jwt);
     }
 }
