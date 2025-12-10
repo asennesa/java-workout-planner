@@ -10,7 +10,6 @@ import com.workoutplanner.workoutplanner.enums.WorkoutStatus;
 import com.workoutplanner.workoutplanner.repository.UserRepository;
 import com.workoutplanner.workoutplanner.repository.WorkoutSessionRepository;
 import com.workoutplanner.workoutplanner.util.TestDataBuilder;
-import io.restassured.http.ContentType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -98,9 +97,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         
         // Act & Assert
         given()
-            
-            .contentType(ContentType.JSON)
-            .body(request)
+                .body(request)
         .when()
             .post("/workouts")
         .then()
@@ -120,9 +117,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         
         // Act & Assert
         given()
-            
-            .contentType(ContentType.JSON)
-            .body(request)
+                .body(request)
         .when()
             .post("/workouts")
         .then()
@@ -137,9 +132,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         // Arrange - Create a workout first
         CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
         Integer workoutId = given()
-            
-            .contentType(ContentType.JSON)
-            .body(createRequest)
+                .body(createRequest)
         .when()
             .post("/workouts")
         .then()
@@ -177,8 +170,6 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
             CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
             request.setName("Workout " + i);
             given()
-                
-                .contentType(ContentType.JSON)
                 .body(request)
             .when()
                 .post("/workouts")
@@ -207,9 +198,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         // Arrange
         CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
         given()
-            
-            .contentType(ContentType.JSON)
-            .body(request)
+                .body(request)
         .when()
             .post("/workouts")
         .then()
@@ -234,9 +223,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         // Arrange - Create a workout first
         CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
         Integer workoutId = given()
-            
-            .contentType(ContentType.JSON)
-            .body(createRequest)
+                .body(createRequest)
         .when()
             .post("/workouts")
         .then()
@@ -250,9 +237,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         
         // Act & Assert
         given()
-            
-            .contentType(ContentType.JSON)
-            .body(updateRequest)
+                .body(updateRequest)
         .when()
             .put("/workouts/" + workoutId)
         .then()
@@ -268,9 +253,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         // Arrange - Create a workout first
         CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
         Integer workoutId = given()
-            
-            .contentType(ContentType.JSON)
-            .body(createRequest)
+                .body(createRequest)
         .when()
             .post("/workouts")
         .then()
@@ -283,9 +266,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         
         // Act & Assert
         given()
-            
-            .contentType(ContentType.JSON)
-            .body(actionRequest)
+                .body(actionRequest)
         .when()
             .patch("/workouts/" + workoutId + "/status")
         .then()
@@ -299,9 +280,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         // Arrange
         CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
         Integer workoutId = given()
-            
-            .contentType(ContentType.JSON)
-            .body(createRequest)
+                .body(createRequest)
         .when()
             .post("/workouts")
         .then()
@@ -313,9 +292,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         
         // Act & Assert
         given()
-            
-            .contentType(ContentType.JSON)
-            .body(actionRequest)
+                .body(actionRequest)
         .when()
             .patch("/workouts/" + workoutId + "/status")
         .then()
@@ -330,9 +307,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         // Arrange - Create a workout first
         CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
         Integer workoutId = given()
-            
-            .contentType(ContentType.JSON)
-            .body(createRequest)
+                .body(createRequest)
         .when()
             .post("/workouts")
         .then()
@@ -366,9 +341,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         createRequest.setName("Full Lifecycle Workout");
         
         Integer workoutId = given()
-            
-            .contentType(ContentType.JSON)
-            .body(createRequest)
+                .body(createRequest)
         .when()
             .post("/workouts")
         .then()
@@ -381,9 +354,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         startAction.setAction("start");
         
         given()
-            
-            .contentType(ContentType.JSON)
-            .body(startAction)
+                .body(startAction)
         .when()
             .patch("/workouts/" + workoutId + "/status")
         .then()
@@ -395,9 +366,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         pauseAction.setAction("pause");
         
         given()
-            
-            .contentType(ContentType.JSON)
-            .body(pauseAction)
+                .body(pauseAction)
         .when()
             .patch("/workouts/" + workoutId + "/status")
         .then()
@@ -409,9 +378,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         resumeAction.setAction("resume");
         
         given()
-            
-            .contentType(ContentType.JSON)
-            .body(resumeAction)
+                .body(resumeAction)
         .when()
             .patch("/workouts/" + workoutId + "/status")
         .then()
@@ -423,9 +390,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         completeAction.setAction("complete");
         
         given()
-            
-            .contentType(ContentType.JSON)
-            .body(completeAction)
+                .body(completeAction)
         .when()
             .patch("/workouts/" + workoutId + "/status")
         .then()
@@ -451,4 +416,3 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
             .statusCode(204);
     }
 }
-

@@ -8,6 +8,7 @@ import com.workoutplanner.workoutplanner.dto.response.UserResponse;
 import com.workoutplanner.workoutplanner.exception.ResourceConflictException;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.service.UserService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -53,9 +54,15 @@ class UserControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
     
-    @MockitoBean
+    @MockitoBean(name = "userService")
     private UserService userService;
-    
+
+    @BeforeEach
+    void setUp() {
+        // Configure UserService.isCurrentUser to allow access in tests
+        when(userService.isCurrentUser(anyLong())).thenReturn(true);
+    }
+
     // ==================== CREATE USER TESTS ====================
     
     @Nested

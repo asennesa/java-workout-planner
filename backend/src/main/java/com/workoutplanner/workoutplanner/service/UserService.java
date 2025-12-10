@@ -12,6 +12,7 @@ import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.mapper.UserMapper;
 import com.workoutplanner.workoutplanner.repository.UserRepository;
 import com.workoutplanner.workoutplanner.repository.WorkoutSessionRepository;
+import com.workoutplanner.workoutplanner.security.Auth0AuthenticationToken;
 import com.workoutplanner.workoutplanner.util.ValidationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -203,21 +204,31 @@ public class UserService implements UserServiceInterface {
     public boolean isCurrentUser(Long userId) {
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth == null || !auth.isAuthenticated() ||
-                "anonymousUser".equals(auth.getPrincipal().toString())) {
+            if (auth == null || !auth.isAuthenticated()) {
                 return false;
             }
 
-            String currentUsername = auth.getName();
-            User user = userRepository.findById(userId).orElse(null);
-            if (user == null) {
-                return false;
+            // Admin bypass - admins can access all users
+            if (hasAuthority(auth, "read:users")) {
+                logger.debug("Admin access granted for user operation userId={}", userId);
+                return true;
             }
 
-            return currentUsername.equals(user.getUsername());
+            // Get the userId from the authenticated principal
+            if (auth instanceof Auth0AuthenticationToken auth0Token) {
+                Long currentUserId = auth0Token.getPrincipal().userId();
+                return userId.equals(currentUserId);
+            }
+
+            return false;
         } catch (Exception e) {
             logger.error("Error checking isCurrentUser for userId {}: {}", userId, e.getMessage());
             return false;
         }
+    }
+
+    private boolean hasAuthority(Authentication auth, String authority) {
+        return auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals(authority));
     }
 }

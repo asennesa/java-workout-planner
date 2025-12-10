@@ -122,10 +122,16 @@ public class ResourceSecurityService {
 
     /**
      * Check if current user can access a workout exercise.
-     * Access based on owning the parent workout session.
+     * Access based on owning the parent workout session or being an admin.
      */
     public boolean canAccessWorkoutExercise(Long workoutExerciseId) {
         try {
+            // Admin bypass - can access all workout exercises
+            if (isAdmin()) {
+                logger.debug("Admin access granted to workout exercise workoutExerciseId={}", workoutExerciseId);
+                return true;
+            }
+
             WorkoutExercise workoutExercise = workoutExerciseRepository.findById(workoutExerciseId)
                 .orElse(null);
 
@@ -170,18 +176,24 @@ public class ResourceSecurityService {
 
     /**
      * Check if current user can access a strength set.
-     * Access based on owning the parent workout.
+     * Access based on owning the parent workout or being an admin.
      */
     public boolean canAccessStrengthSet(Long setId) {
         try {
+            // Admin bypass - can access all sets
+            if (isAdmin()) {
+                logger.debug("Admin access granted to strength set setId={}", setId);
+                return true;
+            }
+
             StrengthSet set = strengthSetRepository.findById(setId).orElse(null);
             if (set == null) {
                 return false;
             }
-            
+
             Long sessionId = set.getWorkoutExercise().getWorkoutSession().getSessionId();
             return canAccessWorkout(sessionId);
-            
+
         } catch (Exception e) {
             logger.error("Error checking strength set access: {}", e.getMessage());
             return false;
@@ -190,18 +202,24 @@ public class ResourceSecurityService {
 
     /**
      * Check if current user can access a cardio set.
-     * Access based on owning the parent workout.
+     * Access based on owning the parent workout or being an admin.
      */
     public boolean canAccessCardioSet(Long setId) {
         try {
+            // Admin bypass - can access all sets
+            if (isAdmin()) {
+                logger.debug("Admin access granted to cardio set setId={}", setId);
+                return true;
+            }
+
             CardioSet set = cardioSetRepository.findById(setId).orElse(null);
             if (set == null) {
                 return false;
             }
-            
+
             Long sessionId = set.getWorkoutExercise().getWorkoutSession().getSessionId();
             return canAccessWorkout(sessionId);
-            
+
         } catch (Exception e) {
             logger.error("Error checking cardio set access: {}", e.getMessage());
             return false;
@@ -210,18 +228,24 @@ public class ResourceSecurityService {
 
     /**
      * Check if current user can access a flexibility set.
-     * Access based on owning the parent workout.
+     * Access based on owning the parent workout or being an admin.
      */
     public boolean canAccessFlexibilitySet(Long setId) {
         try {
+            // Admin bypass - can access all sets
+            if (isAdmin()) {
+                logger.debug("Admin access granted to flexibility set setId={}", setId);
+                return true;
+            }
+
             FlexibilitySet set = flexibilitySetRepository.findById(setId).orElse(null);
             if (set == null) {
                 return false;
             }
-            
+
             Long sessionId = set.getWorkoutExercise().getWorkoutSession().getSessionId();
             return canAccessWorkout(sessionId);
-            
+
         } catch (Exception e) {
             logger.error("Error checking flexibility set access: {}", e.getMessage());
             return false;

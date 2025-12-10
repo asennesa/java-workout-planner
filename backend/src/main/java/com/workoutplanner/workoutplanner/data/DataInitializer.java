@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,8 +19,12 @@ import java.util.List;
 /**
  * Initializes the database with default exercises on application startup.
  * Only loads data if the exercises table is empty.
+ *
+ * Note: Disabled in 'test' profile to improve integration test performance.
+ * Tests that need exercises should create them explicitly in @BeforeEach.
  */
 @Component
+@Profile("!test")
 public class DataInitializer implements ApplicationRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(DataInitializer.class);

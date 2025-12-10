@@ -116,7 +116,8 @@ public class TestSecurityConfig {
                     new SimpleGrantedAuthority("delete:exercises"),
                     // User permissions (for admin-like access in tests)
                     new SimpleGrantedAuthority("read:users"),
-                    new SimpleGrantedAuthority("write:users")
+                    new SimpleGrantedAuthority("write:users"),
+                    new SimpleGrantedAuthority("delete:users")
             );
 
             Auth0AuthenticationToken auth = new Auth0AuthenticationToken(

@@ -500,13 +500,13 @@ class Auth0UserSyncServiceTest {
         void shouldConvertUserToAuth0Principal() {
             // Arrange
             Map<String, Object> claims = createBasicClaims();
+            // Include ADMIN role claim to prevent role downgrade
+            claims.put(TEST_AUDIENCE + "/role", "ADMIN");
             Jwt jwt = createJwt(claims);
             User existingUser = createExistingUser();
             existingUser.setRole(UserRole.ADMIN);
 
             when(userRepository.findByAuth0UserId(AUTH0_USER_ID)).thenReturn(Optional.of(existingUser));
-            // Mock save() in case updateUserIfNeeded needs to save changes
-            when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             // Act
             Auth0Principal result = auth0UserSyncService.syncUser(jwt);
@@ -519,6 +519,9 @@ class Auth0UserSyncServiceTest {
             assertThat(result.firstName()).isEqualTo("Test");
             assertThat(result.lastName()).isEqualTo("User");
             assertThat(result.role()).isEqualTo(UserRole.ADMIN);
+
+            // Since existing user matches JWT claims (including role), no save should be called
+            verify(userRepository, never()).save(any(User.class));
         }
     }
 }
