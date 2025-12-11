@@ -13,49 +13,58 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.UUID;
 
 /**
  * Test Data Builder utility for creating test objects.
- * 
+ *
  * Industry Best Practices:
  * - Centralized test data creation
  * - Clear separation between new entities (no ID) and mocked persisted entities (with ID)
  * - Default values for all required fields
  * - Easy customization of specific fields
- * 
+ * - Uses UUID for unique identifiers to prevent test pollution in parallel execution
+ *
  * METHOD NAMING CONVENTIONS:
  * - createNew*() - For NEW entities to be saved (ID = null)
  * - createPersisted*() - For MOCKED already-persisted entities (ID set)
  * - create*() - Legacy methods with IDs (deprecated for new tests)
- * 
+ *
  * USAGE GUIDELINES:
  * - Use createNew*() when testing repository.save() or service.create()
  * - Use createPersisted*() when mocking repository.findById() results
  * - Setting IDs on new entities can cause JPA/Hibernate issues
+ *
+ * @see <a href="https://docs.spring.io/spring-boot/reference/testing/spring-boot-applications.html">Spring Boot Testing</a>
  */
 public class TestDataBuilder {
 
-    // Counter for generating unique IDs in test data
-    private static final AtomicLong USER_COUNTER = new AtomicLong(0);
+    /**
+     * Generates a unique 8-character suffix using UUID.
+     * This ensures test data uniqueness even in parallel test execution.
+     */
+    private static String uniqueSuffix() {
+        return UUID.randomUUID().toString().substring(0, 8);
+    }
 
     // ==================== USER BUILDERS ====================
 
     /**
      * Creates a NEW user ready to be saved (no ID set).
      * Use this when testing user creation or saving new users.
-     * Each call generates unique auth0_user_id, username, and email to avoid conflicts.
+     * Each call generates unique auth0_user_id, username, and email using UUID to avoid conflicts
+     * even in parallel test execution.
      *
      * @return User entity without ID (ready for persistence)
      */
     public static User createNewUser() {
-        long counter = USER_COUNTER.incrementAndGet();
+        String suffix = uniqueSuffix();
         User user = new User();
         // No ID set - this is a new entity
-        // Use counter to ensure unique values for auth0_user_id, username, and email
-        user.setAuth0UserId("auth0|507f1f77bcf86cd799439" + String.format("%03d", counter));
-        user.setUsername("testuser" + counter);
-        user.setEmail("test" + counter + "@example.com");
+        // Use UUID suffix to ensure unique values for auth0_user_id, username, and email
+        user.setAuth0UserId("auth0|" + suffix);
+        user.setUsername("testuser_" + suffix);
+        user.setEmail("test_" + suffix + "@example.com");
         user.setFirstName("Test");
         user.setLastName("User");
         user.setRole(UserRole.USER);

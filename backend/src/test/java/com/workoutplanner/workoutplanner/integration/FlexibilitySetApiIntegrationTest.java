@@ -149,6 +149,91 @@ class FlexibilitySetApiIntegrationTest extends AbstractIntegrationTest {
             .then()
                 .statusCode(404);
         }
+
+        @Test
+        @DisplayName("Should return 400 for zero duration")
+        void shouldReturn400ForZeroDuration() {
+            CreateFlexibilitySetRequest request = new CreateFlexibilitySetRequest();
+            request.setSetNumber(1);
+            request.setDurationInSeconds(0); // Invalid: zero duration
+            request.setStretchType("Static");
+            request.setIntensity(3);
+
+            given()
+                .body(request)
+            .when()
+                .post(getBasePath())
+            .then()
+                .statusCode(400);
+        }
+
+        @Test
+        @DisplayName("Should return 400 for negative duration")
+        void shouldReturn400ForNegativeDuration() {
+            CreateFlexibilitySetRequest request = new CreateFlexibilitySetRequest();
+            request.setSetNumber(1);
+            request.setDurationInSeconds(-60); // Invalid: negative duration
+            request.setStretchType("Static");
+            request.setIntensity(3);
+
+            given()
+                .body(request)
+            .when()
+                .post(getBasePath())
+            .then()
+                .statusCode(400);
+        }
+
+        @Test
+        @DisplayName("Should return 400 for intensity below minimum")
+        void shouldReturn400ForIntensityBelowMinimum() {
+            CreateFlexibilitySetRequest request = new CreateFlexibilitySetRequest();
+            request.setSetNumber(1);
+            request.setDurationInSeconds(60);
+            request.setStretchType("Static");
+            request.setIntensity(0); // Invalid: below minimum (1-10 scale)
+
+            given()
+                .body(request)
+            .when()
+                .post(getBasePath())
+            .then()
+                .statusCode(400);
+        }
+
+        @Test
+        @DisplayName("Should return 400 for intensity above maximum")
+        void shouldReturn400ForIntensityAboveMaximum() {
+            CreateFlexibilitySetRequest request = new CreateFlexibilitySetRequest();
+            request.setSetNumber(1);
+            request.setDurationInSeconds(60);
+            request.setStretchType("Static");
+            request.setIntensity(11); // Invalid: above maximum (1-10 scale)
+
+            given()
+                .body(request)
+            .when()
+                .post(getBasePath())
+            .then()
+                .statusCode(400);
+        }
+
+        @Test
+        @DisplayName("Should return 400 for negative set number")
+        void shouldReturn400ForNegativeSetNumber() {
+            CreateFlexibilitySetRequest request = new CreateFlexibilitySetRequest();
+            request.setSetNumber(-1); // Invalid: negative set number
+            request.setDurationInSeconds(60);
+            request.setStretchType("Static");
+            request.setIntensity(3);
+
+            given()
+                .body(request)
+            .when()
+                .post(getBasePath())
+            .then()
+                .statusCode(400);
+        }
     }
 
     @Nested

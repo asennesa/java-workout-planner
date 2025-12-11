@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -133,6 +134,25 @@ public class ValidationExceptionHandler {
         response.put(STATUS_KEY, HttpStatus.BAD_REQUEST.value());
 
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Handles access denied exceptions from @PreAuthorize security annotations.
+     * Returned when user attempts to access resources they don't own.
+     *
+     * @param ex AccessDeniedException thrown by Spring Security
+     * @return ResponseEntity with error details and 403 FORBIDDEN
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDeniedException(AccessDeniedException ex) {
+        Map<String, Object> response = new HashMap<>();
+
+        logger.warn("EXCEPTION: Access denied: {}", ex.getMessage());
+
+        response.put(MESSAGE_KEY, "Access denied. You don't have permission to access this resource.");
+        response.put(STATUS_KEY, HttpStatus.FORBIDDEN.value());
+
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 
     /**

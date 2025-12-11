@@ -240,6 +240,43 @@ class ExerciseApiIntegrationTest extends AbstractIntegrationTest {
             .then()
                 .statusCode(400);
         }
+
+        @Test
+        @DisplayName("Should return 400 for whitespace-only search term")
+        void shouldReturn400ForWhitespaceOnlySearchTerm() {
+            given()
+                .queryParam("name", "   ")
+            .when()
+                .get("/exercises/search")
+            .then()
+                .statusCode(400);
+        }
+
+        @Test
+        @DisplayName("Should handle special characters in search safely")
+        void shouldHandleSpecialCharactersInSearchSafely() {
+            // Test SQL injection prevention - should return empty list, not error
+            given()
+                .queryParam("name", "'; DROP TABLE exercises; --")
+            .when()
+                .get("/exercises/search")
+            .then()
+                .statusCode(200)
+                .body("$", hasSize(0));
+        }
+
+        @Test
+        @DisplayName("Should handle percent and underscore wildcards safely")
+        void shouldHandleWildcardCharactersSafely() {
+            // % and _ are SQL LIKE wildcards - should be escaped
+            given()
+                .queryParam("name", "%Press%")
+            .when()
+                .get("/exercises/search")
+            .then()
+                .statusCode(200)
+                .body("$", hasSize(0)); // Should NOT match "Bench Press" since % is escaped
+        }
     }
 
     @Nested

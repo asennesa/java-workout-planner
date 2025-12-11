@@ -313,24 +313,169 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         .then()
             .statusCode(201)
             .extract().path("sessionId");
-        
+
         // Act & Assert
         given()
-            
+
         .when()
             .delete("/workouts/" + workoutId)
         .then()
             .statusCode(204);
-        
+
         // Verify deletion
         given()
-            
+
         .when()
             .get("/workouts/" + workoutId)
         .then()
             .statusCode(404);
     }
-    
+
+    // ==================== AUTHORIZATION / OWNERSHIP TESTS ====================
+
+    @Test
+    @DisplayName("GET /api/v1/workouts/{id} - Should return 403 when accessing another user's workout")
+    void shouldReturn403WhenAccessingAnotherUsersWorkout() {
+        // Arrange - Create a workout as testUser
+        CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
+        Integer workoutId = given()
+                .body(createRequest)
+        .when()
+            .post("/workouts")
+        .then()
+            .statusCode(201)
+            .extract().path("sessionId");
+
+        // Create another user and switch authentication with non-admin mode
+        User otherUser = TestDataBuilder.createNewUser();
+        otherUser.setRole(UserRole.USER);
+        otherUser = userRepository.saveAndFlush(otherUser);
+        TestSecurityConfig.TestAuthFilter.setTestUserId(otherUser.getUserId());
+        TestSecurityConfig.TestAuthFilter.setAdminMode(false); // Disable admin mode for authorization testing
+
+        // Act & Assert - Other user tries to access first user's workout
+        given()
+        .when()
+            .get("/workouts/" + workoutId)
+        .then()
+            .statusCode(403);
+
+        // Clean up - restore original user and admin mode
+        TestSecurityConfig.TestAuthFilter.setTestUserId(testUser.getUserId());
+        TestSecurityConfig.TestAuthFilter.setAdminMode(true);
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/workouts/{id} - Should return 403 when updating another user's workout")
+    void shouldReturn403WhenUpdatingAnotherUsersWorkout() {
+        // Arrange - Create a workout as testUser
+        CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
+        Integer workoutId = given()
+                .body(createRequest)
+        .when()
+            .post("/workouts")
+        .then()
+            .statusCode(201)
+            .extract().path("sessionId");
+
+        // Create another user and switch authentication with non-admin mode
+        User otherUser = TestDataBuilder.createNewUser();
+        otherUser.setRole(UserRole.USER);
+        otherUser = userRepository.saveAndFlush(otherUser);
+        TestSecurityConfig.TestAuthFilter.setTestUserId(otherUser.getUserId());
+        TestSecurityConfig.TestAuthFilter.setAdminMode(false); // Disable admin mode for authorization testing
+
+        // Update request
+        CreateWorkoutRequest updateRequest = TestDataBuilder.createWorkoutRequest();
+        updateRequest.setName("Hacked Workout");
+
+        // Act & Assert - Other user tries to update first user's workout
+        given()
+            .body(updateRequest)
+        .when()
+            .put("/workouts/" + workoutId)
+        .then()
+            .statusCode(403);
+
+        // Clean up - restore original user and admin mode
+        TestSecurityConfig.TestAuthFilter.setTestUserId(testUser.getUserId());
+        TestSecurityConfig.TestAuthFilter.setAdminMode(true);
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/workouts/{id} - Should return 403 when deleting another user's workout")
+    void shouldReturn403WhenDeletingAnotherUsersWorkout() {
+        // Arrange - Create a workout as testUser
+        CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
+        Integer workoutId = given()
+                .body(createRequest)
+        .when()
+            .post("/workouts")
+        .then()
+            .statusCode(201)
+            .extract().path("sessionId");
+
+        // Create another user and switch authentication with non-admin mode
+        User otherUser = TestDataBuilder.createNewUser();
+        otherUser.setRole(UserRole.USER);
+        otherUser = userRepository.saveAndFlush(otherUser);
+        TestSecurityConfig.TestAuthFilter.setTestUserId(otherUser.getUserId());
+        TestSecurityConfig.TestAuthFilter.setAdminMode(false); // Disable admin mode for authorization testing
+
+        // Act & Assert - Other user tries to delete first user's workout
+        given()
+        .when()
+            .delete("/workouts/" + workoutId)
+        .then()
+            .statusCode(403);
+
+        // Verify workout still exists (restore admin mode first)
+        TestSecurityConfig.TestAuthFilter.setTestUserId(testUser.getUserId());
+        TestSecurityConfig.TestAuthFilter.setAdminMode(true);
+        given()
+        .when()
+            .get("/workouts/" + workoutId)
+        .then()
+            .statusCode(200);
+    }
+
+    @Test
+    @DisplayName("PATCH /api/v1/workouts/{id}/status - Should return 403 when changing status of another user's workout")
+    void shouldReturn403WhenChangingStatusOfAnotherUsersWorkout() {
+        // Arrange - Create a workout as testUser
+        CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
+        Integer workoutId = given()
+                .body(createRequest)
+        .when()
+            .post("/workouts")
+        .then()
+            .statusCode(201)
+            .extract().path("sessionId");
+
+        // Create another user and switch authentication with non-admin mode
+        User otherUser = TestDataBuilder.createNewUser();
+        otherUser.setRole(UserRole.USER);
+        otherUser = userRepository.saveAndFlush(otherUser);
+        TestSecurityConfig.TestAuthFilter.setTestUserId(otherUser.getUserId());
+        TestSecurityConfig.TestAuthFilter.setAdminMode(false); // Disable admin mode for authorization testing
+
+        // Status update request
+        WorkoutActionRequest actionRequest = new WorkoutActionRequest();
+        actionRequest.setAction("start");
+
+        // Act & Assert - Other user tries to start first user's workout
+        given()
+            .body(actionRequest)
+        .when()
+            .patch("/workouts/" + workoutId + "/status")
+        .then()
+            .statusCode(403);
+
+        // Clean up - restore original user and admin mode
+        TestSecurityConfig.TestAuthFilter.setTestUserId(testUser.getUserId());
+        TestSecurityConfig.TestAuthFilter.setAdminMode(true);
+    }
+
     // ==================== COMPLETE WORKFLOW TEST ====================
     
     @Test

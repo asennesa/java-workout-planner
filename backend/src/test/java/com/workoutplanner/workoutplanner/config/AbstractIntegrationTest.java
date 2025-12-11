@@ -1,6 +1,7 @@
 package com.workoutplanner.workoutplanner.config;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Timeout;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -13,6 +14,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
 
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * Abstract base class for integration tests using Testcontainers.
@@ -49,6 +52,7 @@ import io.restassured.http.ContentType;
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 @Transactional // Rollback for repository/JPA tests (NOT for REST Assured!)
+@Timeout(value = 30, unit = TimeUnit.SECONDS) // Prevent tests from hanging indefinitely
 public abstract class AbstractIntegrationTest {
 
     /**

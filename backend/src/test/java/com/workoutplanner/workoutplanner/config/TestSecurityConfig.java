@@ -65,6 +65,7 @@ public class TestSecurityConfig {
         private static final Logger log = LoggerFactory.getLogger(TestAuthFilter.class);
 
         private static Long testUserId = 1L;
+        private static boolean adminMode = true; // Default to admin mode for backward compatibility
 
         private final SecurityContextHolderStrategy securityContextHolderStrategy =
             SecurityContextHolder.getContextHolderStrategy();
@@ -79,6 +80,21 @@ public class TestSecurityConfig {
 
         public static Long getTestUserId() {
             return testUserId;
+        }
+
+        /**
+         * Enable or disable admin mode.
+         * When true (default): Test user has admin permissions (read:users, write:users, delete:users)
+         * When false: Test user has only regular user permissions (for testing ownership-based authorization)
+         *
+         * @param enabled true for admin mode, false for regular user mode
+         */
+        public static void setAdminMode(boolean enabled) {
+            adminMode = enabled;
+        }
+
+        public static boolean isAdminMode() {
+            return adminMode;
         }
 
         @Override
@@ -103,22 +119,38 @@ public class TestSecurityConfig {
                     Map.of("sub", "auth0|test-user-" + testUserId)
             );
 
-            // Grant all authorities needed for testing - includes both role and permissions
-            List<SimpleGrantedAuthority> authorities = List.of(
-                    new SimpleGrantedAuthority("ROLE_USER"),
-                    // Workout permissions
-                    new SimpleGrantedAuthority("read:workouts"),
-                    new SimpleGrantedAuthority("write:workouts"),
-                    new SimpleGrantedAuthority("delete:workouts"),
-                    // Exercise permissions
-                    new SimpleGrantedAuthority("read:exercises"),
-                    new SimpleGrantedAuthority("write:exercises"),
-                    new SimpleGrantedAuthority("delete:exercises"),
-                    // User permissions (for admin-like access in tests)
-                    new SimpleGrantedAuthority("read:users"),
-                    new SimpleGrantedAuthority("write:users"),
-                    new SimpleGrantedAuthority("delete:users")
-            );
+            // Grant authorities based on configuration
+            // Default: admin-like access (all permissions) for existing tests
+            // Can be set to non-admin mode for authorization testing
+            List<SimpleGrantedAuthority> authorities;
+            if (adminMode) {
+                authorities = List.of(
+                        new SimpleGrantedAuthority("ROLE_USER"),
+                        // Workout permissions
+                        new SimpleGrantedAuthority("read:workouts"),
+                        new SimpleGrantedAuthority("write:workouts"),
+                        new SimpleGrantedAuthority("delete:workouts"),
+                        // Exercise permissions
+                        new SimpleGrantedAuthority("read:exercises"),
+                        new SimpleGrantedAuthority("write:exercises"),
+                        new SimpleGrantedAuthority("delete:exercises"),
+                        // User permissions (admin access)
+                        new SimpleGrantedAuthority("read:users"),
+                        new SimpleGrantedAuthority("write:users"),
+                        new SimpleGrantedAuthority("delete:users")
+                );
+            } else {
+                // Non-admin mode for authorization testing
+                authorities = List.of(
+                        new SimpleGrantedAuthority("ROLE_USER"),
+                        new SimpleGrantedAuthority("read:workouts"),
+                        new SimpleGrantedAuthority("write:workouts"),
+                        new SimpleGrantedAuthority("delete:workouts"),
+                        new SimpleGrantedAuthority("read:exercises"),
+                        new SimpleGrantedAuthority("write:exercises"),
+                        new SimpleGrantedAuthority("delete:exercises")
+                );
+            }
 
             Auth0AuthenticationToken auth = new Auth0AuthenticationToken(
                     principal,

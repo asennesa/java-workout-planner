@@ -151,6 +151,74 @@ class CardioSetApiIntegrationTest extends AbstractIntegrationTest {
             .then()
                 .statusCode(404);
         }
+
+        @Test
+        @DisplayName("Should return 400 for zero duration")
+        void shouldReturn400ForZeroDuration() {
+            CreateCardioSetRequest request = new CreateCardioSetRequest();
+            request.setSetNumber(1);
+            request.setDurationInSeconds(0); // Invalid: zero duration
+            request.setDistance(new BigDecimal("5.00"));
+            request.setDistanceUnit("km");
+
+            given()
+                .body(request)
+            .when()
+                .post(getBasePath())
+            .then()
+                .statusCode(400);
+        }
+
+        @Test
+        @DisplayName("Should return 400 for negative duration")
+        void shouldReturn400ForNegativeDuration() {
+            CreateCardioSetRequest request = new CreateCardioSetRequest();
+            request.setSetNumber(1);
+            request.setDurationInSeconds(-100); // Invalid: negative duration
+            request.setDistance(new BigDecimal("5.00"));
+            request.setDistanceUnit("km");
+
+            given()
+                .body(request)
+            .when()
+                .post(getBasePath())
+            .then()
+                .statusCode(400);
+        }
+
+        @Test
+        @DisplayName("Should return 400 for negative distance")
+        void shouldReturn400ForNegativeDistance() {
+            CreateCardioSetRequest request = new CreateCardioSetRequest();
+            request.setSetNumber(1);
+            request.setDurationInSeconds(1800);
+            request.setDistance(new BigDecimal("-5.00")); // Invalid: negative distance
+            request.setDistanceUnit("km");
+
+            given()
+                .body(request)
+            .when()
+                .post(getBasePath())
+            .then()
+                .statusCode(400);
+        }
+
+        @Test
+        @DisplayName("Should return 400 for negative set number")
+        void shouldReturn400ForNegativeSetNumber() {
+            CreateCardioSetRequest request = new CreateCardioSetRequest();
+            request.setSetNumber(-1); // Invalid: negative set number
+            request.setDurationInSeconds(1800);
+            request.setDistance(new BigDecimal("5.00"));
+            request.setDistanceUnit("km");
+
+            given()
+                .body(request)
+            .when()
+                .post(getBasePath())
+            .then()
+                .statusCode(400);
+        }
     }
 
     @Nested

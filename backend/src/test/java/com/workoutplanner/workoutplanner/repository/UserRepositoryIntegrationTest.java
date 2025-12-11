@@ -295,6 +295,71 @@ class UserRepositoryIntegrationTest extends AbstractIntegrationTest {
             // Assert
             assertThat(found).isEmpty();
         }
+
+        @Test
+        @DisplayName("Should restore soft deleted user and make them findable again")
+        void shouldRestoreSoftDeletedUser() {
+            // Arrange - Create and soft delete a user
+            User user = TestDataBuilder.createNewUser();
+            user.setEmail("restore@example.com");
+            user = userRepository.save(user);
+            Long userId = user.getUserId();
+            entityManager.flush();
+            entityManager.clear();
+
+            // Soft delete
+            user = userRepository.findById(userId).get();
+            user.softDelete();
+            userRepository.save(user);
+            entityManager.flush();
+            entityManager.clear();
+
+            // Verify user is not findable
+            assertThat(userRepository.findByEmail("restore@example.com")).isEmpty();
+
+            // Act - Restore the user
+            userRepository.restoreById(userId);
+            entityManager.flush();
+            entityManager.clear();
+
+            // Assert - User should be findable again
+            Optional<User> restored = userRepository.findByEmail("restore@example.com");
+            assertThat(restored).isPresent();
+            assertThat(restored.get().isActive()).isTrue();
+            assertThat(restored.get().getDeletedAt()).isNull();
+        }
+
+        @Test
+        @DisplayName("Should restore soft deleted user via entity restore() method")
+        void shouldRestoreViaSoftDeletableRestore() {
+            // Arrange - Create and soft delete a user
+            User user = TestDataBuilder.createNewUser();
+            user.setUsername("restoreuser");
+            user = userRepository.save(user);
+            Long userId = user.getUserId();
+            entityManager.flush();
+            entityManager.clear();
+
+            // Soft delete
+            user = userRepository.findById(userId).get();
+            user.softDelete();
+            userRepository.save(user);
+            entityManager.flush();
+            entityManager.clear();
+
+            // Verify user is not findable via normal query
+            assertThat(userRepository.existsByUsername("restoreuser")).isFalse();
+
+            // Act - Restore using entity method (need to use findByIdIncludingDeleted)
+            user = userRepository.findByIdIncludingDeleted(userId).get();
+            user.restore();
+            userRepository.save(user);
+            entityManager.flush();
+            entityManager.clear();
+
+            // Assert
+            assertThat(userRepository.existsByUsername("restoreuser")).isTrue();
+        }
     }
 
     // ==================== ROLE TESTS ====================
