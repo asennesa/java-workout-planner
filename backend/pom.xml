@@ -114,12 +114,6 @@
 		<scope>provided</scope>
 	</dependency>
 
-	<!-- Liquibase for database migration management -->
-	<dependency>
-		<groupId>org.liquibase</groupId>
-		<artifactId>liquibase-core</artifactId>
-	</dependency>
-
 	<!-- Micrometer for security metrics and monitoring -->
 	<dependency>
 		<groupId>org.springframework.boot</groupId>
