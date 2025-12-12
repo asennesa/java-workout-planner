@@ -60,6 +60,29 @@
         </rollingPolicy>
     </appender>
 
+    <!-- Security Audit Log Appender -->
+    <!-- Dedicated file for security events - easier to audit and monitor -->
+    <appender name="SECURITY_AUDIT" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/security-audit.log</file>
+        <encoder>
+            <pattern>%d{ISO8601} %-5level [%thread] %logger{36} - %msg%n</pattern>
+            <charset>utf8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/archived/security-audit.%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+            <maxHistory>90</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- Async Security Audit Appender for non-blocking writes -->
+    <appender name="ASYNC_SECURITY_AUDIT" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>256</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>false</includeCallerData>
+        <appender-ref ref="SECURITY_AUDIT"/>
+    </appender>
+
     <!-- JSON File Appender for Log Aggregation -->
     <appender name="JSON_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_PATH}/${LOG_FILE}.json</file>
@@ -149,6 +172,12 @@
     <logger name="org.apache.coyote.http11" level="INFO"/>
     <logger name="org.apache.tomcat" level="INFO"/>
     <logger name="com.zaxxer.hikari" level="INFO"/>
-    
+
+    <!-- Security Audit Logger - writes to dedicated file, does not inherit root appenders -->
+    <logger name="SECURITY_AUDIT" level="INFO" additivity="false">
+        <appender-ref ref="ASYNC_SECURITY_AUDIT"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
 </configuration>
 

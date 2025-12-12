@@ -9,6 +9,8 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -153,6 +155,46 @@ public class ValidationExceptionHandler {
         response.put(STATUS_KEY, HttpStatus.FORBIDDEN.value());
 
         return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+    }
+
+    /**
+     * Handles request body too large exceptions.
+     * Triggered when request exceeds configured size limits (DoS prevention).
+     *
+     * @param ex MaxUploadSizeExceededException thrown by Spring
+     * @return ResponseEntity with error details and 413 PAYLOAD TOO LARGE
+     * @see <a href="https://cheatsheetseries.owasp.org/cheatsheets/Denial_of_Service_Cheat_Sheet.html">OWASP DoS Prevention</a>
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
+        Map<String, Object> response = new HashMap<>();
+
+        logger.warn("EXCEPTION: Request body too large: {}", ex.getMessage());
+
+        response.put(MESSAGE_KEY, "Request body exceeds maximum allowed size");
+        response.put(STATUS_KEY, HttpStatus.PAYLOAD_TOO_LARGE.value());
+
+        return new ResponseEntity<>(response, HttpStatus.PAYLOAD_TOO_LARGE);
+    }
+
+    /**
+     * Handles HTTP message not readable exceptions (malformed JSON, etc.).
+     * Returns a generic error to avoid information disclosure.
+     *
+     * @param ex HttpMessageNotReadableException thrown by Spring
+     * @return ResponseEntity with error details and 400 BAD REQUEST
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        Map<String, Object> response = new HashMap<>();
+
+        logger.warn("EXCEPTION: Malformed request body: {}", ex.getMessage());
+
+        // Generic message to avoid leaking parsing details
+        response.put(MESSAGE_KEY, "Invalid request body format");
+        response.put(STATUS_KEY, HttpStatus.BAD_REQUEST.value());
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
     /**

@@ -3,6 +3,7 @@ package com.workoutplanner.workoutplanner.service;
 import com.workoutplanner.workoutplanner.entity.*;
 import com.workoutplanner.workoutplanner.repository.*;
 import com.workoutplanner.workoutplanner.security.SecurityContextHelper;
+import com.workoutplanner.workoutplanner.security.SecurityEventLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -49,18 +50,21 @@ public class ResourceSecurityService {
     private final StrengthSetRepository strengthSetRepository;
     private final CardioSetRepository cardioSetRepository;
     private final FlexibilitySetRepository flexibilitySetRepository;
+    private final SecurityEventLogger securityEventLogger;
 
     public ResourceSecurityService(
             WorkoutSessionRepository workoutSessionRepository,
             WorkoutExerciseRepository workoutExerciseRepository,
             StrengthSetRepository strengthSetRepository,
             CardioSetRepository cardioSetRepository,
-            FlexibilitySetRepository flexibilitySetRepository) {
+            FlexibilitySetRepository flexibilitySetRepository,
+            SecurityEventLogger securityEventLogger) {
         this.workoutSessionRepository = workoutSessionRepository;
         this.workoutExerciseRepository = workoutExerciseRepository;
         this.strengthSetRepository = strengthSetRepository;
         this.cardioSetRepository = cardioSetRepository;
         this.flexibilitySetRepository = flexibilitySetRepository;
+        this.securityEventLogger = securityEventLogger;
     }
 
     // ==================== WORKOUT SESSION SECURITY ====================
@@ -99,6 +103,7 @@ public class ResourceSecurityService {
             if (!isOwner) {
                 logger.warn("SECURITY: User {} attempted to access workout {} owned by user {}",
                            currentUserId, sessionId, workout.getUser().getUserId());
+                securityEventLogger.logAuthorizationDenied(currentUserId, "WORKOUT", sessionId, "READ");
             }
 
             return isOwner;
