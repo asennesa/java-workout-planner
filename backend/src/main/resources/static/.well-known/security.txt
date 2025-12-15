@@ -1,0 +1,24 @@
+# Security Policy for Workout Planner API
+# This file follows the security.txt standard (RFC 9116)
+# @see https://securitytxt.org/
+
+# Contact for security vulnerability reports
+Contact: mailto:security@workoutplanner.example.com
+
+# Expiration date for this security.txt file (update annually)
+Expires: 2026-12-31T23:59:59.000Z
+
+# Preferred language for security communications
+Preferred-Languages: en
+
+# Link to security policy documentation
+# Policy: https://workoutplanner.example.com/security-policy
+
+# Acknowledgments page for security researchers
+# Acknowledgments: https://workoutplanner.example.com/security/acknowledgments
+
+# PGP key for encrypted communications (optional)
+# Encryption: https://workoutplanner.example.com/.well-known/pgp-key.txt
+
+# Canonical URL for this security.txt
+# Canonical: https://workoutplanner.example.com/.well-known/security.txt

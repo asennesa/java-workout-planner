@@ -1,83 +1,69 @@
 package com.workoutplanner.workoutplanner.config;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Timeout;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * Abstract base class for integration tests using Testcontainers.
  *
- * Industry Best Practices (Spring Boot 3.1+):
- * - Uses @ServiceConnection for automatic datasource configuration
- * - Single PostgreSQL container shared across all integration tests (fast)
- * - @Transactional for repository/JPA tests (automatic rollback)
- * - REST Assured configured for API testing
- * - Provides MockMvc for controller testing
+ * <h2>Best Practices Implemented:</h2>
+ * <ul>
+ *   <li><b>ApplicationContextInitializer pattern</b> - Container starts BEFORE Spring context,
+ *       avoiding JUnit 5 timing issues with @BeforeAll</li>
+ *   <li><b>Singleton container</b> - One container for entire test suite via static initialization</li>
+ *   <li><b>Container reuse</b> - Enabled via ~/.testcontainers.properties for faster subsequent runs</li>
+ *   <li><b>Spring context caching</b> - Single context shared across all test classes</li>
+ * </ul>
  *
- * IMPORTANT: @Transactional annotation provides automatic rollback for:
- * - Repository tests (direct JPA/Hibernate operations)
- * - MockMvc tests (in-process, same transaction)
+ * <h2>Transaction Behavior:</h2>
+ * The {@code @Transactional} annotation provides automatic rollback for:
+ * <ul>
+ *   <li>Repository tests (direct JPA/Hibernate operations)</li>
+ *   <li>MockMvc tests (in-process, same transaction)</li>
+ * </ul>
  *
- * However, for REST Assured API tests, you MUST add @AfterEach cleanup methods
- * because HTTP calls execute in separate transactions that won't rollback!
+ * <b>IMPORTANT:</b> For REST Assured API tests, you MUST:
+ * <ol>
+ *   <li>Use {@code @Transactional(propagation = Propagation.NOT_SUPPORTED)}</li>
+ *   <li>Add manual cleanup in {@code @AfterEach}</li>
+ * </ol>
+ * HTTP calls execute in separate transactions that won't rollback automatically!
  *
- * Usage:
- * - Repository tests: Extend this class (auto cleanup via @Transactional)
- * - API tests: Extend this class AND add @AfterEach cleanup methods
- *
+ * @see TestcontainersInitializer
+ * @see <a href="https://maciejwalkowiak.com/blog/testcontainers-spring-boot-setup/">Best way to use Testcontainers</a>
  * @see <a href="https://docs.spring.io/spring-boot/reference/testing/testcontainers.html">Spring Boot Testcontainers</a>
  */
-@SpringBootTest(
-    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    classes = {
-        com.workoutplanner.workoutplanner.WorkoutplannerApplication.class,
-        TestSecurityConfig.class  // Include test security config for auto-authentication
-    },
-    properties = {
-        "spring.test.context.cache.maxSize=1" // Optimize test performance
-    }
-)
-@Testcontainers
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ContextConfiguration(initializers = TestcontainersInitializer.class)
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 @Transactional // Rollback for repository/JPA tests (NOT for REST Assured!)
+@Timeout(value = 30, unit = TimeUnit.SECONDS) // Prevent tests from hanging indefinitely
 public abstract class AbstractIntegrationTest {
 
     /**
-     * Shared PostgreSQL container for all integration tests.
-     * Using a single static container improves test performance significantly.
+     * Provides access to the shared PostgreSQL container.
+     * Useful for tests that need direct container access (e.g., for JDBC URL).
      *
-     * @ServiceConnection automatically configures:
-     * - spring.datasource.url
-     * - spring.datasource.username
-     * - spring.datasource.password
-     *
-     * No need for @DynamicPropertySource - Spring Boot auto-detects the container type
-     * and creates the appropriate ConnectionDetails bean.
-     *
-     * Note: The @Container annotation manages the lifecycle, so the resource leak warning
-     * can be safely suppressed. Testcontainers handles proper cleanup.
+     * @return The shared PostgreSQLContainer instance
      */
-    @Container
-    @ServiceConnection
-    @SuppressWarnings("resource") // Managed by @Container annotation
-    protected static final PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>("postgres:16-alpine")
-            .withDatabaseName("workout_planner_test")
-            .withUsername("test")
-            .withPassword("test")
-            .withReuse(true); // Reuse container across test runs (requires ~/.testcontainers.properties)
+    protected static PostgreSQLContainer<?> getPostgresContainer() {
+        return TestcontainersInitializer.getPostgresContainer();
+    }
 
     @LocalServerPort
     protected int port;
@@ -92,9 +78,18 @@ public abstract class AbstractIntegrationTest {
         RestAssured.basePath = "/api/v1";
         RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
 
-        // Default content type for requests
+        // Default content type for requests - no need to repeat in individual tests
         RestAssured.requestSpecification = RestAssured.given()
             .contentType(ContentType.JSON)
             .accept(ContentType.JSON);
+    }
+
+    /**
+     * Helper method to reset REST Assured for tests that need different configuration.
+     * Call this at the start of tests that need to override default settings.
+     */
+    protected void resetRestAssured() {
+        RestAssured.reset();
+        setUpRestAssured();
     }
 }

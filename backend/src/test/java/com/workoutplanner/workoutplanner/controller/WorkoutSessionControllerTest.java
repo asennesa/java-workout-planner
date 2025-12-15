@@ -11,8 +11,11 @@ import com.workoutplanner.workoutplanner.dto.response.WorkoutResponse;
 import com.workoutplanner.workoutplanner.enums.WorkoutStatus;
 import com.workoutplanner.workoutplanner.exception.OptimisticLockConflictException;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
+import com.workoutplanner.workoutplanner.service.ResourceSecurityService;
+import com.workoutplanner.workoutplanner.service.UserService;
 import com.workoutplanner.workoutplanner.service.WorkoutSessionService;
 import com.workoutplanner.workoutplanner.util.TestDataBuilder;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -76,7 +79,24 @@ class WorkoutSessionControllerTest {
     
     @MockitoBean
     private WorkoutSessionService workoutSessionService;
-    
+
+    @MockitoBean(name = "resourceSecurityService")
+    private ResourceSecurityService resourceSecurityService;
+
+    @MockitoBean(name = "userService")
+    private UserService userService;
+
+    @BeforeEach
+    void setUp() {
+        // Configure ResourceSecurityService to allow all access in tests
+        when(resourceSecurityService.canAccessWorkout(anyLong())).thenReturn(true);
+        when(resourceSecurityService.canModifyWorkout(anyLong())).thenReturn(true);
+        when(resourceSecurityService.canAccessWorkoutExercise(anyLong())).thenReturn(true);
+        when(resourceSecurityService.canModifyWorkoutExercise(anyLong())).thenReturn(true);
+        // Configure UserService.isCurrentUser to allow access
+        when(userService.isCurrentUser(anyLong())).thenReturn(true);
+    }
+
     // ==================== CREATE WORKOUT TESTS ====================
     
     @Nested

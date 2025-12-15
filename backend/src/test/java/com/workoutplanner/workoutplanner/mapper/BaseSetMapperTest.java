@@ -8,6 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
@@ -62,7 +63,7 @@ class BaseSetMapperTest {
         
         // Verify strength-specific fields are mapped
         assertThat(response.getReps()).isEqualTo(10);
-        assertThat(response.getWeight()).isEqualTo(100.0);
+        assertThat(response.getWeight()).isEqualByComparingTo(new BigDecimal("100.00"));
         
         // Verify non-strength fields are null
         assertThat(response.getDistance()).isNull();
@@ -126,7 +127,7 @@ class BaseSetMapperTest {
         
         // Verify cardio-specific fields are mapped
         assertThat(response.getDurationInSeconds()).isEqualTo(1800); // 30 minutes
-        assertThat(response.getDistance()).isEqualTo(5.0);
+        assertThat(response.getDistance()).isEqualByComparingTo(new BigDecimal("5.00"));
         
         // Verify non-cardio fields are null
         assertThat(response.getReps()).isNull();
@@ -158,8 +159,8 @@ class BaseSetMapperTest {
         
         // Assert
         assertThat(responses).hasSize(2);
-        assertThat(responses.get(0).getDistance()).isEqualTo(5.0);
-        assertThat(responses.get(1).getDistance()).isEqualTo(7.5);
+        assertThat(responses.get(0).getDistance()).isEqualByComparingTo(new BigDecimal("5.00"));
+        assertThat(responses.get(1).getDistance()).isEqualByComparingTo(new BigDecimal("7.5"));
     }
     
     // ==================== FLEXIBILITY SET MAPPING TESTS ====================
@@ -241,9 +242,9 @@ class BaseSetMapperTest {
         // Assert
         assertThat(response).isNotNull();
         assertThat(response.getReps()).isEqualTo(10);
-        assertThat(response.getWeight()).isEqualTo(100.0);
+        assertThat(response.getWeight()).isEqualByComparingTo(new BigDecimal("100.00"));
     }
-    
+
     @Test
     @DisplayName("Should handle polymorphic mapping for CardioSet")
     void shouldHandlePolymorphicMappingForCardioSet() {
@@ -260,10 +261,10 @@ class BaseSetMapperTest {
         
         // Assert
         assertThat(response).isNotNull();
-        assertThat(response.getDistance()).isEqualTo(5.0);
+        assertThat(response.getDistance()).isEqualByComparingTo(new BigDecimal("5.00"));
         assertThat(response.getDurationInSeconds()).isEqualTo(1800);
     }
-    
+
     @Test
     @DisplayName("Should handle polymorphic mapping for FlexibilitySet")
     void shouldHandlePolymorphicMappingForFlexibilitySet() {

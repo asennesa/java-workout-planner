@@ -332,10 +332,35 @@ export const WorkoutDetail = (): JSX.Element => {
         ) : (
           <div className="exercise-list">
             {workout.workoutExercises.map((we, index) => (
-              <Card key={we.workoutExerciseId} className="exercise-card">
-                <CardHeader>
+              <Card
+                key={we.workoutExerciseId}
+                className={`exercise-card exercise-card-clickable ${expandedExercise === we.workoutExerciseId ? 'exercise-card-expanded' : ''}`}
+              >
+                <CardHeader
+                  onClick={() =>
+                    setExpandedExercise(
+                      expandedExercise === we.workoutExerciseId ? null : we.workoutExerciseId
+                    )
+                  }
+                  className="exercise-card-header"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setExpandedExercise(
+                        expandedExercise === we.workoutExerciseId ? null : we.workoutExerciseId
+                      );
+                    }
+                  }}
+                  aria-expanded={expandedExercise === we.workoutExerciseId}
+                  aria-controls={`exercise-sets-${we.workoutExerciseId}`}
+                >
                   <div className="exercise-header-content">
-                    <div className="exercise-reorder-buttons">
+                    <div
+                      className="exercise-reorder-buttons"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <button
                         className="reorder-btn"
                         onClick={() => handleMoveExercise(we.workoutExerciseId, 'up')}
@@ -354,23 +379,15 @@ export const WorkoutDetail = (): JSX.Element => {
                       </button>
                     </div>
                     <span className="exercise-order">{we.orderInWorkout}</span>
-                    <div>
+                    <div className="exercise-info">
                       <h3>{we.exerciseName}</h3>
                       <StatusBadge status={we.exerciseType} />
                     </div>
+                    <span className={`exercise-expand-icon ${expandedExercise === we.workoutExerciseId ? 'expanded' : ''}`}>
+                      ▼
+                    </span>
                   </div>
-                  <div className="exercise-header-actions">
-                    <Button
-                      variant="ghost"
-                      size="small"
-                      onClick={() =>
-                        setExpandedExercise(
-                          expandedExercise === we.workoutExerciseId ? null : we.workoutExerciseId
-                        )
-                      }
-                    >
-                      {expandedExercise === we.workoutExerciseId ? 'Hide Sets' : 'Track Sets'}
-                    </Button>
+                  <div className="exercise-header-actions" onClick={(e) => e.stopPropagation()}>
                     <Button
                       variant="ghost"
                       size="small"
@@ -381,7 +398,7 @@ export const WorkoutDetail = (): JSX.Element => {
                   </div>
                 </CardHeader>
                 {expandedExercise === we.workoutExerciseId && (
-                  <CardBody>
+                  <CardBody id={`exercise-sets-${we.workoutExerciseId}`}>
                     <SetTracker
                       workoutExerciseId={we.workoutExerciseId}
                       exerciseType={we.exerciseType}

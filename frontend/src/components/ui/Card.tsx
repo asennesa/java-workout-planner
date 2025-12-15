@@ -1,4 +1,4 @@
-import type { ReactNode, MouseEventHandler } from 'react';
+import type { ReactNode, MouseEventHandler, HTMLAttributes } from 'react';
 import './ui.css';
 
 interface CardProps {
@@ -8,7 +8,7 @@ interface CardProps {
   hoverable?: boolean;
 }
 
-interface CardSectionProps {
+interface CardSectionProps extends Omit<HTMLAttributes<HTMLDivElement>, 'className'> {
   children: ReactNode;
   className?: string;
 }
@@ -26,14 +26,14 @@ export const Card = ({
   );
 };
 
-export const CardHeader = ({ children, className = '' }: CardSectionProps): JSX.Element => (
-  <div className={`card-header ${className}`}>{children}</div>
+export const CardHeader = ({ children, className = '', ...rest }: CardSectionProps): JSX.Element => (
+  <div className={`card-header ${className}`} {...rest}>{children}</div>
 );
 
-export const CardBody = ({ children, className = '' }: CardSectionProps): JSX.Element => (
-  <div className={`card-body ${className}`}>{children}</div>
+export const CardBody = ({ children, className = '', ...rest }: CardSectionProps): JSX.Element => (
+  <div className={`card-body ${className}`} {...rest}>{children}</div>
 );
 
-export const CardFooter = ({ children, className = '' }: CardSectionProps): JSX.Element => (
-  <div className={`card-footer ${className}`}>{children}</div>
+export const CardFooter = ({ children, className = '', ...rest }: CardSectionProps): JSX.Element => (
+  <div className={`card-footer ${className}`} {...rest}>{children}</div>
 );

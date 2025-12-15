@@ -49,7 +49,6 @@ public abstract class BaseSetMapper {
     @Mapping(target = "workoutExerciseId", source = "workoutExercise.workoutExerciseId")
     @Mapping(target = "reps", ignore = true)
     @Mapping(target = "weight", ignore = true)
-    @Mapping(target = "distanceUnit", ignore = true)
     @Mapping(target = "intensity", ignore = true)
     @Mapping(target = "stretchType", ignore = true)
     public abstract SetResponse toSetResponse(CardioSet set);
@@ -59,7 +58,6 @@ public abstract class BaseSetMapper {
     @Mapping(target = "weight", ignore = true)
     @Mapping(target = "distance", ignore = true)
     @Mapping(target = "distanceUnit", ignore = true)
-    @Mapping(target = "durationInSeconds", ignore = true)
     public abstract SetResponse toSetResponse(FlexibilitySet set);
 
     public abstract List<SetResponse> toSetResponseList(List<StrengthSet> strengthSets);

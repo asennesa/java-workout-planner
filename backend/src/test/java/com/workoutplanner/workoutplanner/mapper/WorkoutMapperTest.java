@@ -71,10 +71,11 @@ class WorkoutMapperTest {
         assertThat(entity.getStartedAt()).isNull();
         assertThat(entity.getCompletedAt()).isNull();
         
-        // Verify ignored fields are null (set by service layer)
+        // Verify ignored fields are null/empty (set by service layer)
         assertThat(entity.getSessionId()).isNull();
         assertThat(entity.getUser()).isNull();
-        assertThat(entity.getWorkoutExercises()).isNull();
+        // WorkoutExercises is initialized to empty ArrayList in entity constructor
+        assertThat(entity.getWorkoutExercises()).isEmpty();
     }
     
     @Test

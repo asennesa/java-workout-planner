@@ -13,6 +13,7 @@ import com.workoutplanner.workoutplanner.entity.WorkoutSession;
 import com.workoutplanner.workoutplanner.entity.WorkoutExercise;
 import com.workoutplanner.workoutplanner.entity.User;
 import com.workoutplanner.workoutplanner.entity.Exercise;
+import com.workoutplanner.workoutplanner.enums.ExerciseType;
 import com.workoutplanner.workoutplanner.enums.WorkoutStatus;
 import com.workoutplanner.workoutplanner.exception.BusinessLogicException;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
@@ -205,15 +206,15 @@ public class WorkoutSessionService implements WorkoutSessionServiceInterface {
     private void loadSetsBasedOnExerciseType(Long sessionId, List<WorkoutExercise> exercises) {
         logger.debug("Starting smart loading for session {} with {} exercises", sessionId, exercises.size());
 
-        Map<Long, WorkoutExercise> strengthExercises = workoutExerciseRepository.findStrengthExercisesWithSets(sessionId, "STRENGTH")
+        Map<Long, WorkoutExercise> strengthExercises = workoutExerciseRepository.findStrengthExercisesWithSets(sessionId, ExerciseType.STRENGTH)
                 .stream().collect(Collectors.toMap(WorkoutExercise::getWorkoutExerciseId, Function.identity()));
         logger.debug("Loaded {} strength exercises with sets", strengthExercises.size());
 
-        Map<Long, WorkoutExercise> cardioExercises = workoutExerciseRepository.findCardioExercisesWithSets(sessionId, "CARDIO")
+        Map<Long, WorkoutExercise> cardioExercises = workoutExerciseRepository.findCardioExercisesWithSets(sessionId, ExerciseType.CARDIO)
                 .stream().collect(Collectors.toMap(WorkoutExercise::getWorkoutExerciseId, Function.identity()));
         logger.debug("Loaded {} cardio exercises with sets", cardioExercises.size());
 
-        Map<Long, WorkoutExercise> flexibilityExercises = workoutExerciseRepository.findFlexibilityExercisesWithSets(sessionId, "FLEXIBILITY")
+        Map<Long, WorkoutExercise> flexibilityExercises = workoutExerciseRepository.findFlexibilityExercisesWithSets(sessionId, ExerciseType.FLEXIBILITY)
                 .stream().collect(Collectors.toMap(WorkoutExercise::getWorkoutExerciseId, Function.identity()));
         logger.debug("Loaded {} flexibility exercises with sets", flexibilityExercises.size());
         

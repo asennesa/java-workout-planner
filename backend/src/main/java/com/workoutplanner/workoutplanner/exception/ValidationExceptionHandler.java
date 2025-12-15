@@ -4,10 +4,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -130,6 +133,65 @@ public class ValidationExceptionHandler {
         logger.debug("EXCEPTION: Business logic exception stack trace", ex);
 
         response.put(MESSAGE_KEY, ex.getMessage());
+        response.put(STATUS_KEY, HttpStatus.BAD_REQUEST.value());
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Handles access denied exceptions from @PreAuthorize security annotations.
+     * Returned when user attempts to access resources they don't own.
+     *
+     * @param ex AccessDeniedException thrown by Spring Security
+     * @return ResponseEntity with error details and 403 FORBIDDEN
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDeniedException(AccessDeniedException ex) {
+        Map<String, Object> response = new HashMap<>();
+
+        logger.warn("EXCEPTION: Access denied: {}", ex.getMessage());
+
+        response.put(MESSAGE_KEY, "Access denied. You don't have permission to access this resource.");
+        response.put(STATUS_KEY, HttpStatus.FORBIDDEN.value());
+
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+    }
+
+    /**
+     * Handles request body too large exceptions.
+     * Triggered when request exceeds configured size limits (DoS prevention).
+     *
+     * @param ex MaxUploadSizeExceededException thrown by Spring
+     * @return ResponseEntity with error details and 413 PAYLOAD TOO LARGE
+     * @see <a href="https://cheatsheetseries.owasp.org/cheatsheets/Denial_of_Service_Cheat_Sheet.html">OWASP DoS Prevention</a>
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
+        Map<String, Object> response = new HashMap<>();
+
+        logger.warn("EXCEPTION: Request body too large: {}", ex.getMessage());
+
+        response.put(MESSAGE_KEY, "Request body exceeds maximum allowed size");
+        response.put(STATUS_KEY, HttpStatus.PAYLOAD_TOO_LARGE.value());
+
+        return new ResponseEntity<>(response, HttpStatus.PAYLOAD_TOO_LARGE);
+    }
+
+    /**
+     * Handles HTTP message not readable exceptions (malformed JSON, etc.).
+     * Returns a generic error to avoid information disclosure.
+     *
+     * @param ex HttpMessageNotReadableException thrown by Spring
+     * @return ResponseEntity with error details and 400 BAD REQUEST
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        Map<String, Object> response = new HashMap<>();
+
+        logger.warn("EXCEPTION: Malformed request body: {}", ex.getMessage());
+
+        // Generic message to avoid leaking parsing details
+        response.put(MESSAGE_KEY, "Invalid request body format");
         response.put(STATUS_KEY, HttpStatus.BAD_REQUEST.value());
 
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);

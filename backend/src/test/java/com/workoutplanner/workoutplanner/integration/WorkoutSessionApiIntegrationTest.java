@@ -10,7 +10,6 @@ import com.workoutplanner.workoutplanner.enums.WorkoutStatus;
 import com.workoutplanner.workoutplanner.repository.UserRepository;
 import com.workoutplanner.workoutplanner.repository.WorkoutSessionRepository;
 import com.workoutplanner.workoutplanner.util.TestDataBuilder;
-import io.restassured.http.ContentType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -98,9 +97,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         
         // Act & Assert
         given()
-            
-            .contentType(ContentType.JSON)
-            .body(request)
+                .body(request)
         .when()
             .post("/workouts")
         .then()
@@ -120,9 +117,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         
         // Act & Assert
         given()
-            
-            .contentType(ContentType.JSON)
-            .body(request)
+                .body(request)
         .when()
             .post("/workouts")
         .then()
@@ -137,9 +132,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         // Arrange - Create a workout first
         CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
         Integer workoutId = given()
-            
-            .contentType(ContentType.JSON)
-            .body(createRequest)
+                .body(createRequest)
         .when()
             .post("/workouts")
         .then()
@@ -177,8 +170,6 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
             CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
             request.setName("Workout " + i);
             given()
-                
-                .contentType(ContentType.JSON)
                 .body(request)
             .when()
                 .post("/workouts")
@@ -207,9 +198,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         // Arrange
         CreateWorkoutRequest request = TestDataBuilder.createWorkoutRequest();
         given()
-            
-            .contentType(ContentType.JSON)
-            .body(request)
+                .body(request)
         .when()
             .post("/workouts")
         .then()
@@ -234,9 +223,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         // Arrange - Create a workout first
         CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
         Integer workoutId = given()
-            
-            .contentType(ContentType.JSON)
-            .body(createRequest)
+                .body(createRequest)
         .when()
             .post("/workouts")
         .then()
@@ -250,9 +237,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         
         // Act & Assert
         given()
-            
-            .contentType(ContentType.JSON)
-            .body(updateRequest)
+                .body(updateRequest)
         .when()
             .put("/workouts/" + workoutId)
         .then()
@@ -268,9 +253,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         // Arrange - Create a workout first
         CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
         Integer workoutId = given()
-            
-            .contentType(ContentType.JSON)
-            .body(createRequest)
+                .body(createRequest)
         .when()
             .post("/workouts")
         .then()
@@ -283,9 +266,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         
         // Act & Assert
         given()
-            
-            .contentType(ContentType.JSON)
-            .body(actionRequest)
+                .body(actionRequest)
         .when()
             .patch("/workouts/" + workoutId + "/status")
         .then()
@@ -299,9 +280,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         // Arrange
         CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
         Integer workoutId = given()
-            
-            .contentType(ContentType.JSON)
-            .body(createRequest)
+                .body(createRequest)
         .when()
             .post("/workouts")
         .then()
@@ -313,9 +292,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         
         // Act & Assert
         given()
-            
-            .contentType(ContentType.JSON)
-            .body(actionRequest)
+                .body(actionRequest)
         .when()
             .patch("/workouts/" + workoutId + "/status")
         .then()
@@ -330,32 +307,175 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         // Arrange - Create a workout first
         CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
         Integer workoutId = given()
-            
-            .contentType(ContentType.JSON)
-            .body(createRequest)
+                .body(createRequest)
         .when()
             .post("/workouts")
         .then()
             .statusCode(201)
             .extract().path("sessionId");
-        
+
         // Act & Assert
         given()
-            
+
         .when()
             .delete("/workouts/" + workoutId)
         .then()
             .statusCode(204);
-        
+
         // Verify deletion
         given()
-            
+
         .when()
             .get("/workouts/" + workoutId)
         .then()
             .statusCode(404);
     }
-    
+
+    // ==================== AUTHORIZATION / OWNERSHIP TESTS ====================
+
+    @Test
+    @DisplayName("GET /api/v1/workouts/{id} - Should return 403 when accessing another user's workout")
+    void shouldReturn403WhenAccessingAnotherUsersWorkout() {
+        // Arrange - Create a workout as testUser
+        CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
+        Integer workoutId = given()
+                .body(createRequest)
+        .when()
+            .post("/workouts")
+        .then()
+            .statusCode(201)
+            .extract().path("sessionId");
+
+        // Create another user and switch authentication with non-admin mode
+        User otherUser = TestDataBuilder.createNewUser();
+        otherUser.setRole(UserRole.USER);
+        otherUser = userRepository.saveAndFlush(otherUser);
+        TestSecurityConfig.TestAuthFilter.setTestUserId(otherUser.getUserId());
+        TestSecurityConfig.TestAuthFilter.setAdminMode(false); // Disable admin mode for authorization testing
+
+        // Act & Assert - Other user tries to access first user's workout
+        given()
+        .when()
+            .get("/workouts/" + workoutId)
+        .then()
+            .statusCode(403);
+
+        // Clean up - restore original user and admin mode
+        TestSecurityConfig.TestAuthFilter.setTestUserId(testUser.getUserId());
+        TestSecurityConfig.TestAuthFilter.setAdminMode(true);
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/workouts/{id} - Should return 403 when updating another user's workout")
+    void shouldReturn403WhenUpdatingAnotherUsersWorkout() {
+        // Arrange - Create a workout as testUser
+        CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
+        Integer workoutId = given()
+                .body(createRequest)
+        .when()
+            .post("/workouts")
+        .then()
+            .statusCode(201)
+            .extract().path("sessionId");
+
+        // Create another user and switch authentication with non-admin mode
+        User otherUser = TestDataBuilder.createNewUser();
+        otherUser.setRole(UserRole.USER);
+        otherUser = userRepository.saveAndFlush(otherUser);
+        TestSecurityConfig.TestAuthFilter.setTestUserId(otherUser.getUserId());
+        TestSecurityConfig.TestAuthFilter.setAdminMode(false); // Disable admin mode for authorization testing
+
+        // Update request
+        CreateWorkoutRequest updateRequest = TestDataBuilder.createWorkoutRequest();
+        updateRequest.setName("Hacked Workout");
+
+        // Act & Assert - Other user tries to update first user's workout
+        given()
+            .body(updateRequest)
+        .when()
+            .put("/workouts/" + workoutId)
+        .then()
+            .statusCode(403);
+
+        // Clean up - restore original user and admin mode
+        TestSecurityConfig.TestAuthFilter.setTestUserId(testUser.getUserId());
+        TestSecurityConfig.TestAuthFilter.setAdminMode(true);
+    }
+
+    @Test
+    @DisplayName("DELETE /api/v1/workouts/{id} - Should return 403 when deleting another user's workout")
+    void shouldReturn403WhenDeletingAnotherUsersWorkout() {
+        // Arrange - Create a workout as testUser
+        CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
+        Integer workoutId = given()
+                .body(createRequest)
+        .when()
+            .post("/workouts")
+        .then()
+            .statusCode(201)
+            .extract().path("sessionId");
+
+        // Create another user and switch authentication with non-admin mode
+        User otherUser = TestDataBuilder.createNewUser();
+        otherUser.setRole(UserRole.USER);
+        otherUser = userRepository.saveAndFlush(otherUser);
+        TestSecurityConfig.TestAuthFilter.setTestUserId(otherUser.getUserId());
+        TestSecurityConfig.TestAuthFilter.setAdminMode(false); // Disable admin mode for authorization testing
+
+        // Act & Assert - Other user tries to delete first user's workout
+        given()
+        .when()
+            .delete("/workouts/" + workoutId)
+        .then()
+            .statusCode(403);
+
+        // Verify workout still exists (restore admin mode first)
+        TestSecurityConfig.TestAuthFilter.setTestUserId(testUser.getUserId());
+        TestSecurityConfig.TestAuthFilter.setAdminMode(true);
+        given()
+        .when()
+            .get("/workouts/" + workoutId)
+        .then()
+            .statusCode(200);
+    }
+
+    @Test
+    @DisplayName("PATCH /api/v1/workouts/{id}/status - Should return 403 when changing status of another user's workout")
+    void shouldReturn403WhenChangingStatusOfAnotherUsersWorkout() {
+        // Arrange - Create a workout as testUser
+        CreateWorkoutRequest createRequest = TestDataBuilder.createWorkoutRequest();
+        Integer workoutId = given()
+                .body(createRequest)
+        .when()
+            .post("/workouts")
+        .then()
+            .statusCode(201)
+            .extract().path("sessionId");
+
+        // Create another user and switch authentication with non-admin mode
+        User otherUser = TestDataBuilder.createNewUser();
+        otherUser.setRole(UserRole.USER);
+        otherUser = userRepository.saveAndFlush(otherUser);
+        TestSecurityConfig.TestAuthFilter.setTestUserId(otherUser.getUserId());
+        TestSecurityConfig.TestAuthFilter.setAdminMode(false); // Disable admin mode for authorization testing
+
+        // Status update request
+        WorkoutActionRequest actionRequest = new WorkoutActionRequest();
+        actionRequest.setAction("start");
+
+        // Act & Assert - Other user tries to start first user's workout
+        given()
+            .body(actionRequest)
+        .when()
+            .patch("/workouts/" + workoutId + "/status")
+        .then()
+            .statusCode(403);
+
+        // Clean up - restore original user and admin mode
+        TestSecurityConfig.TestAuthFilter.setTestUserId(testUser.getUserId());
+        TestSecurityConfig.TestAuthFilter.setAdminMode(true);
+    }
+
     // ==================== COMPLETE WORKFLOW TEST ====================
     
     @Test
@@ -366,9 +486,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         createRequest.setName("Full Lifecycle Workout");
         
         Integer workoutId = given()
-            
-            .contentType(ContentType.JSON)
-            .body(createRequest)
+                .body(createRequest)
         .when()
             .post("/workouts")
         .then()
@@ -381,9 +499,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         startAction.setAction("start");
         
         given()
-            
-            .contentType(ContentType.JSON)
-            .body(startAction)
+                .body(startAction)
         .when()
             .patch("/workouts/" + workoutId + "/status")
         .then()
@@ -395,9 +511,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         pauseAction.setAction("pause");
         
         given()
-            
-            .contentType(ContentType.JSON)
-            .body(pauseAction)
+                .body(pauseAction)
         .when()
             .patch("/workouts/" + workoutId + "/status")
         .then()
@@ -409,9 +523,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         resumeAction.setAction("resume");
         
         given()
-            
-            .contentType(ContentType.JSON)
-            .body(resumeAction)
+                .body(resumeAction)
         .when()
             .patch("/workouts/" + workoutId + "/status")
         .then()
@@ -423,9 +535,7 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
         completeAction.setAction("complete");
         
         given()
-            
-            .contentType(ContentType.JSON)
-            .body(completeAction)
+                .body(completeAction)
         .when()
             .patch("/workouts/" + workoutId + "/status")
         .then()
@@ -451,4 +561,3 @@ class WorkoutSessionApiIntegrationTest extends AbstractIntegrationTest {
             .statusCode(204);
     }
 }
-

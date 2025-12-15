@@ -1,6 +1,7 @@
 package com.workoutplanner.workoutplanner.repository;
 
 import com.workoutplanner.workoutplanner.entity.WorkoutExercise;
+import com.workoutplanner.workoutplanner.enums.ExerciseType;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -25,13 +26,13 @@ public interface WorkoutExerciseRepository extends SoftDeleteRepository<WorkoutE
 
     @EntityGraph(attributePaths = {"exercise", "strengthSets"})
     @Query("SELECT we FROM WorkoutExercise we WHERE we.workoutSession.sessionId = :sessionId AND we.exercise.type = :type AND we.deleted = false ORDER BY we.orderInWorkout ASC")
-    List<WorkoutExercise> findStrengthExercisesWithSets(@Param("sessionId") Long sessionId, @Param("type") String type);
+    List<WorkoutExercise> findStrengthExercisesWithSets(@Param("sessionId") Long sessionId, @Param("type") ExerciseType type);
 
     @EntityGraph(attributePaths = {"exercise", "cardioSets"})
     @Query("SELECT we FROM WorkoutExercise we WHERE we.workoutSession.sessionId = :sessionId AND we.exercise.type = :type AND we.deleted = false ORDER BY we.orderInWorkout ASC")
-    List<WorkoutExercise> findCardioExercisesWithSets(@Param("sessionId") Long sessionId, @Param("type") String type);
+    List<WorkoutExercise> findCardioExercisesWithSets(@Param("sessionId") Long sessionId, @Param("type") ExerciseType type);
 
     @EntityGraph(attributePaths = {"exercise", "flexibilitySets"})
     @Query("SELECT we FROM WorkoutExercise we WHERE we.workoutSession.sessionId = :sessionId AND we.exercise.type = :type AND we.deleted = false ORDER BY we.orderInWorkout ASC")
-    List<WorkoutExercise> findFlexibilityExercisesWithSets(@Param("sessionId") Long sessionId, @Param("type") String type);
+    List<WorkoutExercise> findFlexibilityExercisesWithSets(@Param("sessionId") Long sessionId, @Param("type") ExerciseType type);
 }

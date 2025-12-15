@@ -40,7 +40,7 @@ bucket4j:
 
     # =========================================================================
     # Username/Email Check - Prevent enumeration attacks
-    # 30 requests per minute per IP (allows for form validation + retries)
+    # 10 requests per minute per IP (stricter limit to prevent user enumeration)
     # =========================================================================
     - cache-name: rate-limit-buckets
       url: /api/v1/users/check-username
@@ -48,7 +48,7 @@ bucket4j:
       rate-limits:
         - cache-key: getRemoteAddr()
           bandwidths:
-            - capacity: 30
+            - capacity: 10
               time: 1
               unit: minutes
               refill-speed: interval
@@ -59,7 +59,7 @@ bucket4j:
       rate-limits:
         - cache-key: getRemoteAddr()
           bandwidths:
-            - capacity: 30
+            - capacity: 10
               time: 1
               unit: minutes
               refill-speed: interval

@@ -72,18 +72,18 @@ class UserMapperTest {
     void shouldMapEntityToUserResponse() {
         // Arrange
         User user = TestDataBuilder.createPersistedUser();
-        
+
         // Act
         UserResponse response = userMapper.toResponse(user);
-        
-        // Assert
+
+        // Assert - Verify mapping is correct by comparing input with output
         assertThat(response).isNotNull();
-        assertThat(response.getUserId()).isEqualTo(1L);
-        assertThat(response.getUsername()).isEqualTo("testuser");
-        assertThat(response.getEmail()).isEqualTo("test@example.com");
-        assertThat(response.getFirstName()).isEqualTo("Test");
-        assertThat(response.getLastName()).isEqualTo("User");
-        
+        assertThat(response.getUserId()).isEqualTo(user.getUserId());
+        assertThat(response.getUsername()).isEqualTo(user.getUsername());
+        assertThat(response.getEmail()).isEqualTo(user.getEmail());
+        assertThat(response.getFirstName()).isEqualTo(user.getFirstName());
+        assertThat(response.getLastName()).isEqualTo(user.getLastName());
+
         // Verify password is not exposed
         assertThat(response).hasNoNullFieldsOrPropertiesExcept("createdAt", "updatedAt");
     }
@@ -95,15 +95,15 @@ class UserMapperTest {
         User user1 = TestDataBuilder.createPersistedUser();
         User user2 = TestDataBuilder.createUser("user2", "user2@example.com");
         user2.setUserId(2L);
-        
+
         List<User> users = List.of(user1, user2);
-        
+
         // Act
         List<UserResponse> responses = userMapper.toResponseList(users);
-        
-        // Assert
+
+        // Assert - Verify mapping is correct by comparing input with output
         assertThat(responses).hasSize(2);
-        assertThat(responses.get(0).getUsername()).isEqualTo("testuser");
+        assertThat(responses.get(0).getUsername()).isEqualTo(user1.getUsername());
         assertThat(responses.get(1).getUsername()).isEqualTo("user2");
     }
     
@@ -148,15 +148,15 @@ class UserMapperTest {
         // Arrange
         User adminUser = TestDataBuilder.createPersistedUser();
         adminUser.setRole(UserRole.ADMIN);
-        
+
         // Act
         UserResponse response = userMapper.toResponse(adminUser);
-        
-        // Assert - Verify basic mapping is successful
-        assertThat(response.getUsername()).isEqualTo("testuser");
-        assertThat(response.getEmail()).isEqualTo("test@example.com");
+
+        // Assert - Verify basic mapping is successful by comparing input with output
+        assertThat(response.getUsername()).isEqualTo(adminUser.getUsername());
+        assertThat(response.getEmail()).isEqualTo(adminUser.getEmail());
     }
-    
+
     @Test
     @DisplayName("Should map user to response correctly")
     void shouldMapUserToResponseCorrectly() {
@@ -166,9 +166,9 @@ class UserMapperTest {
         // Act
         UserResponse response = userMapper.toResponse(user);
 
-        // Assert
+        // Assert - Verify mapping is correct by comparing input with output
         assertThat(response).isNotNull();
-        assertThat(response.getUsername()).isEqualTo("testuser");
+        assertThat(response.getUsername()).isEqualTo(user.getUsername());
     }
 }
 

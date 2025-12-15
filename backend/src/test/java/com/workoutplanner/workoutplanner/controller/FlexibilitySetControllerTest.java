@@ -5,7 +5,9 @@ import com.workoutplanner.workoutplanner.dto.request.CreateFlexibilitySetRequest
 import com.workoutplanner.workoutplanner.dto.response.SetResponse;
 import com.workoutplanner.workoutplanner.exception.ResourceNotFoundException;
 import com.workoutplanner.workoutplanner.service.FlexibilitySetService;
+import com.workoutplanner.workoutplanner.service.ResourceSecurityService;
 import com.workoutplanner.workoutplanner.util.TestDataBuilder;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -23,6 +25,7 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -57,7 +60,17 @@ class FlexibilitySetControllerTest {
     
     @MockitoBean
     private FlexibilitySetService flexibilitySetService;
-    
+
+    @MockitoBean(name = "resourceSecurityService")
+    private ResourceSecurityService resourceSecurityService;
+
+    @BeforeEach
+    void setUp() {
+        // Configure ResourceSecurityService to allow all access in tests
+        when(resourceSecurityService.canAccessWorkoutExercise(anyLong())).thenReturn(true);
+        when(resourceSecurityService.canAccessSet(anyLong())).thenReturn(true);
+    }
+
     @Nested
     @DisplayName("POST /api/v1/workout-exercises/{workoutExerciseId}/flexibility-sets")
     class CreateSetTests {

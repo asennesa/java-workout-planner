@@ -31,6 +31,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Controller for user management operations.
@@ -176,6 +177,8 @@ public class UserController {
             @NotBlank(message = "Username cannot be empty")
             @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
             String username) {
+        // Add artificial delay (50-150ms) to prevent timing attacks for user enumeration
+        addAntiTimingDelay();
         return ResponseEntity.ok(new ExistenceCheckResponse(userService.usernameExists(username)));
     }
 
@@ -188,6 +191,23 @@ public class UserController {
             @Email(message = "Email must be a valid email address")
             @Size(max = 255, message = "Email must not exceed 255 characters")
             String email) {
+        // Add artificial delay (50-150ms) to prevent timing attacks for user enumeration
+        addAntiTimingDelay();
         return ResponseEntity.ok(new ExistenceCheckResponse(userService.emailExists(email)));
+    }
+
+    /**
+     * Adds a random delay (50-150ms) to prevent timing-based user enumeration attacks.
+     * This makes it harder for attackers to determine if a username/email exists
+     * based on response time differences.
+     *
+     * @see <a href="https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html#authentication-responses">OWASP Authentication Responses</a>
+     */
+    private void addAntiTimingDelay() {
+        try {
+            Thread.sleep(ThreadLocalRandom.current().nextInt(50, 151));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

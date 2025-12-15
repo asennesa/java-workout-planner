@@ -114,12 +114,6 @@
 		<scope>provided</scope>
 	</dependency>
 
-	<!-- Liquibase for database migration management -->
-	<dependency>
-		<groupId>org.liquibase</groupId>
-		<artifactId>liquibase-core</artifactId>
-	</dependency>
-
 	<!-- Micrometer for security metrics and monitoring -->
 	<dependency>
 		<groupId>org.springframework.boot</groupId>
@@ -259,37 +253,37 @@
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>3.2.5</version>
 				<configuration>
-					<!-- 
+					<!--
 						PERFORMANCE OPTIMIZATION: Parallel Test Execution
-						
-						Benefits:
-						- Reduces total test execution time by 50-60%
-						- Better utilization of multi-core CPUs
-						- Faster feedback loop for developers
-						
+
 						Strategy:
 						- Run test CLASSES in parallel (not methods)
-						- Use 2 threads per CPU core for optimal balance
-						- Integration tests with Testcontainers are thread-safe
+						- Use 1 thread per CPU core for stability with Testcontainers
+						- SharedPostgreSQLContainer ensures single container for all tests
 						- Unit tests with Mockito are inherently isolated
-						
-						Benchmarks:
-						- Before: ~2-3 minutes (sequential)
-						- After: ~1-1.5 minutes (parallel)
+
+						Note: Reduced from 2 threads per core to 1 for better stability
+						with integration tests sharing a single PostgreSQL container.
+						The SharedPostgreSQLContainer singleton + container reuse provides
+						the main performance benefit.
 					-->
 					<parallel>classes</parallel>
-					<threadCount>2</threadCount>
+					<threadCount>1</threadCount>
 					<perCoreThreadCount>true</perCoreThreadCount>
-					
+
+					<!-- Reuse forked JVMs for faster test execution -->
+					<reuseForks>true</reuseForks>
+					<forkCount>1</forkCount>
+
 					<!-- Fail build if tests fail -->
 					<testFailureIgnore>false</testFailureIgnore>
-					
+
 					<!-- Include/exclude patterns -->
 					<includes>
 						<include>**/*Test.java</include>
 						<include>**/*Tests.java</include>
 					</includes>
-					
+
 					<!-- System properties for tests -->
 					<systemPropertyVariables>
 						<java.awt.headless>true</java.awt.headless>
