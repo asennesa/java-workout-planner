@@ -1,130 +1,128 @@
-# Java Workout Planner
+# Workout Planner
 
-A full-stack workout planning application built with Spring Boot and React.
-
-## Project Structure
-
-```
-java-workout-planner/
-├── backend/          # Spring Boot REST API
-├── frontend/         # React web application
-└── README.md         # This file
-```
+Full-stack fitness tracking application for managing workouts, exercises, and training sets.
 
 ## Tech Stack
 
 ### Backend
-- Java 17+
-- Spring Boot 3.x
-- Spring Security with Auth0
-- Spring Data JPA
-- PostgreSQL
-- Liquibase (Database migrations)
-- Maven
+
+| Category | Technology |
+|----------|------------|
+| Language | Java 17 |
+| Framework | Spring Boot 3.5 |
+| Security | Spring Security, Auth0 OAuth2, JWT (RS256) |
+| Database | PostgreSQL 15 |
+| ORM | Spring Data JPA / Hibernate |
+| Migrations | Liquibase |
+| Build | Maven 3.11 |
+| API Docs | Springdoc OpenAPI / Swagger UI |
+| Rate Limiting | Bucket4j |
+| Caching | Caffeine |
+| Monitoring | Micrometer, Prometheus |
+| Code Gen | MapStruct, Lombok |
+| Testing | JUnit 5, Mockito, Testcontainers, REST Assured, H2 |
+| Code Quality | SonarQube, JaCoCo |
 
 ### Frontend
-- React 18
-- JavaScript/JSX
-- Create React App
 
-## Getting Started
+| Category | Technology |
+|----------|------------|
+| Language | TypeScript 5.6 |
+| Framework | React 18 |
+| Build | Vite 5.4 |
+| Styling | Tailwind CSS 4.1 |
+| Auth | Auth0 React SDK |
+| HTTP Client | Axios |
+| Routing | React Router v6 |
+| Testing | Vitest, React Testing Library |
+| Linting | ESLint 9 |
+
+### Infrastructure
+
+| Category | Technology |
+|----------|------------|
+| Database | PostgreSQL 15 (Docker) |
+| Code Quality | SonarQube (Docker) |
+| Containers | Docker Compose |
+
+## Quick Start
 
 ### Prerequisites
-- Java 17 or higher
-- Node.js 18+ and npm
-- PostgreSQL (or H2 for development)
-- Maven (or use included Maven wrapper)
 
-### Backend Setup
+- Java 17+
+- Node.js 18+
+- PostgreSQL 15+ (or use Docker)
 
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
+### Database
 
-2. Configure your database in `src/main/resources/application.properties`
-
-3. Run the application:
-   ```bash
-   ./mvnw spring-boot:run
-   ```
-
-   The API will be available at `http://localhost:8080`
-
-4. View API documentation:
-   - Swagger UI: `http://localhost:8080/swagger-ui.html`
-   - OpenAPI spec: `http://localhost:8080/v3/api-docs`
-
-### Frontend Setup
-
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Start the development server:
-   ```bash
-   npm start
-   ```
-
-   The app will open at `http://localhost:3000`
-
-## Development
-
-### Running Tests
-
-**Backend:**
 ```bash
 cd backend
-./mvnw test
+docker-compose up -d  # Starts PostgreSQL on port 5432
 ```
 
-**Frontend:**
-```bash
-cd frontend
-npm test
-```
+### Backend
 
-### Building for Production
-
-**Backend:**
 ```bash
 cd backend
-./mvnw clean package
+
+# Set required environment variables
+export DB_USERNAME=postgres
+export DB_PASSWORD=postgres
+export AUTH0_ISSUER_URI=https://your-tenant.auth0.com/
+export AUTH0_AUDIENCE=your-api-audience
+
+./mvnw spring-boot:run
 ```
 
-**Frontend:**
+
+### Frontend
+
 ```bash
 cd frontend
-npm run build
+npm install
+npm run dev
 ```
+
+App runs on `http://localhost:3000`
 
 ## API Documentation
 
-The backend API is documented using OpenAPI 3.0 (Swagger). When the backend is running, visit:
-- Interactive docs: `http://localhost:8080/swagger-ui.html`
+Swagger UI available at `http://localhost:8081/swagger-ui.html` (dev mode)
+
+## Testing
+
+```bash
+# Backend (includes Testcontainers integration tests)
+cd backend && ./mvnw test
+
+# Frontend
+cd frontend && npm test
+```
+
+## Project Structure
+
+```
+├── backend/           # Spring Boot REST API
+│   ├── controller/    # REST endpoints
+│   ├── service/       # Business logic
+│   ├── entity/        # JPA entities
+│   ├── repository/    # Data access
+│   └── security/      # Auth0 integration
+│
+└── frontend/          # React SPA
+    ├── pages/         # Route components
+    ├── components/    # Reusable UI
+    ├── services/      # API client
+    └── auth/          # Auth0 provider
+```
 
 ## Features
 
-- User authentication and authorization (Auth0)
-- Workout session management
-- Exercise tracking (strength, cardio, flexibility)
-- Set-based exercise logging
-- User profile management
-- Audit logging
+- Workout session management (create, track, complete)
+- Exercise library with three types: strength, cardio, flexibility
+- Set-based logging with type-specific metrics
+- User authentication via Auth0
+- Role-based access control
+- Rate limiting and security headers
 
-## Contributing
 
-1. Create a feature branch
-2. Make your changes
-3. Run tests
-4. Submit a pull request
-
-## License
-
-[Your License Here]
